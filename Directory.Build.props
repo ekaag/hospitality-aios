@@ -9,8 +9,9 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- CS1591: missing XML docs. Required only on public ports/contracts (coding-standards.md §3), enabled per project there. -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- CS1591: missing XML docs. Required (as an error) only on public ports and contracts (coding-standards.md §3). -->
+    <RequireXmlDocs Condition="$(MSBuildProjectName.StartsWith('HospitalityOS.Ports')) Or '$(MSBuildProjectName)' == 'HospitalityOS.Contracts' Or '$(MSBuildProjectName)' == 'HospitalityOS.IntegrationContracts'">true</RequireXmlDocs>
+    <NoWarn Condition="'$(RequireXmlDocs)' != 'true'">$(NoWarn);CS1591</NoWarn>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 </Project>

@@ -42,6 +42,7 @@ Rules:
 - Dependencies point inward only (P9). A lower layer never references a higher one.
 - Domain projects never reference other domain projects; cross-domain links are by ID.
 - Vendor SDK packages (`Azure.*`, `AWSSDK.*`, `Anthropic*`, `OpenAI*`, `Npgsql`, `StackExchange.Redis`, …) may be referenced **only** by `src/Adapters/*` projects (P5).
+- `SharedKernel`, domain, and contract projects reference no packages. Port projects may reference only vendor-neutral `Microsoft.Extensions.*.Abstractions` packages.
 - Only `src/Hosts/*` reference adapter projects.
 
 ## 3. Project Naming

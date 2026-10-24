@@ -111,6 +111,25 @@ One pattern for all three port families:
 - Startup validation: every required port has a binding; unknown adapter names fail fast.
 - Health checks per bound adapter.
 
+Implemented in A3: abstractions in `HospitalityOS.Ports` (`Bindings/`), implementation in `HospitalityOS.Bindings`. Configuration shape:
+
+```json
+"Bindings": {
+  "EventTransport": {
+    "Default":    { "Adapter": "InMemory" },
+    "Operations": { "guest-notifications": { "Adapter": "AzureServiceBus", "Settings": { "...": "..." } } },
+    "Tenants":    { "tenant-a": { "Default": { "Adapter": "..." }, "Operations": { "...": { "Adapter": "..." } } } }
+  }
+}
+```
+
+- Host: `services.AddBindings(configuration)`; per port: `services.AddPortBinding<TPort>()` (key defaults to the type name without `I`).
+- Adapter projects: `services.AddSingleton<IAdapterFactory<TPort>, MyFactory>()`; factories may override `ValidateSettings`.
+- Consumers: `IBindingResolver<TPort>.Resolve(new BindingContext(operation, tenant))`; precedence tenant+operation → tenant default → operation → default; one cached instance per binding.
+- Startup fails (`OptionsValidationException`) on: missing default, missing/unknown adapter name, invalid settings, or bindings for an unregistered port.
+- Health check `bindings` resolves and probes (`IAdapterHealthProbe`) every configured binding.
+- Configuration is read once; changes require restart.
+
 ---
 
 ## 3. Phase 1 Technical Decisions
@@ -150,6 +169,7 @@ src/
     HospitalityOS.Domain.Guests/           # Guest, StayContext, Conversation, GuestMessage
   Platform/
     HospitalityOS.Application/             # commands/queries per module, uses ports only
+    HospitalityOS.Bindings/                # binding resolver, startup validation, health checks (2.4)
     HospitalityOS.Eventing/                # envelope, outbox dispatcher, inbox, retry, replay
     HospitalityOS.Capabilities/            # registry, executor, definitions
     HospitalityOS.Ai/                      # gateway, inference router, context builder, traces
@@ -361,6 +381,7 @@ Follows P12–P14. Phase 1 specifics:
 | 2026-10-23 | C#/.NET 10 modular monolith; Azure first target via adapters only; local adapters (SQLite, in-memory) for dev/tests; Fake + Anthropic inference adapters first. |
 | 2026-10-23 | Terraform (not Bicep) + GitHub Actions for idempotent IaC deployments. |
 | 2026-10-23 | Architecture principles extracted to [architecture-principles.md](architecture-principles.md); this plan references them by ID. |
+| 2026-10-23 | A3: binding implementation lives in new platform project `HospitalityOS.Bindings`; `Ports` may reference vendor-neutral `Microsoft.Extensions.*.Abstractions`. Startup validation uses `ValidateOnStart`. `.editorconfig` requires accessibility modifiers except on interface members. LF line endings enforced via `.gitattributes`. |
 | 2026-10-23 | AI-assisted onboarding from website/documents is out of Phase 1 scope; specified as Phase 2 candidate 2.1 in [phase-2-product-spec-hospitality-ai-os.md](phase-2-product-spec-hospitality-ai-os.md). Phase 1 keeps manual admin configuration. |
 | 2026-10-23 | A1: `.slnx` solution format; xUnit v3 on Microsoft.Testing.Platform; built-in asserts (FluentAssertions licensing); aggregate repository interfaces live in domain projects so `Ports` stays SharedKernel-only. |
 | 2026-10-23 | Solution structure rules and coding standards split into [solution-structure.md](solution-structure.md) and [coding-standards.md](coding-standards.md). |
@@ -375,4 +396,5 @@ None.
 |---|---|
 | A1 Repository + solution skeleton | ✅ |
 | A2 Architecture tests | ✅ project-graph rules (layer references, adapter-only packages, SDK, naming, solution membership) + type rules (vendor/EF/infra dependencies, adapter visibility); violations proven to fail |
-| A3 Binding mechanism | ⏳ next |
+| A3 Binding mechanism | ✅ per-operation and per-tenant bindings, fail-fast startup validation (unit + host integration tests), binding health check |
+| A4 CI | ⏳ next |

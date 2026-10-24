@@ -63,6 +63,25 @@ public sealed class PackageReferenceTests
 
     [Theory]
     [MemberData(nameof(SourceProjectNames))]
+    public void PackageReferences_InPortProjects_AreOnlyMicrosoftExtensionsAbstractions(string projectName)
+    {
+        ProjectInfo project = SolutionModel.GetSourceProject(projectName);
+        bool isPortProject = project.Layer is Layer.Core && project.Name != SolutionModel.SharedKernelName;
+
+        List<string> violations = isPortProject
+            ? project.PackageReferences
+                .Where(package => !(package.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal)
+                    && package.EndsWith(".Abstractions", StringComparison.Ordinal)))
+                .ToList()
+            : [];
+
+        Assert.True(
+            violations.Count == 0,
+            $"{project.Name} may reference only Microsoft.Extensions.*.Abstractions packages, but references: {string.Join(", ", violations)}");
+    }
+
+    [Theory]
+    [MemberData(nameof(SourceProjectNames))]
     public void Sdk_OutsideHosts_IsPlainDotNetSdk(string projectName)
     {
         ProjectInfo project = SolutionModel.GetSourceProject(projectName);

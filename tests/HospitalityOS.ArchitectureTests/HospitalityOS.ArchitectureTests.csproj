@@ -23,6 +23,7 @@
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
     <ProjectReference Include="../../src/Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
+    <ProjectReference Include="../../src/Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <ProjectReference Include="../../src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />

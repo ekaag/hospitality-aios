@@ -1,6 +1,9 @@
+using HospitalityOS.Bindings;
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHealthChecks();
+builder.Services.AddBindings(builder.Configuration);
+builder.Services.AddHealthChecks().AddBindingHealthChecks();
 
 WebApplication app = builder.Build();
 
