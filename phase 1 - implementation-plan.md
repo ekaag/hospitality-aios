@@ -373,5 +373,6 @@ None.
 
 | Slice | Status |
 |---|---|
-| A1 Repository + solution skeleton | ✅ built, tested, format-verified; naming rules proven to fail the build (not yet committed) |
-| A2 Architecture tests | ⏳ next |
+| A1 Repository + solution skeleton | ✅ |
+| A2 Architecture tests | ✅ project-graph rules (layer references, adapter-only packages, SDK, naming, solution membership) + type rules (vendor/EF/infra dependencies, adapter visibility); violations proven to fail |
+| A3 Binding mechanism | ⏳ next |

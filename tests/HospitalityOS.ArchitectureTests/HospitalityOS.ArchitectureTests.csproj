@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <!-- References every source project so their assemblies can be loaded and inspected. -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/Core/HospitalityOS.SharedKernel/HospitalityOS.SharedKernel.csproj" />
+    <ProjectReference Include="../../src/Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
+    <ProjectReference Include="../../src/Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
+    <ProjectReference Include="../../src/Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
+    <ProjectReference Include="../../src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />
+    <ProjectReference Include="../../src/Hosts/HospitalityOS.Api/HospitalityOS.Api.csproj" />
+  </ItemGroup>
+
+</Project>

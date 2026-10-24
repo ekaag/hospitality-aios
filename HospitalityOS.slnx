@@ -29,6 +29,7 @@
     <Project Path="src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/HospitalityOS.ArchitectureTests/HospitalityOS.ArchitectureTests.csproj" />
     <Project Path="tests/HospitalityOS.IntegrationTests/HospitalityOS.IntegrationTests.csproj" />
   </Folder>
 </Solution>
