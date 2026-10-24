@@ -1,0 +1,14 @@
+# Normalize line endings to LF in the repo and working tree, matching .editorconfig
+# (end_of_line = lf) so `dotnet format --verify-no-changes` behaves the same on every OS.
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.dll binary
+*.exe binary
