@@ -1,0 +1,34 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Adapters/">
+    <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />
+    <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
+    <Project Path="src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
+  </Folder>
+  <Folder Name="/src/Contracts/">
+    <Project Path="src/Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
+    <Project Path="src/Core/HospitalityOS.SharedKernel/HospitalityOS.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Domains/">
+    <Project Path="src/Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
+  </Folder>
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/Hosts/HospitalityOS.Api/HospitalityOS.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Platform/">
+    <Project Path="src/Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
+    <Project Path="src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HospitalityOS.IntegrationTests/HospitalityOS.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

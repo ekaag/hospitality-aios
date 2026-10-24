@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="../../Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
+    <ProjectReference Include="../../Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
+    <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
+    <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />
+  </ItemGroup>
+
+</Project>
