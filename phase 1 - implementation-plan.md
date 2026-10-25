@@ -42,11 +42,11 @@ Concrete ports required by Phase 1 under P5/P6.
 
 | Port | Purpose | Local/dev adapter | Azure adapter | Other options (later) |
 |---|---|---|---|---|
-| `IUnitOfWork` (Ports), `I{Aggregate}Repository` (in each domain project) | Transactional persistence of aggregates | EF Core + SQLite | EF Core + Azure SQL / Azure Database for PostgreSQL | Cosmos DB, AWS RDS |
-| `IReadStore` / query services | Read-side queries for APIs & capabilities | EF Core + SQLite | Same as above | Read replicas, Cosmos |
-| `IOutboxStore`, `IInboxStore` | Transactional outbox / processed-event tracking | EF Core | EF Core | — |
+| `IUnitOfWork` (Ports), `I{Aggregate}Repository` (in each domain project) | Transactional persistence of aggregates | In-memory (pure, no EF); EF Core + SQLite | EF Core + Azure SQL / Azure Database for PostgreSQL | Cosmos DB, AWS RDS |
+| `IReadStore` / query services | Read-side queries for APIs & capabilities | In-memory; EF Core + SQLite | Same as above | Read replicas, Cosmos |
+| `IOutboxStore`, `IInboxStore` | Transactional outbox / processed-event tracking | In-memory; EF Core + SQLite | EF Core | — |
 | `IEventTransport` | Deliver events between dispatcher and handlers | In-memory channel | Azure Service Bus | Event Grid, Kafka, RabbitMQ, AWS SNS/SQS |
-| `IEventStore` | Durable event log for replay/audit | EF Core table | EF Core / Event Hubs capture | EventStoreDB |
+| `IEventStore` | Durable event log for replay/audit | In-memory; EF Core + SQLite | EF Core / Event Hubs capture | EventStoreDB |
 | `IBlobStore` | Evidence photos, content assets | Local filesystem | Azure Blob Storage | S3, GCS |
 | `ISecretStore` | Secrets and API keys | User-secrets / env vars | Azure Key Vault | AWS Secrets Manager, Vault |
 | `IDistributedCache` (platform-owned wrapper) | Cache for property context | In-memory | Azure Cache for Redis | Any Redis |
@@ -177,7 +177,8 @@ src/
     HospitalityOS.Authorization/
     HospitalityOS.IntegrationRuntime/      # provider registry/resolver, ExternalReference
   Adapters/
-    HospitalityOS.Adapters.Local/          # in-memory/filesystem/dev implementations
+    HospitalityOS.Adapters.Local/          # in-memory/filesystem/dev implementations of non-persistence ports
+    HospitalityOS.Adapters.InMemory/       # pure in-memory persistence: repositories, unit of work, read store, outbox/inbox, event store
     HospitalityOS.Adapters.EfCore/         # repositories, outbox/inbox, read store (provider-neutral EF)
     HospitalityOS.Adapters.EfCore.Sqlite/
     HospitalityOS.Adapters.EfCore.SqlServer/       # Azure SQL (later)
@@ -272,7 +273,7 @@ Each slice: **Goal → Deliverables → Done when**. Sized for one focused sessi
 
 ### Milestone B — Canonical Domain Core (Epic 2)
 
-**B1. SharedKernel** — typed IDs, `Entity`/`AggregateRoot` with raised domain events, `Result`/`Error`, validation errors, `TenantId`.
+**B1. SharedKernel** — typed IDs, `Entity`/`AggregateRoot` with raised domain events, `Result`/`Error`, validation errors, `TenantId`; `IIdGenerator` port with GUID v7 adapter in `Adapters.Local`.
 **B2. Organization + Property** — invariants, `PropertyCreated`/`PropertyUpdated`, validation errors (Journey 1).
 **B3. Spaces + Accommodation** — hierarchical `Space`; `AccommodationType`, `AccommodationUnit`.
 **B4. OperatingHours** — multiple intervals/day, closed days, temporary closures, date overrides, overnight intervals, time zone, versioned (Journeys 2, 16).
@@ -284,10 +285,12 @@ Each slice: **Goal → Deliverables → Done when**. Sized for one focused sessi
 
 ### Milestone C — Persistence + Event Backbone (Epic 3)
 
-**C1. Persistence ports + contract tests** — `IUnitOfWork`, repositories, `IReadStore`; contract test suite.
-**C2. EF Core adapter (SQLite)** — DbContext, configurations, tenant query filters, migrations; passes C1 contract tests; tenant isolation test.
+Persistence has two interchangeable implementations behind the same ports, selected by binding: **InMemory** (`HospitalityOS.Adapters.InMemory`, pure collections, no EF — not the EF Core InMemory provider) and **EF Core + SQLite**. Both pass the same contract suite; Azure SQL (K1) passes it too.
+
+**C1. Persistence ports + in-memory adapter + contract tests** — `IUnitOfWork`, repositories, `IReadStore`; reusable contract test suite; `HospitalityOS.Adapters.InMemory` passing it (atomic commit of aggregates + raised events, tenant filtering, optimistic concurrency). A2 allow-list updated so this persistence adapter may reference `Domains`.
+**C2. EF Core adapter (SQLite)** — DbContext, configurations, tenant query filters, migrations; passes the same C1 contract tests; tenant isolation test runs against both adapters.
 **C3. Event envelope + contracts** — spec §8 envelope, versioned payloads for all §8 events, serializer.
-**C4. Eventing ports + local adapters** — `IEventTransport`, `IOutboxStore`, `IInboxStore`, `IEventStore`; in-memory transport; contract tests.
+**C4. Eventing ports + local adapters** — `IEventTransport`, `IOutboxStore`, `IInboxStore`, `IEventStore`; in-memory transport; in-memory and EF Core implementations of outbox/inbox/event store; contract tests run against both.
 **C5. Outbox dispatcher** — events saved in same transaction as aggregate; dispatch, retry/backoff, dead-letter.
 **C6. Idempotent handlers + replay** — inbox dedupe per (handler, eventId); replay by range/correlation; Journey 19 test.
 **C7. Correlation/causation + audit** — ambient execution context; append-only `AuditRecord`.
@@ -385,6 +388,9 @@ Follows P12–P14. Phase 1 specifics:
 | 2026-10-23 | AI-assisted onboarding from website/documents is out of Phase 1 scope; specified as Phase 2 candidate 2.1 in [phase-2-product-spec-hospitality-ai-os.md](phase-2-product-spec-hospitality-ai-os.md). Phase 1 keeps manual admin configuration. |
 | 2026-10-23 | A1: `.slnx` solution format; xUnit v3 on Microsoft.Testing.Platform; built-in asserts (FluentAssertions licensing); aggregate repository interfaces live in domain projects so `Ports` stays SharedKernel-only. |
 | 2026-10-23 | Solution structure rules and coding standards split into [solution-structure.md](solution-structure.md) and [coding-standards.md](coding-standards.md). |
+| 2026-10-24 | Persistence has two independent implementations behind the same ports: pure in-memory (`HospitalityOS.Adapters.InMemory`, no EF; EF Core InMemory provider rejected as unrepresentative) and EF Core + SQLite. Both must pass one shared contract suite (C1, C2, C4). In-memory lives in its own project because repository adapters reference `Domains`, which non-persistence local adapters must not. |
+| 2026-10-24 | B1 also adds `IIdGenerator` (Ports) with a GUID v7 implementation in `Adapters.Local`, since domain code may not call `Guid.NewGuid()`. |
+| 2026-10-24 | B1: `Result` is a class (simpler with nullable reference types; allocation irrelevant at this scale). Strongly typed IDs are hand-written `readonly record struct`s implementing `ITypedId` that reject `Guid.Empty`; a source generator can come later. `Error` keeps its name with a scoped CA1716 suppression (clashes only with a VB keyword). Domain events carry `OccurredAt` only; event ID, correlation and causation belong to the C3 envelope. |
 | 2026-10-24 | A4: CI on GitHub-hosted `ubuntu-24.04`; third-party actions pinned to commit SHAs; actionlint runs as a CI job from a checksum-verified release binary (it ships no action); NuGet caching via `actions/cache` keyed on central package/props/csproj hashes (no lock files yet); frontend, contract-test and eval steps added by J1/C1/H3. |
 
 ## 9. Waivers
@@ -399,4 +405,5 @@ None.
 | A2 Architecture tests | ✅ project-graph rules (layer references, adapter-only packages, SDK, naming, solution membership) + type rules (vendor/EF/infra dependencies, adapter visibility); violations proven to fail |
 | A3 Binding mechanism | ✅ per-operation and per-tenant bindings, fail-fast startup validation (unit + host integration tests), binding health check |
 | A4 CI | ✅ `ci.yml` (green on GitHub, run 40158426638): actionlint (checksum-verified binary), restore, Release build, `dotnet format --verify-no-changes`, architecture + unit + integration tests, TRX upload on failure; SHA-pinned actions, read-only token, per-ref concurrency, NuGet cache |
-| B1 SharedKernel | ⏳ next |
+| B1 SharedKernel | ✅ typed-ID pattern + `TenantId`/`ITenantScoped`, `Entity`/`AggregateRoot` with raise/dequeue of domain events, `Result`/`Result<T>`/`Error`/`ValidationError`; `IIdGenerator` port + GUID v7 adapter bound via A3 |
+| B2 Organization + Property | ⏳ next |
