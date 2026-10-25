@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Results;
 
 namespace HospitalityOS.Domain.Properties.Properties;
@@ -7,17 +8,16 @@ namespace HospitalityOS.Domain.Properties.Properties;
 /// </summary>
 internal static class PropertyDetailsRules
 {
-    public const int MaxTextLength = 200;
     public const int MaxPhoneLength = 32;
 
     public static Result<PropertyDetails> Validate(PropertyDetails details)
     {
         List<FieldError> errors = [];
 
-        string name = Required(details.Name, "name", "property.name", errors);
+        string name = TextRules.Required(details.Name, "name", "property.name", errors);
         string timeZoneId = ValidateTimeZone(details.TimeZoneId, errors);
         PostalAddress? address = ValidateAddress(details.Address, errors);
-        string? phone = Optional(details.ContactPhone, "contactPhone", "property.contact_phone", MaxPhoneLength, errors);
+        string? phone = TextRules.Optional(details.ContactPhone, "contactPhone", "property.contact_phone", errors, MaxPhoneLength);
         string? email = ValidateEmail(details.ContactEmail, errors);
 
         if (errors.Count > 0)
@@ -31,7 +31,7 @@ internal static class PropertyDetailsRules
 
     private static string ValidateTimeZone(string? value, List<FieldError> errors)
     {
-        string timeZoneId = Required(value, "timeZone", "property.time_zone", errors);
+        string timeZoneId = TextRules.Required(value, "timeZone", "property.time_zone", errors);
 
         // Require an IANA ID so the value means the same on every OS and in every API client.
         bool isIana = timeZoneId.Length > 0
@@ -54,11 +54,11 @@ internal static class PropertyDetailsRules
             return null;
         }
 
-        string line1 = Required(address.Line1, "address.line1", "property.address_line1", errors);
-        string? line2 = Optional(address.Line2, "address.line2", "property.address_line2", MaxTextLength, errors);
-        string city = Required(address.City, "address.city", "property.address_city", errors);
-        string? region = Optional(address.Region, "address.region", "property.address_region", MaxTextLength, errors);
-        string? postalCode = Optional(address.PostalCode, "address.postalCode", "property.address_postal_code", MaxTextLength, errors);
+        string line1 = TextRules.Required(address.Line1, "address.line1", "property.address_line1", errors);
+        string? line2 = TextRules.Optional(address.Line2, "address.line2", "property.address_line2", errors);
+        string city = TextRules.Required(address.City, "address.city", "property.address_city", errors);
+        string? region = TextRules.Optional(address.Region, "address.region", "property.address_region", errors);
+        string? postalCode = TextRules.Optional(address.PostalCode, "address.postalCode", "property.address_postal_code", errors);
         string countryCode = address.CountryCode?.Trim().ToUpperInvariant() ?? "";
 
         if (countryCode.Length != 2 || !countryCode.All(char.IsAsciiLetterUpper))
@@ -71,7 +71,7 @@ internal static class PropertyDetailsRules
 
     private static string? ValidateEmail(string? value, List<FieldError> errors)
     {
-        string? email = Optional(value, "contactEmail", "property.contact_email", MaxTextLength, errors);
+        string? email = TextRules.Optional(value, "contactEmail", "property.contact_email", errors);
 
         // Deliberately loose: one '@' with text on both sides. Deliverability is not a domain rule.
         int at = email?.IndexOf('@', StringComparison.Ordinal) ?? -1;
@@ -82,33 +82,5 @@ internal static class PropertyDetailsRules
         }
 
         return email;
-    }
-
-    private static string Required(string? value, string field, string codePrefix, List<FieldError> errors)
-    {
-        string trimmed = value?.Trim() ?? "";
-
-        if (trimmed.Length == 0)
-        {
-            errors.Add(new FieldError(field, codePrefix + "_required", $"{field} is required."));
-        }
-        else if (trimmed.Length > MaxTextLength)
-        {
-            errors.Add(new FieldError(field, codePrefix + "_too_long", $"{field} must be at most {MaxTextLength} characters."));
-        }
-
-        return trimmed;
-    }
-
-    private static string? Optional(string? value, string field, string codePrefix, int maxLength, List<FieldError> errors)
-    {
-        string? trimmed = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-        if (trimmed is not null && trimmed.Length > maxLength)
-        {
-            errors.Add(new FieldError(field, codePrefix + "_too_long", $"{field} must be at most {maxLength} characters."));
-        }
-
-        return trimmed;
     }
 }
