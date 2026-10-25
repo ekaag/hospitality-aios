@@ -67,6 +67,22 @@ Tenant/property isolation is enforced at the data-access layer, not by conventio
 ### P11 — Observable & Traceable
 Structured logs, metrics, and distributed traces everywhere, exported through vendor-neutral OpenTelemetry. Correlation and causation IDs propagate across every event, capability, and inference call. Every AI decision is reconstructable from its trace (trigger, context, sources and versions, model, prompt version, capability calls, emitted events, response), with sensitive data redacted by policy. Failed processing is visible, never silent.
 
+### P15 — Dependency Injection Through a Single Composition Root
+*(Grouped with the architecture principles; principle IDs are stable and never renumbered.)*
+
+Every dependency arrives as an interface (port) through **constructor injection**, wired by the platform's built-in container (`Microsoft.Extensions.DependencyInjection`).
+
+- **Constructor injection only.** No property or method injection; no service locator — business code never asks `IServiceProvider` for services and never reads `IConfiguration` directly (settings arrive as `IOptions<T>` of an `*Options` class). A constructor needing more than about five dependencies signals a class doing too much.
+- **Depend on ports, not implementations** (P5). `TimeProvider` is the accepted BCL exception.
+- **Domain code knows nothing about DI:** no container packages or attributes; values such as IDs and the current time are passed in as arguments.
+- **One composition root per host.** Only the host decides which implementation serves each port; adapter choice per operation/tenant goes through configuration bindings (P5), never hard-coded registrations.
+- **Each module registers itself** through one public `Add<Module>(this IServiceCollection, …)` extension in its `DependencyInjection.cs`; implementation classes stay `internal`.
+- **Deliberate lifetimes:** singleton for stateless or thread-safe services (adapters, resolvers, clock, ID generator); scoped for per-request or per-message state (unit of work, repositories, current actor and tenant); transient rarely. A singleton never captures a scoped service.
+- **Fail fast:** every host validates the container on build (`ValidateOnBuild`, `ValidateScopes`) in every environment, and bindings at startup, so wiring errors stop the host before it serves traffic.
+- **Tests don't need the container for units:** unit tests construct classes directly with fakes; integration tests use the real composition root and replace only what they need.
+
+A third-party container is allowed only behind the same registrations (via `IServiceProviderFactory`), only if it is actively maintained for the current .NET release, and only through a recorded decision.
+
 ---
 
 ## 3. Delivery Principles
@@ -110,3 +126,4 @@ Principles change only by an explicit edit to this document with a change-log en
 |---|---|
 | 2026-10-23 | Initial principles P1–P14, extracted from Phase 1 product spec §4 and Phase 1 implementation planning. |
 | 2026-10-23 | Solution structure and coding standards split into companion documents. |
+| 2026-10-24 | Added P15 — Dependency Injection Through a Single Composition Root (built-in container; Unity rejected as unmaintained for current .NET). |

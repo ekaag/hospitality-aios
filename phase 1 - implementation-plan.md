@@ -1,6 +1,6 @@
 # Hospitality AI OS — Phase 1 Implementation Plan
 
-**Governing principles:** [architecture-principles.md](architecture-principles.md) — this plan conforms to P1–P14; references like `(P5)` point there.
+**Governing principles:** [architecture-principles.md](architecture-principles.md) — this plan conforms to P1–P15; references like `(P5)` point there.
 **Standards:** [solution-structure.md](solution-structure.md) · [coding-standards.md](coding-standards.md)
 **Source spec:** [phase-1-product-spec-hospitality-ai-os.md](phase-1-product-spec-hospitality-ai-os.md)
 **Language:** C# / .NET 10
@@ -31,6 +31,7 @@ How Phase 1 realizes each principle. Waivers, if any, are recorded in §9.
 | P12 IaC, idempotent deploys | Terraform + GitHub Actions per §5; delivery foundation K0. |
 | P13 Testable by design | Port contract test suites (C1, C4, G1…); architecture tests (A2); Fake model evals (H3). |
 | P14 Small green increments | Milestones/slices §6; progress §10. |
+| P15 DI + single composition root | Built-in `Microsoft.Extensions.DependencyInjection`; constructor injection of ports; one `Add<Module>()` per project; `Api` is the only composition root and validates the container in every environment; architecture tests ban service location and `IConfiguration` in business code (A5). |
 
 ---
 
@@ -271,6 +272,11 @@ Each slice: **Goal → Deliverables → Done when**. Sized for one focused sessi
 - `.github/workflows/ci.yml`: restore, build, test; concurrency group; caching.
 - Done when: workflow is valid (actionlint) and passes on push.
 
+**A5. Dependency injection conformance (P15)**
+- Host builds the container with `ValidateOnBuild` + `ValidateScopes` in every environment.
+- Architecture tests: no `IServiceProvider`/`IServiceScopeFactory`/`IConfiguration` constructor parameters, fields, or properties outside hosts, the binding mechanism, and `DependencyInjection` classes; `IServiceCollection` extensions only in a project's single public static `DependencyInjection` class.
+- Done when: tests pass, a deliberate violation fails them, and CI is green.
+
 ### Milestone B — Canonical Domain Core (Epic 2)
 
 **B1. SharedKernel** — typed IDs, `Entity`/`AggregateRoot` with raised domain events, `Result`/`Error`, validation errors, `TenantId`; `IIdGenerator` port with GUID v7 adapter in `Adapters.Local`.
@@ -391,6 +397,9 @@ Follows P12–P14. Phase 1 specifics:
 | 2026-10-24 | Persistence has two independent implementations behind the same ports: pure in-memory (`HospitalityOS.Adapters.InMemory`, no EF; EF Core InMemory provider rejected as unrepresentative) and EF Core + SQLite. Both must pass one shared contract suite (C1, C2, C4). In-memory lives in its own project because repository adapters reference `Domains`, which non-persistence local adapters must not. |
 | 2026-10-24 | B1 also adds `IIdGenerator` (Ports) with a GUID v7 implementation in `Adapters.Local`, since domain code may not call `Guid.NewGuid()`. |
 | 2026-10-24 | B1: `Result` is a class (simpler with nullable reference types; allocation irrelevant at this scale). Strongly typed IDs are hand-written `readonly record struct`s implementing `ITypedId` that reject `Guid.Empty`; a source generator can come later. `Error` keeps its name with a scoped CA1716 suppression (clashes only with a VB keyword). Domain events carry `OccurredAt` only; event ID, correlation and causation belong to the C3 envelope. |
+| 2026-10-24 | B2: IDs referenced across domains (`OrganizationId`, `PropertyId`, alongside `TenantId`) live in `SharedKernel/Ids`, since domain projects may not reference each other; aggregate-local IDs stay in their domain. Tenant and organization are distinct IDs, as in the spec §8 envelope; an organization belongs to one tenant. Organization also raises `OrganizationCreated`/`OrganizationUpdated` (P1), beyond spec §8's minimum. Property time zones must be IANA IDs (`TimeZoneInfo.HasIanaId`) so they mean the same on every OS. Updates that change nothing are successful no-ops raising no event (P8). Repository interfaces start minimal (`GetByIdAsync`, `AddAsync`); C1 refines them with the unit of work. |
+| 2026-10-24 | CA1716 (identifiers matching VB keywords: `Property`, `Error`, `Event`) disabled in `.editorconfig`: C#-only codebase, and the spec's canonical names use these words. |
+| 2026-10-24 | P15 added: DI via the built-in `Microsoft.Extensions.DependencyInjection` container. Unity was requested and rejected: `Unity.Microsoft.DependencyInjection` was last released in Dec 2019 (targets .NET Core 3.1) and Unity.Container 6 never left RC, so it is unmaintained for .NET 10. A maintained third-party container stays possible later behind `IServiceProviderFactory`. Enforced by slice A5. |
 | 2026-10-24 | A4: CI on GitHub-hosted `ubuntu-24.04`; third-party actions pinned to commit SHAs; actionlint runs as a CI job from a checksum-verified release binary (it ships no action); NuGet caching via `actions/cache` keyed on central package/props/csproj hashes (no lock files yet); frontend, contract-test and eval steps added by J1/C1/H3. |
 
 ## 9. Waivers
@@ -406,4 +415,6 @@ None.
 | A3 Binding mechanism | ✅ per-operation and per-tenant bindings, fail-fast startup validation (unit + host integration tests), binding health check |
 | A4 CI | ✅ `ci.yml` (green on GitHub, run 40158426638): actionlint (checksum-verified binary), restore, Release build, `dotnet format --verify-no-changes`, architecture + unit + integration tests, TRX upload on failure; SHA-pinned actions, read-only token, per-ref concurrency, NuGet cache |
 | B1 SharedKernel | ✅ typed-ID pattern + `TenantId`/`ITenantScoped`, `Entity`/`AggregateRoot` with raise/dequeue of domain events, `Result`/`Result<T>`/`Error`/`ValidationError`; `IIdGenerator` port + GUID v7 adapter bound via A3 |
-| B2 Organization + Property | ⏳ next |
+| A5 DI conformance (P15) | ✅ host container validation in all environments; architecture tests for service location, `IConfiguration` injection, and registration placement; violations proven to fail |
+| B2 Organization + Property | ✅ `Organization` (tenant-scoped, name rules, `OrganizationCreated`/`OrganizationUpdated`) and `Property` (`PropertyDetails`: name, IANA time zone, address, optional contact phone/email; all-field validation; `PropertyCreated`/`PropertyUpdated`; unchanged update is a no-op); `IOrganizationRepository`/`IPropertyRepository` interfaces |
+| B3 Spaces + Accommodation | ⏳ next |

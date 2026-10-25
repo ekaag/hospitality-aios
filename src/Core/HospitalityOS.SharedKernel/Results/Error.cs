@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace HospitalityOS.SharedKernel.Results;
 
 /// <summary>
@@ -8,7 +6,6 @@ namespace HospitalityOS.SharedKernel.Results;
 /// <param name="Code">Stable, machine-readable code, lower-case dotted, e.g. <c>humanaction.already_failed</c>.</param>
 /// <param name="Message">Human-readable description.</param>
 /// <param name="Kind">The failure category.</param>
-[SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "C#-only codebase; 'Error' is the name coding-standards.md §3 uses and clashes only with a VB keyword.")]
 public record Error(string Code, string Message, ErrorKind Kind)
 {
     /// <summary>

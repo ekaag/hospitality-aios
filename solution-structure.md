@@ -72,7 +72,7 @@ Pattern: `HospitalityOS.<Layer-or-Kind>[.<Module>][.<Technology>]`
 HospitalityOS.Domain.<Module>/
   <Aggregate>/                # one folder per aggregate root
     <Aggregate>.cs            # aggregate root
-    <Aggregate>Id.cs          # strongly typed ID
+    <Aggregate>Id.cs          # strongly typed ID (except IDs other domains reference, e.g. PropertyId: those live in SharedKernel/Ids)
     <Aggregate>Status.cs      # enums / value objects specific to the aggregate
     I<Aggregate>Repository.cs # persistence port for this aggregate (pure interface; implemented by a persistence adapter)
     Events/                   # domain events raised by this aggregate

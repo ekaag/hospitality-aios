@@ -149,7 +149,7 @@ Do not build beyond interfaces/placeholders unless needed for a Phase 1 journey:
 
 # 4. Non-Negotiable Architecture Principles
 
-Architecture principles are defined once, for all phases, in [architecture-principles.md](architecture-principles.md). Phase 1 conforms to all of them (P1–P14).
+Architecture principles are defined once, for all phases, in [architecture-principles.md](architecture-principles.md). Phase 1 conforms to all of them (P1–P15).
 
 The principles originally listed here map as follows:
 

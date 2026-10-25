@@ -84,7 +84,7 @@ public sealed class EventDispatcher
 - **Time:** inject `TimeProvider`; never call `DateTime.Now`, `DateTime.UtcNow`, or `DateTimeOffset.Now` directly. Store timestamps as `DateTimeOffset` (UTC). Convert to property-local time only at the edge.
 - **IDs:** generate through `IIdGenerator`; never call `Guid.NewGuid()` in domain or application code.
 - **Errors:** expected failures (validation, illegal state transitions, not found) return `Result`/`Error`. Exceptions are for programming errors and infrastructure faults only.
-- **No static mutable state.** No service locator. Dependencies come through constructors.
+- **No static mutable state.** No service locator. Dependencies come through constructors (P15): inject ports, settings via `IOptions<T>`; never inject `IServiceProvider` or `IConfiguration` into business code.
 - **Domain purity:** domain types have no attributes or dependencies for persistence, serialization, or DI.
 - **Logging:** structured logging with message templates (`logger.LogInformation("Dispatched {EventId}", eventId)`), never string interpolation in log calls. Never log secrets or unredacted guest PII.
 - **Comments:** explain *why*, not *what*. XML doc comments are required on public ports and contracts.

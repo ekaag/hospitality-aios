@@ -2,6 +2,14 @@ using HospitalityOS.Bindings;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+// P15: wiring errors (missing registrations, singletons capturing scoped services) fail at startup in
+// every environment, not only Development.
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateOnBuild = true;
+    options.ValidateScopes = true;
+});
+
 builder.Services.AddBindings(builder.Configuration);
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 

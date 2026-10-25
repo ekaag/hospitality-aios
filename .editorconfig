@@ -130,6 +130,10 @@ dotnet_diagnostic.IDE0040.severity = error
 # Unused usings
 dotnet_diagnostic.IDE0005.severity = error
 
+# CA1716 flags names that are Visual Basic keywords (Property, Error, Event...). C#-only codebase, and the
+# canonical domain model (spec §6) uses these names, so the rule is off.
+dotnet_diagnostic.CA1716.severity = none
+
 # Formatting
 csharp_new_line_before_open_brace = all
 csharp_new_line_before_else = true
