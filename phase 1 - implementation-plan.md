@@ -385,6 +385,7 @@ Follows P12–P14. Phase 1 specifics:
 | 2026-10-23 | AI-assisted onboarding from website/documents is out of Phase 1 scope; specified as Phase 2 candidate 2.1 in [phase-2-product-spec-hospitality-ai-os.md](phase-2-product-spec-hospitality-ai-os.md). Phase 1 keeps manual admin configuration. |
 | 2026-10-23 | A1: `.slnx` solution format; xUnit v3 on Microsoft.Testing.Platform; built-in asserts (FluentAssertions licensing); aggregate repository interfaces live in domain projects so `Ports` stays SharedKernel-only. |
 | 2026-10-23 | Solution structure rules and coding standards split into [solution-structure.md](solution-structure.md) and [coding-standards.md](coding-standards.md). |
+| 2026-10-24 | A4: CI on GitHub-hosted `ubuntu-24.04`; third-party actions pinned to commit SHAs; actionlint runs as a CI job from a checksum-verified release binary (it ships no action); NuGet caching via `actions/cache` keyed on central package/props/csproj hashes (no lock files yet); frontend, contract-test and eval steps added by J1/C1/H3. |
 
 ## 9. Waivers
 
@@ -397,4 +398,5 @@ None.
 | A1 Repository + solution skeleton | ✅ |
 | A2 Architecture tests | ✅ project-graph rules (layer references, adapter-only packages, SDK, naming, solution membership) + type rules (vendor/EF/infra dependencies, adapter visibility); violations proven to fail |
 | A3 Binding mechanism | ✅ per-operation and per-tenant bindings, fail-fast startup validation (unit + host integration tests), binding health check |
-| A4 CI | ⏳ next |
+| A4 CI | 🔄 awaiting first green run on GitHub — `ci.yml`: actionlint (checksum-verified binary), restore, Release build, `dotnet format --verify-no-changes`, architecture + unit + integration tests, TRX upload on failure; SHA-pinned actions, read-only token, per-ref concurrency, NuGet cache |
+| B1 SharedKernel | ⏳ next |
