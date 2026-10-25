@@ -1,5 +1,6 @@
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Properties.Hours.Events;
+using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.UnitTests.Domain.Properties.TestDoubles;
@@ -10,7 +11,7 @@ namespace HospitalityOS.UnitTests.Domain.Properties.Hours;
 public sealed class OperatingHoursTests
 {
     private static readonly OperatingHoursId id = new(Guid.Parse("01890a5d-ac96-774b-bcce-b30209904001"));
-    private static readonly HoursSubject pool = new(HoursSubjectKind.Space, Guid.Parse("01890a5d-ac96-774b-bcce-b30209904002"));
+    private static readonly SubjectReference pool = new(SubjectKind.Space, Guid.Parse("01890a5d-ac96-774b-bcce-b30209904002"));
     private static readonly TimeZoneInfo losAngeles = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
 
     private static readonly DateOnly friday = new(2026, 10, 23);
@@ -180,7 +181,7 @@ public sealed class OperatingHoursTests
             [new DateOverride(saturday, []), new DateOverride(saturday, [Interval("09:00", "12:00")])],
             [new TemporaryClosure(sunday, friday)]);
 
-        Result<OperatingHours> result = OperatingHours.Create(id, AuroraGrand.TenantId, AuroraGrand.PropertyId, new HoursSubject(HoursSubjectKind.Space, Guid.Empty), invalid, AuroraGrand.Now);
+        Result<OperatingHours> result = OperatingHours.Create(id, AuroraGrand.TenantId, AuroraGrand.PropertyId, new SubjectReference(SubjectKind.Space, Guid.Empty), invalid, AuroraGrand.Now);
 
         Assert.Equal(
             [

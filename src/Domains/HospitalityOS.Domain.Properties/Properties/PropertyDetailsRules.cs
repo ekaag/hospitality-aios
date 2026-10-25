@@ -1,5 +1,5 @@
-using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Results;
+using HospitalityOS.SharedKernel.Validation;
 
 namespace HospitalityOS.Domain.Properties.Properties;
 

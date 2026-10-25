@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Properties.Hours.Events;
+using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Domain;
 using HospitalityOS.SharedKernel.Ids;
@@ -14,7 +15,7 @@ namespace HospitalityOS.Domain.Properties.Hours;
 /// </summary>
 public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantScoped
 {
-    private OperatingHours(OperatingHoursId id, TenantId tenantId, PropertyId propertyId, HoursSubject subject, OperatingHoursSchedule schedule)
+    private OperatingHours(OperatingHoursId id, TenantId tenantId, PropertyId propertyId, SubjectReference subject, OperatingHoursSchedule schedule)
         : base(id)
     {
         TenantId = tenantId;
@@ -34,7 +35,7 @@ public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantSco
     /// <summary>
     /// What the hours describe. Fixed at creation; one record per subject (checked by the application layer).
     /// </summary>
-    public HoursSubject Subject { get; }
+    public SubjectReference Subject { get; }
 
     /// <summary>
     /// The validated, normalized schedule.
@@ -55,7 +56,7 @@ public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantSco
         OperatingHoursId id,
         TenantId tenantId,
         PropertyId propertyId,
-        HoursSubject subject,
+        SubjectReference subject,
         OperatingHoursSchedule schedule,
         DateTimeOffset now)
     {
@@ -63,16 +64,7 @@ public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantSco
         ArgumentNullException.ThrowIfNull(schedule);
 
         List<FieldError> errors = [];
-
-        if (!Enum.IsDefined(subject.Kind))
-        {
-            errors.Add(new FieldError("subject.kind", "hours.subject_kind_invalid", $"'{subject.Kind}' is not a known subject kind."));
-        }
-
-        if (subject.Id == Guid.Empty)
-        {
-            errors.Add(new FieldError("subject.id", "hours.subject_id_required", "subject.id is required."));
-        }
+        SubjectReferenceRules.Validate(subject, "subject", "hours.subject", errors);
 
         Result<OperatingHoursSchedule> valid = OperatingHoursScheduleRules.Validate(schedule);
 

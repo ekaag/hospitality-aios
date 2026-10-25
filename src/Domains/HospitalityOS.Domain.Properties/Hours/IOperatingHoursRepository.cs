@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Ids;
 
 namespace HospitalityOS.Domain.Properties.Hours;
@@ -16,7 +17,7 @@ public interface IOperatingHoursRepository
     /// <summary>
     /// Finds the hours for a subject in a property, or returns <c>null</c>. Used to keep one record per subject.
     /// </summary>
-    Task<OperatingHours?> FindBySubjectAsync(PropertyId propertyId, HoursSubject subject, CancellationToken cancellationToken);
+    Task<OperatingHours?> FindBySubjectAsync(PropertyId propertyId, SubjectReference subject, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds new operating hours, persisted when the unit of work commits.

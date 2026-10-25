@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Domain;
 using HospitalityOS.SharedKernel.Ids;
 
@@ -9,6 +10,6 @@ namespace HospitalityOS.Domain.Properties.Hours.Events;
 public sealed record OperatingHoursCreated(
     OperatingHoursId OperatingHoursId,
     PropertyId PropertyId,
-    HoursSubject Subject,
+    SubjectReference Subject,
     OperatingHoursSchedule Schedule,
     DateTimeOffset OccurredAt) : IDomainEvent;

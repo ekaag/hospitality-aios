@@ -1,11 +1,11 @@
 using HospitalityOS.Domain.Properties.AccommodationTypes;
 using HospitalityOS.Domain.Properties.AccommodationUnits.Events;
-using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.SharedKernel.Domain;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.SharedKernel.Tenancy;
+using HospitalityOS.SharedKernel.Validation;
 
 namespace HospitalityOS.Domain.Properties.AccommodationUnits;
 

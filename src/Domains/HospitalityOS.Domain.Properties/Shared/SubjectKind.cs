@@ -1,9 +1,9 @@
-namespace HospitalityOS.Domain.Properties.Hours;
+namespace HospitalityOS.Domain.Properties.Shared;
 
 /// <summary>
-/// What kind of thing an <see cref="OperatingHours"/> record describes.
+/// What kind of thing a <see cref="SubjectReference"/> points at.
 /// </summary>
-public enum HoursSubjectKind
+public enum SubjectKind
 {
     /// <summary>
     /// The property itself, e.g. front desk hours.
@@ -26,7 +26,7 @@ public enum HoursSubjectKind
     Restaurant,
 
     /// <summary>
-    /// A service, e.g. room service.
+    /// A service, e.g. room service (Services domain).
     /// </summary>
     Service,
 }

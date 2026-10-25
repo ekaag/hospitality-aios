@@ -1,9 +1,9 @@
 using HospitalityOS.Domain.Properties.AccommodationTypes.Events;
-using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.SharedKernel.Domain;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.SharedKernel.Tenancy;
+using HospitalityOS.SharedKernel.Validation;
 
 namespace HospitalityOS.Domain.Properties.AccommodationTypes;
 
