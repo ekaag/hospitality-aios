@@ -23,6 +23,9 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
     public IReadOnlyList<IDomainEvent> DomainEvents => domainEvents;
 
     /// <inheritdoc />
+    public long Version { get; private set; }
+
+    /// <inheritdoc />
     public IReadOnlyList<IDomainEvent> DequeueDomainEvents()
     {
         IDomainEvent[] dequeued = [.. domainEvents];
@@ -32,7 +35,8 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
     }
 
     /// <summary>
-    /// Records a domain event describing a state change this aggregate just made.
+    /// Records a domain event describing a state change this aggregate just made, and advances
+    /// <see cref="Version"/>. Raise exactly one event per state change.
     /// </summary>
     /// <param name="domainEvent">The event.</param>
     protected void Raise(IDomainEvent domainEvent)
@@ -40,5 +44,6 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
         ArgumentNullException.ThrowIfNull(domainEvent);
 
         domainEvents.Add(domainEvent);
+        Version++;
     }
 }

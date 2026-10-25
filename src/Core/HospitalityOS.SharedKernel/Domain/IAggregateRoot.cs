@@ -11,6 +11,12 @@ public interface IAggregateRoot
     IReadOnlyList<IDomainEvent> DomainEvents { get; }
 
     /// <summary>
+    /// Data version: 1 after creation, +1 for every recorded change. Grounded AI answers cite it so a trace
+    /// names the exact version used (P4, spec Journeys 2 and 16); persistence also uses it for optimistic concurrency.
+    /// </summary>
+    long Version { get; }
+
+    /// <summary>
     /// Returns the raised events and clears them, so a retried save does not publish them twice (P8).
     /// </summary>
     /// <returns>The events, in the order raised.</returns>

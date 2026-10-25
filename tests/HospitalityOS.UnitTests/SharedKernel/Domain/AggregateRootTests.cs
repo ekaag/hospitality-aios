@@ -33,6 +33,19 @@ public sealed class AggregateRootTests
     }
 
     [Fact]
+    public void Version_AdvancesOncePerRaisedEvent_AndSurvivesDequeue()
+    {
+        SampleAggregate aggregate = new(id, tenantId);
+
+        aggregate.Rename("Pool", now);
+        aggregate.Rename("Rooftop Pool", now);
+        aggregate.DequeueDomainEvents();
+        aggregate.Rename(" ", now);
+
+        Assert.Equal(2, aggregate.Version);
+    }
+
+    [Fact]
     public void Raise_WhenOperationFails_RecordsNoEvent()
     {
         SampleAggregate aggregate = new(id, tenantId);
