@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
