@@ -1,3 +1,4 @@
+using HospitalityOS.Ports.Auditing;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.SharedKernel.Domain;
@@ -7,7 +8,7 @@ using HospitalityOS.SharedKernel.Tenancy;
 namespace HospitalityOS.Adapters.InMemory.Persistence;
 
 /// <summary>
-/// Tracks what one scope added and loaded (one instance per aggregate) and the event and inbox writes it staged,
+/// Tracks what one scope added and loaded (one instance per aggregate) and the event, inbox, and audit writes it staged,
 /// and commits all of it to the <see cref="InMemoryStore"/> at once, recording every committed domain event in the event
 /// store and outbox. Scoped and not thread-safe, like a database session.
 /// </summary>
@@ -17,6 +18,7 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store, IEventMessageFacto
     private readonly List<TrackedAggregate> trackedInOrder = [];
     private readonly List<EventMessage> stagedEvents = [];
     private readonly List<InboxKey> stagedInboxRecords = [];
+    private readonly List<AuditRecord> stagedAuditRecords = [];
 
     public IAggregateRoot? FindTracked(AggregateKey key) => trackedByKey.GetValueOrDefault(key)?.Aggregate;
 
@@ -39,6 +41,8 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store, IEventMessageFacto
 
     public void StageInboxRecord(InboxKey key) => stagedInboxRecords.Add(key);
 
+    public void StageAuditRecord(AuditRecord record) => stagedAuditRecords.Add(record);
+
     public Task<Result<CommitReceipt>> CommitAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -47,7 +51,7 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store, IEventMessageFacto
         List<CommittedEvent> events = [.. changed.SelectMany(PendingEvents)];
 
         // The recorded messages exist only in this batch, so a failed commit records nothing and a retry records each event once.
-        CommitBatch batch = new([.. changed.Select(ToPendingWrite)], [.. stagedEvents, .. events.Select(messageFactory.Create)], [.. stagedInboxRecords]);
+        CommitBatch batch = new([.. changed.Select(ToPendingWrite)], [.. stagedEvents, .. events.Select(messageFactory.Create)], [.. stagedInboxRecords], [.. stagedAuditRecords]);
 
         if (batch.IsEmpty)
         {
@@ -63,6 +67,7 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store, IEventMessageFacto
 
         stagedEvents.Clear();
         stagedInboxRecords.Clear();
+        stagedAuditRecords.Clear();
 
         // Only after the store accepted everything, so a failed commit leaves the events (and staged writes) in place for a retry.
         foreach (TrackedAggregate tracked in changed)

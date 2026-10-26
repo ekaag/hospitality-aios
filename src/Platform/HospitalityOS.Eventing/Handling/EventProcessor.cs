@@ -1,8 +1,8 @@
 using HospitalityOS.Contracts.Events;
-using HospitalityOS.Eventing.Envelopes;
 using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Results;
 using Microsoft.Extensions.Logging;
 
@@ -41,7 +41,15 @@ internal sealed partial class EventProcessor(
 
         EventEnvelope envelope = serializer.Deserialize(message.Envelope);
         scope.Tenant.Set(envelope.TenantId);
-        scope.Origin.Use(new EventOrigin(envelope.CorrelationId, envelope.EventId, ActorType.Agent, registration.Name));
+        scope.Operation.JoinFlow(envelope.CorrelationId, envelope.EventId);
+        scope.Operation.ActAs(Actor.Agent(registration.Name));
+
+        using IDisposable? logScope = logger.BeginScope(new Dictionary<string, object>
+        {
+            ["CorrelationId"] = envelope.CorrelationId,
+            ["CausationId"] = envelope.EventId,
+            ["Handler"] = registration.Name,
+        });
 
         await scope.Handler.InvokeAsync(envelope, cancellationToken).ConfigureAwait(false);
         scope.Inbox.Record(registration.Name, message.EventId, timeProvider.GetUtcNow());

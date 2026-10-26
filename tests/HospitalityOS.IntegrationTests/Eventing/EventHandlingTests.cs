@@ -10,6 +10,7 @@ using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.Ports.Tenancy;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Mvc.Testing;

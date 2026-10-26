@@ -3,6 +3,7 @@ using HospitalityOS.Eventing.Contracts;
 using HospitalityOS.Eventing.Envelopes;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.SharedKernel.Domain;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.Extensions.Time.Testing;

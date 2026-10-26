@@ -1,7 +1,7 @@
-namespace HospitalityOS.Contracts.Events;
+namespace HospitalityOS.SharedKernel.Execution;
 
 /// <summary>
-/// Who caused an event (spec §8 <c>actorType</c>).
+/// The kind of actor behind an operation: who caused an event (spec §8 <c>actorType</c>) or an audited action.
 /// </summary>
 public enum ActorType
 {

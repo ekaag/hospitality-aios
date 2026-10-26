@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../Core/HospitalityOS.SharedKernel/HospitalityOS.SharedKernel.csproj" />
     <ProjectReference Include="../../Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
     <ProjectReference Include="../../Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
@@ -11,6 +15,10 @@
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HospitalityOS.UnitTests" />
   </ItemGroup>
 
 </Project>

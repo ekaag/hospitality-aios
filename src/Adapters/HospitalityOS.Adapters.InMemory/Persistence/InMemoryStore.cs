@@ -1,3 +1,4 @@
+using HospitalityOS.Ports.Auditing;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.SharedKernel.Results;
@@ -6,7 +7,7 @@ using HospitalityOS.SharedKernel.Tenancy;
 namespace HospitalityOS.Adapters.InMemory.Persistence;
 
 /// <summary>
-/// The committed state shared by every scope: aggregates, the event log, the outbox, and the inbox, as plain
+/// The committed state shared by every scope: aggregates, the event log, the outbox, the inbox, and the audit log, as plain
 /// collections behind one lock, so a commit is atomic and readers never see half of one. Singleton; one store per
 /// container.
 /// </summary>
@@ -18,6 +19,8 @@ internal sealed class InMemoryStore
     private readonly HashSet<Guid> eventIds = [];
     private readonly Dictionary<Guid, OutboxRow> outbox = [];
     private readonly HashSet<InboxKey> inbox = [];
+    private readonly List<AuditEntry> audit = [];
+    private readonly HashSet<Guid> auditIds = [];
 
     public StoredAggregate? Find(AggregateKey key)
     {
@@ -64,6 +67,12 @@ internal sealed class InMemoryStore
 
             inbox.UnionWith(batch.InboxRecords);
 
+            foreach (AuditRecord record in batch.AuditRecords)
+            {
+                audit.Add(new AuditEntry(audit.Count + 1, record));
+                auditIds.Add(record.AuditId);
+            }
+
             return Result.Success();
         }
     }
@@ -78,6 +87,21 @@ internal sealed class InMemoryStore
                 .Where(stored => query.CorrelationId is not { } correlation || stored.Message.CorrelationId == correlation)
                 .Where(stored => query.RecordedFrom is not { } from || stored.Message.RecordedAt >= from)
                 .Where(stored => query.RecordedBefore is not { } before || stored.Message.RecordedAt < before)
+                .Take(query.Limit)];
+        }
+    }
+
+    public IReadOnlyList<AuditEntry> ReadAudit(TenantId tenantId, AuditQuery query)
+    {
+        lock (gate)
+        {
+            return [.. audit
+                .Where(entry => entry.Position > query.AfterPosition && entry.Record.TenantId == tenantId)
+                .Where(entry => query.CorrelationId is not { } correlation || entry.Record.CorrelationId == correlation)
+                .Where(entry => query.TargetType is null || entry.Record.TargetType == query.TargetType)
+                .Where(entry => query.TargetId is null || entry.Record.TargetId == query.TargetId)
+                .Where(entry => query.OccurredFrom is not { } from || entry.Record.OccurredAt >= from)
+                .Where(entry => query.OccurredBefore is not { } before || entry.Record.OccurredAt < before)
                 .Take(query.Limit)];
         }
     }
@@ -168,8 +192,15 @@ internal sealed class InMemoryStore
 
         HashSet<InboxKey> newInboxKeys = [];
 
-        return batch.InboxRecords.Any(key => inbox.Contains(key) || !newInboxKeys.Add(key))
-            ? PersistenceErrors.DuplicateKey("inbox record", "handler and eventId")
+        if (batch.InboxRecords.Any(key => inbox.Contains(key) || !newInboxKeys.Add(key)))
+        {
+            return PersistenceErrors.DuplicateKey("inbox record", "handler and eventId");
+        }
+
+        HashSet<Guid> newAuditIds = [];
+
+        return batch.AuditRecords.Any(record => auditIds.Contains(record.AuditId) || !newAuditIds.Add(record.AuditId))
+            ? PersistenceErrors.DuplicateKey("audit record", "auditId")
             : Result.Success();
     }
 

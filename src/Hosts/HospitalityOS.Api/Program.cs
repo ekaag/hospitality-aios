@@ -1,5 +1,7 @@
 using HospitalityOS.Adapters.Local;
+using HospitalityOS.Api.Execution;
 using HospitalityOS.Api.Persistence;
+using HospitalityOS.Application;
 using HospitalityOS.Bindings;
 using HospitalityOS.Eventing;
 using HospitalityOS.Ports.Eventing;
@@ -25,10 +27,12 @@ builder.Services.AddConfiguredPersistence(builder.Configuration);
 builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredService<TenantContext>());
 builder.Services.AddEventing(builder.Configuration);
+builder.Services.AddApplication();
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 
 WebApplication app = builder.Build();
 
+app.UseMiddleware<CorrelationMiddleware>();
 app.MapHealthChecks("/health");
 
 app.Run();

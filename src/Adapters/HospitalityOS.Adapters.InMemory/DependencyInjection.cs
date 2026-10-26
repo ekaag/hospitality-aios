@@ -1,3 +1,4 @@
+using HospitalityOS.Adapters.InMemory.Auditing;
 using HospitalityOS.Adapters.InMemory.Eventing;
 using HospitalityOS.Adapters.InMemory.Persistence;
 using HospitalityOS.Adapters.InMemory.Repositories;
@@ -20,6 +21,7 @@ using HospitalityOS.Domain.Properties.Properties;
 using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
+using HospitalityOS.Ports.Auditing;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +36,7 @@ namespace HospitalityOS.Adapters.InMemory;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers <see cref="IUnitOfWork"/>, every repository, and the event store, outbox, and inbox, scoped, over one
+    /// Registers <see cref="IUnitOfWork"/>, every repository, the event store, outbox, and inbox, and the audit log, scoped, over one
     /// singleton store, so aggregates and events commit together.
     /// </summary>
     public static IServiceCollection AddInMemoryPersistence(this IServiceCollection services)
@@ -45,6 +47,7 @@ public static class DependencyInjection
         services.TryAddScoped<IEventStore, InMemoryEventStore>();
         services.TryAddScoped<IOutboxStore, InMemoryOutboxStore>();
         services.TryAddScoped<IInboxStore, InMemoryInboxStore>();
+        services.TryAddScoped<IAuditLog, InMemoryAuditLog>();
 
         services.TryAddScoped<IOrganizationRepository, InMemoryOrganizationRepository>();
         services.TryAddScoped<IPropertyRepository, InMemoryPropertyRepository>();

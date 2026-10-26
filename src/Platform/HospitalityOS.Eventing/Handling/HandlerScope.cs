@@ -1,5 +1,5 @@
-using HospitalityOS.Eventing.Envelopes;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.Ports.Tenancy;
 
@@ -14,7 +14,7 @@ internal sealed class HandlerScope(
     IInboxStore inbox,
     IUnitOfWork unitOfWork,
     TenantContext tenant,
-    ScopedEventOrigin origin,
+    OperationContext operation,
     IAsyncDisposable owner) : IAsyncDisposable
 {
     public IEventHandlerInvoker Handler { get; } = handler;
@@ -25,7 +25,7 @@ internal sealed class HandlerScope(
 
     public TenantContext Tenant { get; } = tenant;
 
-    public ScopedEventOrigin Origin { get; } = origin;
+    public OperationContext Operation { get; } = operation;
 
     public ValueTask DisposeAsync() => owner.DisposeAsync();
 }

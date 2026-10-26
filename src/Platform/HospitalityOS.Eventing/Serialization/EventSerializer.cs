@@ -1,6 +1,7 @@
 using System.Text.Json;
 using HospitalityOS.Contracts.Events;
 using HospitalityOS.Eventing.Contracts;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Tenancy;
 

@@ -4,7 +4,9 @@ using HospitalityOS.Eventing.Envelopes;
 using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Ids;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.UnitTests.Eventing.TestDoubles;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
@@ -19,7 +21,7 @@ public sealed class EventMessageFactoryTests
     [Fact]
     public void Create_CommittedEvent_CopiesRoutingFieldsFromTheSerializedEnvelope()
     {
-        EventMessageFactory factory = Factory(new ScopedEventOrigin(ids));
+        EventMessageFactory factory = Factory(new OperationContext(ids));
 
         EventMessage message = factory.Create(EventSamples.Committed(DomainEventSamples.Get("HumanActionCompleted")));
 
@@ -33,8 +35,8 @@ public sealed class EventMessageFactoryTests
     [Fact]
     public void Create_EventsInOneScope_ShareACorrelationThatOtherScopesDoNot()
     {
-        EventMessageFactory firstScope = Factory(new ScopedEventOrigin(ids));
-        EventMessageFactory secondScope = Factory(new ScopedEventOrigin(ids));
+        EventMessageFactory firstScope = Factory(new OperationContext(ids));
+        EventMessageFactory secondScope = Factory(new OperationContext(ids));
 
         EventMessage first = firstScope.Create(EventSamples.Committed(DomainEventSamples.Get("ServiceRequestCreated")));
         EventMessage second = firstScope.Create(EventSamples.Committed(DomainEventSamples.Get("HumanActionRequested")));
@@ -45,8 +47,23 @@ public sealed class EventMessageFactoryTests
         Assert.NotEqual(first.EventId, second.EventId);
     }
 
-    private EventMessageFactory Factory(ScopedEventOrigin origin) =>
-        new(new EventEnvelopeFactory(new EventTypeRegistry(), ids, new FakeTimeProvider(EventSamples.RecordedAt)), serializer, origin);
+    [Fact]
+    public void Create_InAnOperationThatJoinedAFlow_StampsItsCorrelationCauseAndActor()
+    {
+        Guid flow = DomainEventSamples.Id(901);
+        Guid cause = DomainEventSamples.Id(902);
+        OperationContext operation = new(ids);
+        operation.JoinFlow(flow, cause);
+        operation.ActAs(new Actor(ActorType.Staff, "maria"));
+
+        EventMessage message = Factory(operation).Create(EventSamples.Committed(DomainEventSamples.Get("HumanActionCompleted")));
+
+        EventEnvelope envelope = serializer.Deserialize(message.Envelope);
+        Assert.Equal((flow, (Guid?)cause, ActorType.Staff, "maria"), (envelope.CorrelationId, envelope.CausationId, envelope.ActorType, envelope.ActorId));
+    }
+
+    private EventMessageFactory Factory(OperationContext operation) =>
+        new(new EventEnvelopeFactory(new EventTypeRegistry(), ids, new FakeTimeProvider(EventSamples.RecordedAt)), serializer, operation);
 
     private sealed class SequentialIds : IIdGenerator, IBindingResolver<IIdGenerator>
     {

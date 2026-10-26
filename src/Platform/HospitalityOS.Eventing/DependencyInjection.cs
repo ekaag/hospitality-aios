@@ -6,6 +6,7 @@ using HospitalityOS.Eventing.Handling;
 using HospitalityOS.Eventing.Replay;
 using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.Ports.Tenancy;
 using Microsoft.Extensions.Configuration;
@@ -34,7 +35,7 @@ public static class DependencyInjection
         services.TryAddSingleton<EventTypeRegistry>();
         services.TryAddSingleton<EventEnvelopeFactory>();
         services.TryAddSingleton<EventSerializer>();
-        services.TryAddScoped<ScopedEventOrigin>();
+        services.TryAddScoped<OperationContext>();
         services.TryAddScoped<IEventMessageFactory, EventMessageFactory>();
 
         services.AddOptions<EventDispatcherOptions>()
@@ -60,7 +61,7 @@ public static class DependencyInjection
                 scoped.GetRequiredService<IInboxStore>(),
                 scoped.GetRequiredService<IUnitOfWork>(),
                 scoped.GetRequiredService<TenantContext>(),
-                scoped.GetRequiredService<ScopedEventOrigin>(),
+                scoped.GetRequiredService<OperationContext>(),
                 scope);
         });
         services.TryAddSingleton<EventProcessor>();
