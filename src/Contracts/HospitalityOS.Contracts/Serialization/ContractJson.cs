@@ -4,30 +4,43 @@ using System.Text.Json.Serialization;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
 
-namespace HospitalityOS.Eventing.Serialization;
+namespace HospitalityOS.Contracts.Serialization;
 
 /// <summary>
-/// The event wire format: camelCase, enums as names, IDs as plain GUID strings, lists as arrays (coding standards
-/// §1), and strict reading: a missing required value or a null where none is allowed is rejected, never defaulted.
-/// Changing these options changes every published event: keep them stable.
+/// The platform's JSON wire format for events, capability inputs and outputs, and APIs: camelCase, enums as names, IDs
+/// as plain GUID strings, lists as arrays (coding standards §1), and strict reading: a missing required value or a
+/// null where none is allowed is rejected, never defaulted. Changing these options changes every published event and
+/// capability schema: keep them stable. Numbers must be JSON numbers, not strings.
 /// </summary>
-internal static class EventJson
+public static class ContractJson
 {
-    public static JsonSerializerOptions Options { get; } = Create();
+    /// <summary>
+    /// Read-only options in the wire format.
+    /// </summary>
+    public static JsonSerializerOptions Options { get; } = CreateReadOnly();
 
-    private static JsonSerializerOptions Create()
+    /// <summary>
+    /// Applies the wire format to <paramref name="options"/>, e.g. a host's HTTP JSON options. Call before the options
+    /// are first used.
+    /// </summary>
+    public static void Configure(JsonSerializerOptions options)
     {
-        JsonSerializerOptions options = new(JsonSerializerDefaults.Web)
-        {
-            RespectNullableAnnotations = true,
-            RespectRequiredConstructorParameters = true,
-            Converters =
-            {
-                new JsonStringEnumConverter(),
-                new TypedIdConverterFactory(),
-                new ValueListConverterFactory(),
-            },
-        };
+        ArgumentNullException.ThrowIfNull(options);
+
+        options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.PropertyNameCaseInsensitive = true;
+        options.NumberHandling = JsonNumberHandling.Strict;
+        options.RespectNullableAnnotations = true;
+        options.RespectRequiredConstructorParameters = true;
+        options.Converters.Add(new JsonStringEnumConverter());
+        options.Converters.Add(new TypedIdConverterFactory());
+        options.Converters.Add(new ValueListConverterFactory());
+    }
+
+    private static JsonSerializerOptions CreateReadOnly()
+    {
+        JsonSerializerOptions options = new(JsonSerializerDefaults.Web);
+        Configure(options);
         options.MakeReadOnly(populateMissingResolver: true);
 
         return options;

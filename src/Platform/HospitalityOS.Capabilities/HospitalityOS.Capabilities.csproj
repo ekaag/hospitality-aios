@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/HospitalityOS.SharedKernel/HospitalityOS.SharedKernel.csproj" />
+    <ProjectReference Include="../../Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HospitalityOS.UnitTests" />
+  </ItemGroup>
+
+</Project>

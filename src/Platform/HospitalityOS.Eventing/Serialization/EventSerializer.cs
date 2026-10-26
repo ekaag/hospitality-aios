@@ -1,5 +1,6 @@
 using System.Text.Json;
 using HospitalityOS.Contracts.Events;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Eventing.Contracts;
 using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
@@ -41,21 +42,21 @@ internal sealed class EventSerializer(EventTypeRegistry registry)
             envelope.CausationId,
             envelope.ActorType,
             envelope.ActorId,
-            JsonSerializer.SerializeToElement(envelope.Payload, envelope.Payload.GetType(), EventJson.Options),
+            JsonSerializer.SerializeToElement(envelope.Payload, envelope.Payload.GetType(), ContractJson.Options),
             envelope.Metadata);
 
-        return JsonSerializer.Serialize(wire, EventJson.Options);
+        return JsonSerializer.Serialize(wire, ContractJson.Options);
     }
 
     public EventEnvelope Deserialize(string json)
     {
         ArgumentException.ThrowIfNullOrEmpty(json);
 
-        WireEnvelope wire = JsonSerializer.Deserialize<WireEnvelope>(json, EventJson.Options)
+        WireEnvelope wire = JsonSerializer.Deserialize<WireEnvelope>(json, ContractJson.Options)
             ?? throw new JsonException("The event is null.");
         Type payloadType = registry.PayloadTypeFor(wire.EventType, wire.EventVersion)
             ?? throw new JsonException($"Unknown event type {wire.EventType} v{wire.EventVersion}; this build cannot read it.");
-        IEventPayload payload = (IEventPayload?)wire.Payload.Deserialize(payloadType, EventJson.Options)
+        IEventPayload payload = (IEventPayload?)wire.Payload.Deserialize(payloadType, ContractJson.Options)
             ?? throw new JsonException($"The {wire.EventType} payload is null.");
 
         return new EventEnvelope(

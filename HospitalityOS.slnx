@@ -28,6 +28,7 @@
   <Folder Name="/src/Platform/">
     <Project Path="src/Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
     <Project Path="src/Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
+    <Project Path="src/Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <Project Path="src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
   </Folder>
   <Folder Name="/tests/">

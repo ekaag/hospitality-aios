@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using HospitalityOS.Contracts.Events.Organizations;
 using HospitalityOS.Contracts.Events.Properties;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Domain.Activities.PropertyEvents;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Guests.Guests;
@@ -10,7 +11,6 @@ using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.Properties;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.Eventing.Contracts;
-using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.SharedKernel.Domain;
 using HospitalityOS.UnitTests.Eventing.TestDoubles;
 using Xunit;
@@ -35,7 +35,7 @@ public sealed class EventContractMapperTests
         typeof(Guest).Assembly,
     ];
 
-    private static readonly JsonSerializerOptions sampleFormat = new(EventJson.Options) { WriteIndented = true, NewLine = "\n" };
+    private static readonly JsonSerializerOptions sampleFormat = new(ContractJson.Options) { WriteIndented = true, NewLine = "\n" };
 
     [Fact]
     public void Samples_CoverEveryDomainEvent()

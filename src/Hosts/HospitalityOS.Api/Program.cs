@@ -1,8 +1,11 @@
 using HospitalityOS.Adapters.Local;
+using HospitalityOS.Api.Capabilities;
 using HospitalityOS.Api.Execution;
 using HospitalityOS.Api.Persistence;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
+using HospitalityOS.Capabilities;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Eventing;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
@@ -28,12 +31,15 @@ builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredService<TenantContext>());
 builder.Services.AddEventing(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddCapabilities();
+builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 
 WebApplication app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
 app.MapHealthChecks("/health");
+app.MapCapabilityEndpoints();
 
 app.Run();
 

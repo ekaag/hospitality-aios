@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../../Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
+    <ProjectReference Include="../../Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
