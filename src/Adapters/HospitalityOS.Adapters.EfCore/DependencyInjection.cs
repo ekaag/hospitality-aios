@@ -1,3 +1,4 @@
+using HospitalityOS.Adapters.EfCore.Eventing;
 using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Adapters.EfCore.Repositories;
 using HospitalityOS.Domain.Activities.PropertyEvents;
@@ -19,6 +20,7 @@ using HospitalityOS.Domain.Properties.Properties;
 using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
+using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,12 +35,16 @@ namespace HospitalityOS.Adapters.EfCore;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers <see cref="IUnitOfWork"/> and every repository, scoped, over the provider's <c>DbContext</c>.
+    /// Registers <see cref="IUnitOfWork"/>, every repository, and the event store, outbox, and inbox, scoped, over the
+    /// provider's <c>DbContext</c>, so aggregates and events commit in one transaction.
     /// </summary>
     public static IServiceCollection AddEfCorePersistence(this IServiceCollection services)
     {
         services.TryAddScoped<EfUnitOfWork>();
         services.TryAddScoped<IUnitOfWork>(provider => provider.GetRequiredService<EfUnitOfWork>());
+        services.TryAddScoped<IEventStore, EfEventStore>();
+        services.TryAddScoped<IOutboxStore, EfOutboxStore>();
+        services.TryAddScoped<IInboxStore, EfInboxStore>();
 
         services.TryAddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.TryAddScoped<IPropertyRepository, EfPropertyRepository>();

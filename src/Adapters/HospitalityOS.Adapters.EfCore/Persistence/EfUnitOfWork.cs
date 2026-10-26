@@ -31,7 +31,8 @@ internal sealed class EfUnitOfWork(HospitalityDbContext context, IDatabaseErrorC
     {
         List<TrackedAggregate> changed = [.. trackedInOrder.Where(tracked => tracked.HasChanges)];
 
-        if (changed.Count == 0)
+        // Staged event-store and inbox rows are saved even when no aggregate changed.
+        if (changed.Count == 0 && !context.ChangeTracker.HasChanges())
         {
             return CommitReceipt.Empty;
         }

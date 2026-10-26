@@ -4,7 +4,8 @@ namespace HospitalityOS.Ports.Persistence;
 
 /// <summary>
 /// Saves, as one atomic step, every aggregate added or changed through the repositories of the current scope
-/// (one request or one message), together with the domain events they raised (P1). Scoped: one per request.
+/// (one request or one message), together with the domain events they raised (P1) and the writes staged through
+/// <c>IEventStore.Append</c> and <c>IInboxStore.Record</c>. Scoped: one per request.
 /// </summary>
 /// <remarks>
 /// Repositories track every aggregate they return, so callers change aggregates through their methods and then

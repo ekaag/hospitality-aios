@@ -18,6 +18,134 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
+            modelBuilder.Entity("HospitalityOS.Adapters.EfCore.Eventing.EventRecord", b =>
+                {
+                    b.Property<long>("Position")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Envelope")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EventVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("RecordedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Position");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.HasIndex("RecordedAt");
+
+                    b.ToTable("EventStore", (string)null);
+                });
+
+            modelBuilder.Entity("HospitalityOS.Adapters.EfCore.Eventing.InboxRecord", b =>
+                {
+                    b.Property<string>("Handler")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ProcessedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Handler", "EventId");
+
+                    b.ToTable("Inbox", (string)null);
+                });
+
+            modelBuilder.Entity("HospitalityOS.Adapters.EfCore.Eventing.OutboxRecord", b =>
+                {
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AggregateId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AggregateType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("DeadLetteredAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Envelope")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("EventVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("LeaseUntil")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("NextAttemptAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("RecordedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Sequence");
+
+                    b.HasIndex("EventId")
+                        .IsUnique();
+
+                    b.ToTable("Outbox", (string)null);
+                });
+
             modelBuilder.Entity("HospitalityOS.Domain.Activities.PropertyEvents.PropertyEvent", b =>
                 {
                     b.Property<Guid>("Id")

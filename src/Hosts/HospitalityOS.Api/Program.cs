@@ -3,6 +3,7 @@ using HospitalityOS.Api.Persistence;
 using HospitalityOS.Api.Tenancy;
 using HospitalityOS.Bindings;
 using HospitalityOS.Eventing;
+using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 
@@ -19,6 +20,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 builder.Services.AddBindings(builder.Configuration);
 builder.Services.AddLocalAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
+builder.Services.AddPortBinding<IEventTransport>();
 builder.Services.AddConfiguredPersistence(builder.Configuration);
 builder.Services.AddScoped<ICurrentTenant, UnresolvedCurrentTenant>();
 builder.Services.AddEventing();
