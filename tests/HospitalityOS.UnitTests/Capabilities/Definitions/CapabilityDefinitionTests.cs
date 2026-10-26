@@ -5,6 +5,7 @@ using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Pricing;
+using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.UnitTests.Capabilities.TestDoubles;
 using Xunit;
 
@@ -231,11 +232,17 @@ public sealed class CapabilityDefinitionTests
     private sealed class TextInputCapability : ICapability<string, RequestItemOutput>
     {
         public static CapabilityDescriptor Descriptor => valid;
+
+        public Task<Result<RequestItemOutput>> ExecuteAsync(string input, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Declaration only.");
     }
 
     private sealed class ListOutputCapability : ICapability<RequestItemInput, ValueList<string>>
     {
         public static CapabilityDescriptor Descriptor => valid;
+
+        public Task<Result<ValueList<string>>> ExecuteAsync(RequestItemInput input, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Declaration only.");
     }
 
     private sealed class UntypedCapability : ICapability

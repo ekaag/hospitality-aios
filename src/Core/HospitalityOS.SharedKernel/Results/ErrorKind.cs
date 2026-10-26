@@ -24,4 +24,9 @@ public enum ErrorKind
     /// The operation is not allowed in the target's current state, e.g. an illegal transition (HTTP 422).
     /// </summary>
     InvalidState,
+
+    /// <summary>
+    /// The caller is not allowed to do this (HTTP 403).
+    /// </summary>
+    Forbidden,
 }

@@ -1,4 +1,5 @@
 using HospitalityOS.Contracts.Events.Activities;
+using HospitalityOS.Contracts.Events.Capabilities;
 using HospitalityOS.Contracts.Events.Dining;
 using HospitalityOS.Contracts.Events.Guests;
 using HospitalityOS.Contracts.Events.Operations;
@@ -6,6 +7,7 @@ using HospitalityOS.Contracts.Events.Organizations;
 using HospitalityOS.Contracts.Events.Properties;
 using HospitalityOS.Contracts.Events.Services;
 using HospitalityOS.Domain.Activities.PropertyEvents.Events;
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations.Events;
 using HospitalityOS.Domain.Dining.Menus.Events;
 using HospitalityOS.Domain.Dining.Restaurants.Events;
 using HospitalityOS.Domain.Guests.Conversations.Events;
@@ -86,6 +88,9 @@ internal static class EventContractMapper
             ConversationUpdated e => new(new ConversationUpdatedV1(e.ConversationId, e.GuestId, e.StayContextId, e.Status.ToString())),
             GuestMessageReceived e => new(new GuestMessageReceivedV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.GuestId, e.StayContextId)),
             GuestMessageSent e => new(new GuestMessageSentV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.Sender.ToString())),
+            CapabilityInvocationRequested e => new(new CapabilityInvocationRequestedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
+            CapabilityInvocationSucceeded e => new(new CapabilityInvocationSucceededV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
+            CapabilityInvocationFailed e => new(new CapabilityInvocationFailedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion, e.ErrorCode)),
             _ => throw new InvalidOperationException($"{domainEvent.GetType().Name} has no published contract; add one to HospitalityOS.Contracts and map it here."),
         };
     }

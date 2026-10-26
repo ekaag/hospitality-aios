@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Properties.Shared;
@@ -19,6 +20,7 @@ internal static class KeyColumns
     public const string ServiceCodeKey = "CodeKey";
     public const string HoursSubjectKey = "SubjectKey";
     public const string SourceMessageId = "SourceMessageId";
+    public const string SucceededIdempotencyKey = "SucceededIdempotencyKey";
 
     private static readonly Dictionary<Type, (string Column, Func<object, object?> Value)[]> byType = new()
     {
@@ -26,6 +28,7 @@ internal static class KeyColumns
         [typeof(Service)] = [(ServiceCodeKey, service => ServiceCode(((Service)service).Details.Code))],
         [typeof(OperatingHours)] = [(HoursSubjectKey, hours => Subject(((OperatingHours)hours).Subject))],
         [typeof(ServiceRequest)] = [(SourceMessageId, request => ((ServiceRequest)request).Origin.SourceMessageId?.Value)],
+        [typeof(CapabilityInvocation)] = [(SucceededIdempotencyKey, invocation => SucceededIdempotency((CapabilityInvocation)invocation))],
     };
 
     public static string UnitNumber(string unitNumber) => unitNumber.Trim().ToUpperInvariant();
@@ -33,6 +36,17 @@ internal static class KeyColumns
     public static string ServiceCode(string code) => code.Trim().ToLowerInvariant();
 
     public static string Subject(SubjectReference subject) => $"{subject.Kind}:{subject.Id}";
+
+    /// <summary>
+    /// A capability name cannot contain a colon, so the pair is unambiguous.
+    /// </summary>
+    public static string SucceededIdempotency(string capabilityName, string idempotencyKey) => $"{capabilityName}:{idempotencyKey}";
+
+    /// <summary>
+    /// Set only on succeeded invocations with a key, so a failed attempt never blocks a retry with the same key.
+    /// </summary>
+    private static string? SucceededIdempotency(CapabilityInvocation invocation) =>
+        invocation is { Status: CapabilityInvocationStatus.Succeeded, IdempotencyKey: { } key } ? SucceededIdempotency(invocation.CapabilityName, key) : null;
 
     /// <summary>
     /// The key's name as conflict errors report it, e.g. <c>unitNumber</c> for <see cref="UnitNumberKey"/>.

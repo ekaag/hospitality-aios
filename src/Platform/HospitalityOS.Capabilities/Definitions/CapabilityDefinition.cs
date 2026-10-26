@@ -105,6 +105,11 @@ public sealed partial class CapabilityDefinition
     public JsonElement OutputSchema { get; }
 
     /// <summary>
+    /// Identifies the name and version among registrations, e.g. <c>GuestService.CreateRequest@1</c>.
+    /// </summary>
+    internal string Key => $"{Name}@{Version}";
+
+    /// <summary>
     /// Builds and checks the definition of <typeparamref name="TCapability"/>.
     /// </summary>
     /// <exception cref="InvalidOperationException">The declaration is invalid; the message lists every problem.</exception>

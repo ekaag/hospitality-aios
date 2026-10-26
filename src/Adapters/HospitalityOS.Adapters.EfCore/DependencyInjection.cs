@@ -3,6 +3,7 @@ using HospitalityOS.Adapters.EfCore.Eventing;
 using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Adapters.EfCore.Repositories;
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
@@ -68,6 +69,7 @@ public static class DependencyInjection
         services.TryAddScoped<IStayContextRepository, EfStayContextRepository>();
         services.TryAddScoped<IConversationRepository, EfConversationRepository>();
         services.TryAddScoped<IGuestMessageRepository, EfGuestMessageRepository>();
+        services.TryAddScoped<ICapabilityInvocationRepository, EfCapabilityInvocationRepository>();
 
         return services;
     }

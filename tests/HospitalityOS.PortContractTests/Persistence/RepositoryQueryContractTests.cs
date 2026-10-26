@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
@@ -198,5 +199,26 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         IReadOnlyList<HumanAction> actions = await session.Get<IHumanActionRepository>().ListForServiceRequestAsync(requestId, Cancellation);
 
         Assert.Equal([earlier.Id, later.Id], actions.Select(action => action.Id));
+    }
+
+    [Fact]
+    public async Task FindSucceeded_MatchesSucceededInvocationOfThatCapabilityAndKeyOnly()
+    {
+        CapabilityInvocation succeeded = TestData.CapabilityInvocation(TestData.TenantA, 1, "key-1", succeeded: true);
+        await SaveAsync(
+            succeeded,
+            TestData.CapabilityInvocation(TestData.TenantA, 2, "key-2"),
+            TestData.CapabilityInvocation(TestData.TenantA, 3, "key-3", succeeded: true, capabilityName: "HumanAction.Complete"),
+            TestData.CapabilityInvocation(TestData.TenantB, 4, "key-4", succeeded: true));
+        await using PersistenceSession session = OpenSession();
+        ICapabilityInvocationRepository invocations = session.Get<ICapabilityInvocationRepository>();
+
+        CapabilityInvocation? found = await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-1", Cancellation);
+
+        Assert.Equal((succeeded.Id, succeeded.Output), (found?.Id, found?.Output));
+        Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "KEY-1", Cancellation));
+        Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-2", Cancellation));
+        Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-3", Cancellation));
+        Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-4", Cancellation));
     }
 }

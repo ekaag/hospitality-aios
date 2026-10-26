@@ -1,6 +1,7 @@
 using HospitalityOS.Capabilities;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Registry;
+using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.UnitTests.Capabilities.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -58,5 +59,8 @@ public sealed class DependencyInjectionTests
     private sealed class MisnamedCapability : ICapability<RequestItemInput, RequestItemOutput>
     {
         public static CapabilityDescriptor Descriptor { get; } = RequestItemCapability.Descriptor with { Name = "request_item" };
+
+        public Task<Result<RequestItemOutput>> ExecuteAsync(RequestItemInput input, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Declaration only.");
     }
 }

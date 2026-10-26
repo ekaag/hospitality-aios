@@ -1,0 +1,6 @@
+{
+  "capabilityInvocationId": "01890a5d-ac96-774b-bcce-000000000026",
+  "capabilityName": "HumanAction.Complete",
+  "capabilityVersion": 1,
+  "errorCode": "humanaction.not_assigned"
+}

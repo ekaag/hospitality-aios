@@ -4,6 +4,7 @@ using HospitalityOS.Contracts.Events.Organizations;
 using HospitalityOS.Contracts.Events.Properties;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Operations.HumanActions;
@@ -33,6 +34,7 @@ public sealed class EventContractMapperTests
         typeof(Service).Assembly,
         typeof(HumanAction).Assembly,
         typeof(Guest).Assembly,
+        typeof(CapabilityInvocation).Assembly,
     ];
 
     private static readonly JsonSerializerOptions sampleFormat = new(ContractJson.Options) { WriteIndented = true, NewLine = "\n" };

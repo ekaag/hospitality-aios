@@ -6,6 +6,7 @@ using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.SharedKernel.Ids;
+using HospitalityOS.SharedKernel.Results;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Xunit;
@@ -129,6 +130,9 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
             Idempotency = IdempotencyPolicy.Inherent,
             AuditClassification = AuditClassification.Routine,
         };
+
+        public Task<Result<HoursOutput>> ExecuteAsync(HoursInput input, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Declaration only.");
     }
 
     private sealed class NotifyGuestCapability : ICapability<NotifyInput, NotifyOutput>
@@ -144,10 +148,16 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
             Idempotency = IdempotencyPolicy.KeyRequired,
             AuditClassification = AuditClassification.Sensitive,
         };
+
+        public Task<Result<NotifyOutput>> ExecuteAsync(NotifyInput input, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Declaration only.");
     }
 
     private sealed class NotifyGuestV2Capability : ICapability<NotifyInput, NotifyOutput>
     {
         public static CapabilityDescriptor Descriptor { get; } = NotifyGuestCapability.Descriptor with { Version = 2 };
+
+        public Task<Result<NotifyOutput>> ExecuteAsync(NotifyInput input, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("Declaration only.");
     }
 }

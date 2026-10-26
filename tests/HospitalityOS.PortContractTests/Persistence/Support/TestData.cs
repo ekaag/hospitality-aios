@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
@@ -18,6 +19,7 @@ using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Locations;
 using HospitalityOS.SharedKernel.Tenancy;
@@ -197,4 +199,34 @@ internal static class TestData
             $"Message {seed}",
             clientMessageId,
             sentAt ?? Now).Value;
+
+    /// <summary>
+    /// A requested invocation; <paramref name="succeeded"/> completes it with an output.
+    /// </summary>
+    public static CapabilityInvocation CapabilityInvocation(
+        TenantId tenantId,
+        int seed,
+        string? idempotencyKey = null,
+        bool succeeded = false,
+        string capabilityName = "GuestService.CreateRequest")
+    {
+        CapabilityInvocation invocation = Domain.Capabilities.CapabilityInvocations.CapabilityInvocation.Request(
+            new CapabilityInvocationId(Id(20000 + seed)),
+            tenantId,
+            capabilityName,
+            1,
+            idempotencyKey,
+            new string('a', Domain.Capabilities.CapabilityInvocations.CapabilityInvocation.InputHashLength),
+            Actor.Staff("maria", StaffRole.Worker),
+            Id(21000 + seed),
+            null,
+            Now);
+
+        if (succeeded)
+        {
+            invocation.Succeed($"{{\"requestId\":\"{Id(22000 + seed)}\"}}", Now);
+        }
+
+        return invocation;
+    }
 }

@@ -27,6 +27,8 @@ internal sealed class AuditRecordRow : ITenantScoped
 
     public string? ActorId { get; set; }
 
+    public StaffRole? ActorRole { get; set; }
+
     public string? TargetType { get; set; }
 
     public string? TargetId { get; set; }
@@ -48,6 +50,7 @@ internal sealed class AuditRecordRow : ITenantScoped
         Outcome = record.Outcome,
         ActorType = record.Actor.Type,
         ActorId = record.Actor.Id,
+        ActorRole = record.Actor.Role,
         TargetType = record.TargetType,
         TargetId = record.TargetId,
         CorrelationId = record.CorrelationId,
@@ -58,5 +61,5 @@ internal sealed class AuditRecordRow : ITenantScoped
 
     public AuditEntry ToEntry() => new(
         Position,
-        new AuditRecord(AuditId, TenantId, PropertyId, Action, Outcome, new Actor(ActorType, ActorId), TargetType, TargetId, CorrelationId, CausationId, OccurredAt, Detail));
+        new AuditRecord(AuditId, TenantId, PropertyId, Action, Outcome, new Actor(ActorType, ActorId, ActorRole), TargetType, TargetId, CorrelationId, CausationId, OccurredAt, Detail));
 }

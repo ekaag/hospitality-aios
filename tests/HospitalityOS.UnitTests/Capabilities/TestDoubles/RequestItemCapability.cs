@@ -1,6 +1,8 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Contracts.Capabilities;
 
+using HospitalityOS.SharedKernel.Results;
+
 namespace HospitalityOS.UnitTests.Capabilities.TestDoubles;
 
 /// <summary>
@@ -19,4 +21,7 @@ internal sealed class RequestItemCapability : ICapability<RequestItemInput, Requ
         Idempotency = IdempotencyPolicy.KeyRequired,
         AuditClassification = AuditClassification.Routine,
     };
+
+    public Task<Result<RequestItemOutput>> ExecuteAsync(RequestItemInput input, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("Declaration only.");
 }

@@ -3,6 +3,7 @@ using HospitalityOS.Adapters.InMemory.Eventing;
 using HospitalityOS.Adapters.InMemory.Persistence;
 using HospitalityOS.Adapters.InMemory.Repositories;
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
@@ -68,6 +69,7 @@ public static class DependencyInjection
         services.TryAddScoped<IStayContextRepository, InMemoryStayContextRepository>();
         services.TryAddScoped<IConversationRepository, InMemoryConversationRepository>();
         services.TryAddScoped<IGuestMessageRepository, InMemoryGuestMessageRepository>();
+        services.TryAddScoped<ICapabilityInvocationRepository, InMemoryCapabilityInvocationRepository>();
 
         return services;
     }

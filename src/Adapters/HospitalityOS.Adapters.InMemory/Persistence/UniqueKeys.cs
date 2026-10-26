@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Hours;
@@ -20,6 +21,11 @@ internal static class UniqueKeys
         Key<OperatingHours>("subject", hours => (hours.PropertyId, hours.Subject)),
         Key<GuestMessage>("clientMessageId", message => message.ClientMessageId is { } clientId ? (message.ConversationId, clientId) : null),
         Key<ServiceRequest>("sourceMessageId", request => request.Origin.SourceMessageId),
+
+        // Only succeeded invocations hold their key, so a failed attempt can be retried with it.
+        Key<CapabilityInvocation>(
+            "succeededIdempotencyKey",
+            invocation => invocation is { Status: CapabilityInvocationStatus.Succeeded, IdempotencyKey: { } key } ? (invocation.TenantId, invocation.CapabilityName, key) : null),
     ];
 
     private static readonly ILookup<Type, UniqueKey> byType = all.ToLookup(key => key.AggregateType);

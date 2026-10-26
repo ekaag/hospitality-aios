@@ -15,6 +15,7 @@
   </Folder>
   <Folder Name="/src/Domains/">
     <Project Path="src/Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Capabilities/HospitalityOS.Domain.Capabilities.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />

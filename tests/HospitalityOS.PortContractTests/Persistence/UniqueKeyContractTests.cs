@@ -1,3 +1,4 @@
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Services.ServiceRequests;
@@ -158,5 +159,44 @@ public abstract class UniqueKeyContractTests : PersistenceContractTests
         await AggregateCases.Get(aggregate.GetType().Name).AddAsync(session, aggregate, Cancellation);
 
         return await session.CommitAsync(Cancellation);
+    }
+
+    [Fact]
+    public async Task Commit_TwoScopesSucceedingWithSameIdempotencyKey_SecondReturnsDuplicateKey()
+    {
+        await using PersistenceSession first = OpenSession();
+        await using PersistenceSession second = OpenSession();
+        await first.Get<ICapabilityInvocationRepository>().AddAsync(TestData.CapabilityInvocation(TestData.TenantA, 1, "key-1", succeeded: true), Cancellation);
+        await second.Get<ICapabilityInvocationRepository>().AddAsync(TestData.CapabilityInvocation(TestData.TenantA, 2, "key-1", succeeded: true), Cancellation);
+        Assert.True((await first.CommitAsync(Cancellation)).IsSuccess);
+
+        Result<CommitReceipt> commit = await second.CommitAsync(Cancellation);
+
+        AssertDuplicateKey(commit);
+    }
+
+    [Fact]
+    public async Task Commit_SameIdempotencyKeyFailedOrInAnotherCapabilityOrTenant_Succeeds()
+    {
+        await SaveAsync(TestData.CapabilityInvocation(TestData.TenantA, 1, "key-1", succeeded: true));
+
+        await SaveAsync(
+            TestData.CapabilityInvocation(TestData.TenantA, 2, "key-1"),
+            TestData.CapabilityInvocation(TestData.TenantA, 3, "key-1", succeeded: true, capabilityName: "HumanAction.Complete"),
+            TestData.CapabilityInvocation(TestData.TenantB, 4, "key-1", succeeded: true));
+    }
+
+    [Fact]
+    public async Task Commit_RequestedInvocationSucceedingWithTakenKey_ReturnsDuplicateKey()
+    {
+        await SaveAsync(TestData.CapabilityInvocation(TestData.TenantA, 1, "key-1", succeeded: true), TestData.CapabilityInvocation(TestData.TenantA, 2, "key-1"));
+        await using PersistenceSession session = OpenSession();
+        CapabilityInvocation? pending = await session.Get<ICapabilityInvocationRepository>().GetByIdAsync(new CapabilityInvocationId(TestData.Id(20002)), Cancellation);
+        Assert.NotNull(pending);
+        pending.Succeed("{}", TestData.Now);
+
+        Result<CommitReceipt> commit = await session.CommitAsync(Cancellation);
+
+        AssertDuplicateKey(commit);
     }
 }

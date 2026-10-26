@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
@@ -18,6 +19,7 @@ using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.SharedKernel.Ids;
+using HospitalityOS.SharedKernel.Results;
 using Xunit;
 
 namespace HospitalityOS.PortContractTests.Persistence.Support;
@@ -86,6 +88,14 @@ public static class AggregateCases
         new AggregateCase<GuestMessage, GuestMessageId, IGuestMessageRepository>(
             (tenant, seed) => TestData.GuestMessage(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             change: null),
+        new AggregateCase<CapabilityInvocation, CapabilityInvocationId, ICapabilityInvocationRepository>(
+            (tenant, seed) => TestData.CapabilityInvocation(tenant, seed, $"key-{seed}"), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            a =>
+            {
+                a.Succeed("{}", TestData.Now);
+
+                return Result.Success();
+            }),
     ];
 
     public static TheoryData<string> Names => new(all.Select(aggregateCase => aggregateCase.Name));
