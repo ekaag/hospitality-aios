@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+  </ItemGroup>
+
+</Project>

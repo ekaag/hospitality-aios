@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
+    <ProjectReference Include="../../src/Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
+  </ItemGroup>
+
+</Project>

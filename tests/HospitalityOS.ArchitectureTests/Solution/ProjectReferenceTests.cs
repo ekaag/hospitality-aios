@@ -45,6 +45,15 @@ public sealed class ProjectReferenceTests
             : $"{project.Name} ({project.Layer}) must not reference {reference.Name} ({reference.Layer}).";
     }
 
+    // Only persistence adapters implement the repository interfaces declared in domain projects
+    // (solution-structure.md §2); every other adapter sees ports and canonical types only.
+    private static bool IsPersistenceAdapter(ProjectInfo project)
+    {
+        return project.Name == "HospitalityOS.Adapters.InMemory"
+            || project.Name == "HospitalityOS.Adapters.EfCore"
+            || project.Name.StartsWith("HospitalityOS.Adapters.EfCore.", StringComparison.Ordinal);
+    }
+
     private static bool IsAllowed(ProjectInfo from, ProjectInfo to)
     {
         if (to.Layer is Layer.Hosts)
@@ -56,7 +65,8 @@ public sealed class ProjectReferenceTests
         {
             Layer.Core or Layer.Domains or Layer.Contracts => to.Name == SolutionModel.SharedKernelName,
             Layer.Platform => to.Layer is Layer.Core or Layer.Domains or Layer.Contracts or Layer.Platform,
-            Layer.Adapters => to.Layer is Layer.Core or Layer.Domains or Layer.Contracts or Layer.Adapters,
+            Layer.Adapters => to.Layer is Layer.Core or Layer.Contracts or Layer.Adapters
+                || (to.Layer is Layer.Domains && IsPersistenceAdapter(from)),
             Layer.Hosts => true,
             _ => false,
         };

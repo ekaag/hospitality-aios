@@ -1,5 +1,5 @@
 # Continuous integration: build, style, and all test suites on every PR and push (implementation plan §5.1, slice A4).
-# Frontend lint/build (J1), port contract tests (C1) and AI evals against the Fake model (H3) join this workflow with their slices.
+# Port contract tests (C1) run with the other suites; frontend lint/build (J1) and AI evals against the Fake model (H3) join this workflow with their slices.
 name: ci
 
 on:
@@ -73,7 +73,7 @@ jobs:
       - name: Verify formatting
         run: dotnet format --no-restore --verify-no-changes
 
-      - name: Test (architecture, unit, integration)
+      - name: Test (architecture, unit, port contract, integration)
         run: dotnet test --no-build --configuration Release --report-xunit-trx --results-directory TestResults
 
       - name: Upload test results

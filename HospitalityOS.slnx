@@ -3,6 +3,7 @@
   <Folder Name="/src/Adapters/">
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
+    <Project Path="src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
   </Folder>
   <Folder Name="/src/Contracts/">
@@ -32,6 +33,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/HospitalityOS.ArchitectureTests/HospitalityOS.ArchitectureTests.csproj" />
     <Project Path="tests/HospitalityOS.IntegrationTests/HospitalityOS.IntegrationTests.csproj" />
+    <Project Path="tests/HospitalityOS.PortContractTests/HospitalityOS.PortContractTests.csproj" />
     <Project Path="tests/HospitalityOS.UnitTests/HospitalityOS.UnitTests.csproj" />
   </Folder>
 </Solution>
