@@ -1,4 +1,5 @@
 using HospitalityOS.PortContractTests.Persistence.Support;
+using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Domain;
@@ -81,6 +82,7 @@ public abstract class PersistenceContractTests : IAsyncDisposable
         ServiceCollection services = new();
         services.AddScoped<TestCurrentTenant>();
         services.AddScoped<ICurrentTenant>(scoped => scoped.GetRequiredService<TestCurrentTenant>());
+        services.AddScoped<IEventMessageFactory, TestEventMessageFactory>();
         AddPersistence(services);
 
         // Same validation as the hosts (P15), so a registration mistake in the adapter fails here.

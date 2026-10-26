@@ -1,5 +1,7 @@
 using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Adapters.EfCore.Sqlite;
+using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Persistence;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.Data.Sqlite;
@@ -27,6 +29,7 @@ public sealed class SqliteMigrationTests : IAsyncDisposable
 
         ServiceCollection collection = new();
         collection.AddScoped<ICurrentTenant, FixedTenant>();
+        collection.AddScoped<IEventMessageFactory, NoEvents>();
         collection.AddSqlitePersistence(connectionString);
         services = collection.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
@@ -64,5 +67,10 @@ public sealed class SqliteMigrationTests : IAsyncDisposable
     private sealed class FixedTenant : ICurrentTenant
     {
         public TenantId TenantId { get; } = new(Guid.Parse("01890a5d-ac96-774b-bcce-b30209900001"));
+    }
+
+    private sealed class NoEvents : IEventMessageFactory
+    {
+        public EventMessage Create(CommittedEvent committed) => throw new InvalidOperationException("These tests commit nothing.");
     }
 }

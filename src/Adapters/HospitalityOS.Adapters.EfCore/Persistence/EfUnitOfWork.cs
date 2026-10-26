@@ -1,3 +1,5 @@
+using HospitalityOS.Adapters.EfCore.Eventing;
+using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.SharedKernel.Domain;
 using HospitalityOS.SharedKernel.Results;
@@ -9,10 +11,11 @@ namespace HospitalityOS.Adapters.EfCore.Persistence;
 
 /// <summary>
 /// Commits the scope's <see cref="HospitalityDbContext"/> in one transaction. EF Core tracks the changes; this
-/// class also remembers the order aggregates were first seen, so the receipt lists events predictably, and turns
+/// class also records every committed domain event in the event store and outbox (same transaction), remembers the
+/// order aggregates were first seen, so the receipt lists events predictably, and turns
 /// the database's concurrency and unique-key failures into conflicts. Scoped.
 /// </summary>
-internal sealed class EfUnitOfWork(HospitalityDbContext context, IDatabaseErrorClassifier errorClassifier) : IUnitOfWork
+internal sealed class EfUnitOfWork(HospitalityDbContext context, IDatabaseErrorClassifier errorClassifier, IEventMessageFactory messageFactory) : IUnitOfWork
 {
     private readonly Dictionary<IAggregateRoot, TrackedAggregate> trackedByInstance = new(ReferenceEqualityComparer.Instance);
     private readonly List<TrackedAggregate> trackedInOrder = [];
@@ -37,9 +40,60 @@ internal sealed class EfUnitOfWork(HospitalityDbContext context, IDatabaseErrorC
             return CommitReceipt.Empty;
         }
 
+        List<CommittedEvent> events = [.. changed.SelectMany(PendingEvents)];
+        List<object> recorded = [];
+
+        foreach (EventMessage message in events.Select(messageFactory.Create))
+        {
+            recorded.Add(EventRecord.From(message));
+            recorded.Add(OutboxRecord.From(message));
+        }
+
+        context.AddRange(recorded);
+        Error? failure = await SaveAsync(cancellationToken).ConfigureAwait(false);
+
+        if (failure is not null)
+        {
+            // Forget this attempt's messages, so a retry records each event once.
+            foreach (object row in recorded)
+            {
+                context.Entry(row).State = EntityState.Detached;
+            }
+
+            return failure;
+        }
+
+        // Only after the database accepted everything, so a failed commit leaves the events in place for a retry.
+        foreach (TrackedAggregate tracked in changed)
+        {
+            tracked.Aggregate.DequeueDomainEvents();
+            tracked.CommittedVersion = tracked.Aggregate.Version;
+        }
+
+        return new CommitReceipt(events);
+    }
+
+    private static IEnumerable<CommittedEvent> PendingEvents(TrackedAggregate tracked)
+    {
+        IReadOnlyList<IDomainEvent> raised = tracked.Aggregate.DomainEvents;
+        long firstVersion = tracked.Aggregate.Version - raised.Count + 1;
+
+        return raised.Select((domainEvent, index) => new CommittedEvent(
+            tracked.TenantId,
+            (tracked.Aggregate as IPropertyScoped)?.PropertyId,
+            tracked.Aggregate.GetType().Name,
+            tracked.Id,
+            firstVersion + index,
+            domainEvent));
+    }
+
+    private async Task<Error?> SaveAsync(CancellationToken cancellationToken)
+    {
         try
         {
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            return null;
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -49,27 +103,6 @@ internal sealed class EfUnitOfWork(HospitalityDbContext context, IDatabaseErrorC
         {
             return PersistenceErrors.DuplicateKey(AggregateTypeOf(table), column is null ? "key" : KeyColumns.Describe(column));
         }
-
-        // Only after the database accepted everything, so a failed commit leaves the events in place for a retry.
-        List<CommittedEvent> events = [];
-
-        foreach (TrackedAggregate tracked in changed)
-        {
-            IReadOnlyList<IDomainEvent> raised = tracked.Aggregate.DequeueDomainEvents();
-            long firstVersion = tracked.Aggregate.Version - raised.Count + 1;
-
-            events.AddRange(raised.Select((domainEvent, index) => new CommittedEvent(
-                tracked.TenantId,
-                (tracked.Aggregate as IPropertyScoped)?.PropertyId,
-                tracked.Aggregate.GetType().Name,
-                tracked.Id,
-                firstVersion + index,
-                domainEvent)));
-
-            tracked.CommittedVersion = tracked.Aggregate.Version;
-        }
-
-        return new CommitReceipt(events);
     }
 
     private Error ConcurrencyConflict(DbUpdateConcurrencyException exception)

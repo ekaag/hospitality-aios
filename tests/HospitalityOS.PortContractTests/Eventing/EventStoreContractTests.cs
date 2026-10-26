@@ -64,7 +64,43 @@ public abstract class EventStoreContractTests : PersistenceContractTests
         await using PersistenceSession reader = OpenSession();
 
         Assert.NotNull(await organizations.GetAsync(reader, organizations.IdOf(organization), Cancellation));
-        Assert.Single(await ReadAsync(new EventStoreQuery()));
+        Assert.Equal(["HumanActionCompleted", "OrganizationCreated"], (await ReadAsync(new EventStoreQuery())).Select(stored => stored.Message.EventType));
+    }
+
+    [Fact]
+    public async Task Commit_ChangedAggregate_RecordsAndQueuesEachDomainEvent()
+    {
+        AggregateCase organizations = AggregateCases.Get("Organization");
+        IAggregateRoot organization = organizations.Create(TestData.TenantA, 1);
+        organizations.Change(organization);
+        Guid id = organizations.IdOf(organization);
+
+        await SaveAsync(organization);
+
+        IReadOnlyList<StoredEvent> recorded = await ReadAsync(new EventStoreQuery());
+        Assert.Equal(["OrganizationCreated", "OrganizationUpdated"], recorded.Select(stored => stored.Message.EventType));
+        Assert.All(recorded, stored => Assert.Equal(("Organization", id, TestData.TenantA), (stored.Message.AggregateType, stored.Message.AggregateId, stored.Message.TenantId)));
+        await using PersistenceSession session = OpenSession();
+        Assert.Equal(
+            recorded.Select(stored => stored.Message),
+            (await session.Get<IOutboxStore>().ClaimDueAsync(TestData.Now, 10, TimeSpan.FromMinutes(1), Cancellation)).Select(entry => entry.Message));
+    }
+
+    [Fact]
+    public async Task Commit_FailedThenRetried_RecordsEachDomainEventOnce()
+    {
+        await SaveAsync(TestData.AccommodationUnit(TestData.TenantA, 1, "412"));
+        await using PersistenceSession session = OpenSession();
+        Domain.Properties.AccommodationUnits.AccommodationUnit clash = TestData.AccommodationUnit(TestData.TenantA, 2, "412");
+        await session.Get<Domain.Properties.AccommodationUnits.IAccommodationUnitRepository>().AddAsync(clash, Cancellation);
+        Assert.True((await session.CommitAsync(Cancellation)).IsFailure);
+        clash.Renumber("413", TestData.Now);
+
+        Result<CommitReceipt> retry = await session.CommitAsync(Cancellation);
+
+        Assert.True(retry.IsSuccess);
+        IReadOnlyList<StoredEvent> forClash = [.. (await ReadAsync(new EventStoreQuery())).Where(stored => stored.Message.AggregateId == clash.Id.Value)];
+        Assert.Equal(["AccommodationUnitCreated", "AccommodationUnitUpdated"], forClash.Select(stored => stored.Message.EventType));
     }
 
     [Fact]
@@ -79,8 +115,10 @@ public abstract class EventStoreContractTests : PersistenceContractTests
         Result<CommitReceipt> commit = await session.CommitAsync(Cancellation);
 
         Assert.Equal(PersistenceErrors.DuplicateKeyCode, commit.Error.Code);
-        Assert.Empty(await ReadAsync(new EventStoreQuery()));
-        Assert.Empty(await session.Get<IOutboxStore>().ClaimDueAsync(TestData.Now, 10, TimeSpan.FromMinutes(1), Cancellation));
+        Assert.Equal(["OrganizationCreated"], (await ReadAsync(new EventStoreQuery())).Select(stored => stored.Message.EventType));
+        Assert.Equal(
+            ["OrganizationCreated"],
+            (await session.Get<IOutboxStore>().ClaimDueAsync(TestData.Now, 10, TimeSpan.FromMinutes(1), Cancellation)).Select(entry => entry.Message.EventType));
     }
 
     [Fact]

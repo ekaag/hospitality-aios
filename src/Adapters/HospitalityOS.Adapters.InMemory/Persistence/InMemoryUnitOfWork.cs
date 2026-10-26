@@ -8,9 +8,10 @@ namespace HospitalityOS.Adapters.InMemory.Persistence;
 
 /// <summary>
 /// Tracks what one scope added and loaded (one instance per aggregate) and the event and inbox writes it staged,
-/// and commits all of it to the <see cref="InMemoryStore"/> at once. Scoped and not thread-safe, like a database session.
+/// and commits all of it to the <see cref="InMemoryStore"/> at once, recording every committed domain event in the event
+/// store and outbox. Scoped and not thread-safe, like a database session.
 /// </summary>
-internal sealed class InMemoryUnitOfWork(InMemoryStore store) : IUnitOfWork
+internal sealed class InMemoryUnitOfWork(InMemoryStore store, IEventMessageFactory messageFactory) : IUnitOfWork
 {
     private readonly Dictionary<AggregateKey, TrackedAggregate> trackedByKey = [];
     private readonly List<TrackedAggregate> trackedInOrder = [];
@@ -43,8 +44,10 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store) : IUnitOfWork
         cancellationToken.ThrowIfCancellationRequested();
 
         List<TrackedAggregate> changed = [.. trackedInOrder.Where(tracked => tracked.HasChanges)];
+        List<CommittedEvent> events = [.. changed.SelectMany(PendingEvents)];
 
-        CommitBatch batch = new([.. changed.Select(ToPendingWrite)], [.. stagedEvents], [.. stagedInboxRecords]);
+        // The recorded messages exist only in this batch, so a failed commit records nothing and a retry records each event once.
+        CommitBatch batch = new([.. changed.Select(ToPendingWrite)], [.. stagedEvents, .. events.Select(messageFactory.Create)], [.. stagedInboxRecords]);
 
         if (batch.IsEmpty)
         {
@@ -62,25 +65,27 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store) : IUnitOfWork
         stagedInboxRecords.Clear();
 
         // Only after the store accepted everything, so a failed commit leaves the events (and staged writes) in place for a retry.
-        List<CommittedEvent> events = [];
-
         foreach (TrackedAggregate tracked in changed)
         {
-            IReadOnlyList<IDomainEvent> raised = tracked.Aggregate.DequeueDomainEvents();
-            long firstVersion = tracked.Aggregate.Version - raised.Count + 1;
-
-            events.AddRange(raised.Select((domainEvent, index) => new CommittedEvent(
-                tracked.TenantId,
-                (tracked.Aggregate as IPropertyScoped)?.PropertyId,
-                tracked.Key.AggregateType.Name,
-                tracked.Key.Id,
-                firstVersion + index,
-                domainEvent)));
-
+            tracked.Aggregate.DequeueDomainEvents();
             tracked.CommittedVersion = tracked.Aggregate.Version;
         }
 
         return Task.FromResult<Result<CommitReceipt>>(new CommitReceipt(events));
+    }
+
+    private static IEnumerable<CommittedEvent> PendingEvents(TrackedAggregate tracked)
+    {
+        IReadOnlyList<IDomainEvent> raised = tracked.Aggregate.DomainEvents;
+        long firstVersion = tracked.Aggregate.Version - raised.Count + 1;
+
+        return raised.Select((domainEvent, index) => new CommittedEvent(
+            tracked.TenantId,
+            (tracked.Aggregate as IPropertyScoped)?.PropertyId,
+            tracked.Key.AggregateType.Name,
+            tracked.Key.Id,
+            firstVersion + index,
+            domainEvent));
     }
 
     private static PendingWrite ToPendingWrite(TrackedAggregate tracked)
