@@ -1,8 +1,13 @@
+using HospitalityOS.Contracts.Events;
 using HospitalityOS.Eventing.Contracts;
 using HospitalityOS.Eventing.Dispatching;
 using HospitalityOS.Eventing.Envelopes;
+using HospitalityOS.Eventing.Handling;
+using HospitalityOS.Eventing.Replay;
 using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Persistence;
+using HospitalityOS.Ports.Tenancy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -11,14 +16,15 @@ using Microsoft.Extensions.Hosting;
 namespace HospitalityOS.Eventing;
 
 /// <summary>
-/// Registers the event backbone. The host must bind <c>IIdGenerator</c> (event IDs) and <c>IEventTransport</c>, and
-/// register persistence (event store and outbox).
+/// Registers the event backbone. The host must bind <c>IIdGenerator</c> (event IDs) and <c>IEventTransport</c>, register
+/// persistence (event store, outbox, inbox), and register <see cref="TenantContext"/> scoped.
 /// </summary>
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers envelopes and serialization, the <see cref="IEventMessageFactory"/> persistence calls on commit, and the
-    /// outbox dispatcher as a hosted service configured from <c>Eventing:Dispatcher</c> (validated at startup).
+    /// Registers envelopes and serialization, the <see cref="IEventMessageFactory"/> persistence calls on commit, the
+    /// outbox dispatcher (configured from <c>Eventing:Dispatcher</c>, validated at startup), the subscriptions of every
+    /// handler added with <see cref="AddEventHandler{TPayload, THandler}"/>, and <see cref="IEventReplayer"/>.
     /// </summary>
     public static IServiceCollection AddEventing(this IServiceCollection services, IConfiguration configuration)
     {
@@ -43,6 +49,56 @@ public static class DependencyInjection
         });
         services.TryAddSingleton<OutboxDispatcher>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EventDispatcherService>());
+
+        services.TryAddSingleton<Func<string, HandlerScope>>(provider => handlerName =>
+        {
+            AsyncServiceScope scope = provider.CreateAsyncScope();
+            IServiceProvider scoped = scope.ServiceProvider;
+
+            return new HandlerScope(
+                scoped.GetRequiredKeyedService<IEventHandlerInvoker>(handlerName),
+                scoped.GetRequiredService<IInboxStore>(),
+                scoped.GetRequiredService<IUnitOfWork>(),
+                scoped.GetRequiredService<TenantContext>(),
+                scoped.GetRequiredService<ScopedEventOrigin>(),
+                scope);
+        });
+        services.TryAddSingleton<EventProcessor>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EventSubscriptionHost>());
+
+        services.TryAddSingleton<Func<ReplayScope>>(provider => () =>
+        {
+            AsyncServiceScope scope = provider.CreateAsyncScope();
+
+            return new ReplayScope(scope.ServiceProvider.GetRequiredService<IEventStore>(), scope);
+        });
+        services.TryAddSingleton<IEventReplayer, EventReplayer>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Subscribes <typeparamref name="THandler"/> to <typeparamref name="TPayload"/> events under <paramref name="name"/>,
+    /// its stable identity: the transport subscription and the inbox key. Renaming a handler makes it process past events
+    /// again on replay, so keep names stable. A handler of several event types registers once per type, with distinct names.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">Stable, unique name, e.g. <c>GuestService.CompleteRequestOnHumanActionCompleted</c>.</param>
+    public static IServiceCollection AddEventHandler<TPayload, THandler>(this IServiceCollection services, string name)
+        where TPayload : IEventPayload
+        where THandler : class, IEventHandler<TPayload>
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(name.Length, IInboxStore.MaxHandlerLength, nameof(name));
+
+        if (services.Any(descriptor => descriptor.ImplementationInstance is EventHandlerRegistration existing && existing.Name == name))
+        {
+            throw new InvalidOperationException($"An event handler named '{name}' is already registered; handler names must be unique.");
+        }
+
+        services.AddSingleton(new EventHandlerRegistration(name, EventTypeRegistry.Parse(typeof(TPayload))));
+        services.TryAddScoped<THandler>();
+        services.AddKeyedScoped<IEventHandlerInvoker, EventHandlerInvoker<TPayload, THandler>>(name);
 
         return services;
     }

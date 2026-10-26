@@ -1,3 +1,5 @@
+using HospitalityOS.Ports.Eventing;
+
 namespace HospitalityOS.Adapters.EfCore.Eventing;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace HospitalityOS.Adapters.EfCore.Eventing;
 /// </summary>
 internal sealed class InboxRecord
 {
-    public const int MaxHandlerLength = 200;
+    public const int MaxHandlerLength = IInboxStore.MaxHandlerLength;
 
     public string Handler { get; set; } = string.Empty;
 

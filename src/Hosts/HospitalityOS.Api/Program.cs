@@ -1,6 +1,5 @@
 using HospitalityOS.Adapters.Local;
 using HospitalityOS.Api.Persistence;
-using HospitalityOS.Api.Tenancy;
 using HospitalityOS.Bindings;
 using HospitalityOS.Eventing;
 using HospitalityOS.Ports.Eventing;
@@ -22,7 +21,9 @@ builder.Services.AddLocalAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();
 builder.Services.AddConfiguredPersistence(builder.Configuration);
-builder.Services.AddScoped<ICurrentTenant, UnresolvedCurrentTenant>();
+// The tenant is set per scope: from claims once authentication arrives (F1), from the envelope when handling events.
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredService<TenantContext>());
 builder.Services.AddEventing(builder.Configuration);
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 

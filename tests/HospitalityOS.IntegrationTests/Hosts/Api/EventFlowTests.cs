@@ -7,7 +7,6 @@ using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -28,7 +27,6 @@ public sealed class EventFlowTests
         using WebApplicationFactory<Program> factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Eventing:Dispatcher:PollInterval", "00:00:00.050");
-            builder.ConfigureTestServices(services => services.AddScoped<ICurrentTenant, FixedTenant>());
         });
         IEventTransport transport = factory.Services.GetRequiredService<IBindingResolver<IEventTransport>>().Resolve();
         TaskCompletionSource<EventMessage> received = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -45,6 +43,7 @@ public sealed class EventFlowTests
 
         await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
         {
+            scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenantId);
             Organization organization = Organization.Create(organizationId, tenantId, "Aurora Hotels", DateTimeOffset.UtcNow).Value;
             await scope.ServiceProvider.GetRequiredService<IOrganizationRepository>().AddAsync(organization, TestContext.Current.CancellationToken);
             Assert.True((await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().CommitAsync(TestContext.Current.CancellationToken)).IsSuccess);
@@ -66,10 +65,5 @@ public sealed class EventFlowTests
             .WithWebHostBuilder(builder => builder.UseSetting("Eventing:Dispatcher:BatchSize", "0"));
 
         Assert.Throws<OptionsValidationException>(() => factory.CreateClient());
-    }
-
-    private sealed class FixedTenant : ICurrentTenant
-    {
-        public TenantId TenantId => tenantId;
     }
 }

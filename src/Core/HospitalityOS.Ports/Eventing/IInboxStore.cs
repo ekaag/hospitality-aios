@@ -13,6 +13,11 @@ namespace HospitalityOS.Ports.Eventing;
 public interface IInboxStore
 {
     /// <summary>
+    /// The longest handler name a store accepts.
+    /// </summary>
+    const int MaxHandlerLength = 200;
+
+    /// <summary>
     /// Whether <paramref name="handler"/> has committed its processing of the event.
     /// </summary>
     /// <param name="handler">The handler's stable name, e.g. <c>GuestService.CompleteRequestOnHumanActionCompleted</c>.</param>

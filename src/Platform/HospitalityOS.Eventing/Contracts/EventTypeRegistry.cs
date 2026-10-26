@@ -42,7 +42,7 @@ internal sealed partial class EventTypeRegistry
 
     public Type? PayloadTypeFor(string eventType, int version) => payloadTypesByName.GetValueOrDefault(new EventTypeName(eventType, version));
 
-    private static EventTypeName Parse(Type payloadType)
+    internal static EventTypeName Parse(Type payloadType)
     {
         Match match = PayloadTypeName().Match(payloadType.Name);
 
