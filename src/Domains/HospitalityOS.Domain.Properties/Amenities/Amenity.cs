@@ -15,6 +15,13 @@ namespace HospitalityOS.Domain.Properties.Amenities;
 /// </summary>
 public sealed class Amenity : AggregateRoot<AmenityId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Amenity()
+    {
+        Details = null!;
+    }
+
     private Amenity(AmenityId id, TenantId tenantId, PropertyId propertyId, AmenityDetails details, SpaceId? locationSpaceId)
         : base(id)
     {

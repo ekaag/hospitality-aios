@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
@@ -9,6 +13,13 @@
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Provider projects plug in the database; tests reach the DbContext to apply migrations. -->
+    <InternalsVisibleTo Include="HospitalityOS.Adapters.EfCore.Sqlite" />
+    <InternalsVisibleTo Include="HospitalityOS.PortContractTests" />
+    <InternalsVisibleTo Include="HospitalityOS.IntegrationTests" />
   </ItemGroup>
 
 </Project>

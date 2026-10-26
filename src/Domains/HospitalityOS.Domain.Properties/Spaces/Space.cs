@@ -17,6 +17,13 @@ namespace HospitalityOS.Domain.Properties.Spaces;
 /// </remarks>
 public sealed class Space : AggregateRoot<SpaceId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Space()
+    {
+        Details = null!;
+    }
+
     private Space(SpaceId id, TenantId tenantId, PropertyId propertyId, SpaceId? parentSpaceId, SpaceDetails details)
         : base(id)
     {

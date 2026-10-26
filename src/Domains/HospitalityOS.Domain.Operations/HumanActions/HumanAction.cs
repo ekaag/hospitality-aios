@@ -20,6 +20,13 @@ public sealed class HumanAction : AggregateRoot<HumanActionId>, ITenantScoped
 {
     private readonly List<TaskAssignment> assignments = [];
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private HumanAction()
+    {
+        Details = null!;
+    }
+
     private HumanAction(HumanActionId id, TenantId tenantId, PropertyId propertyId, HumanActionRequest details, DateTimeOffset? deadline, DateTimeOffset createdAt)
         : base(id)
     {

@@ -13,6 +13,13 @@ namespace HospitalityOS.Domain.Dining.Restaurants;
 /// </summary>
 public sealed class Restaurant : AggregateRoot<RestaurantId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Restaurant()
+    {
+        Details = null!;
+    }
+
     private Restaurant(RestaurantId id, TenantId tenantId, PropertyId propertyId, RestaurantDetails details)
         : base(id)
     {

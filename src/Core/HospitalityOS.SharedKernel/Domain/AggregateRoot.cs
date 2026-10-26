@@ -11,6 +11,13 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot
     private readonly List<IDomainEvent> domainEvents = [];
 
     /// <summary>
+    /// For persistence frameworks only (see <see cref="Entity{TId}()"/>).
+    /// </summary>
+    protected AggregateRoot()
+    {
+    }
+
+    /// <summary>
     /// Creates an aggregate with the given identity.
     /// </summary>
     /// <param name="id">The identity; must not be the default value.</param>

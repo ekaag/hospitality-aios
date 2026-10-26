@@ -19,6 +19,11 @@ public sealed class StayContext : AggregateRoot<StayContextId>, ITenantScoped
     /// </summary>
     public const int MaxNights = 365;
 
+    // For EF Core only: it sets every property from storage before the instance is used.
+    private StayContext()
+    {
+    }
+
     private StayContext(
         StayContextId id,
         TenantId tenantId,

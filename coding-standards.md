@@ -65,7 +65,7 @@ public sealed class EventDispatcher
 ### Wire and storage formats
 - JSON (API, event payloads, capability schemas): **camelCase** property names (System.Text.Json web defaults).
 - Enum values on the wire: strings, not integers.
-- Database tables and columns follow EF Core defaults (PascalCase entity and property names).
+- Database tables and columns follow EF Core defaults (PascalCase entity and property names), except that enums are stored as their names, not numbers, so reordering enum members never changes stored data.
 
 ## 2. Language and Style
 
@@ -85,7 +85,7 @@ public sealed class EventDispatcher
 - **IDs:** generate through `IIdGenerator`; never call `Guid.NewGuid()` in domain or application code.
 - **Errors:** expected failures (validation, illegal state transitions, not found) return `Result`/`Error`. Exceptions are for programming errors and infrastructure faults only.
 - **No static mutable state.** No service locator. Dependencies come through constructors (P15): inject ports, settings via `IOptions<T>`; never inject `IServiceProvider` or `IConfiguration` into business code.
-- **Domain purity:** domain types have no attributes or dependencies for persistence, serialization, or DI.
+- **Domain purity:** domain types have no attributes or dependencies for persistence, serialization, or DI. The one allowed concession: each aggregate has a private parameterless constructor (commented as EF Core-only) because EF Core cannot pass value objects to constructors; it contains nothing but placeholder assignments.
 - **Logging:** structured logging with message templates (`logger.LogInformation("Dispatched {EventId}", eventId)`), never string interpolation in log calls. Never log secrets or unredacted guest PII.
 - **Comments:** explain *why*, not *what*. XML doc comments are required on public ports and contracts.
 
@@ -101,3 +101,4 @@ public sealed class EventDispatcher
 | Date | Change |
 |---|---|
 | 2026-10-23 | Initial standards. Types PascalCase; fields camelCase without prefix; `this.` for disambiguation. |
+| 2026-10-25 | Enums stored by name; aggregates may declare a private EF Core-only parameterless constructor (Phase 1 slice C2). |

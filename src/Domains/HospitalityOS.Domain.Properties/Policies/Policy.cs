@@ -20,6 +20,13 @@ public sealed class Policy : AggregateRoot<PolicyId>, ITenantScoped
     /// </summary>
     public const int MaxContentLength = 4000;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Policy()
+    {
+        Details = null!;
+    }
+
     private Policy(PolicyId id, TenantId tenantId, PropertyId propertyId, PolicyDetails details)
         : base(id)
     {

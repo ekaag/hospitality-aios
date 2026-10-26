@@ -19,6 +19,13 @@ public sealed class PropertyEvent : AggregateRoot<PropertyEventId>, ITenantScope
     /// </summary>
     public static TimeSpan MaxDuration { get; } = TimeSpan.FromDays(14);
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private PropertyEvent()
+    {
+        Details = null!;
+    }
+
     private PropertyEvent(PropertyEventId id, TenantId tenantId, PropertyId propertyId, PropertyEventDetails details)
         : base(id)
     {

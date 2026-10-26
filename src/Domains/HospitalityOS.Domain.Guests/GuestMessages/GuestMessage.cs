@@ -29,6 +29,13 @@ public sealed class GuestMessage : AggregateRoot<GuestMessageId>, ITenantScoped
     /// </summary>
     public const int MaxClientMessageIdLength = 100;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private GuestMessage()
+    {
+        Text = null!;
+    }
+
     private GuestMessage(
         GuestMessageId id,
         Conversation conversation,

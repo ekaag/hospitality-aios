@@ -26,6 +26,14 @@ public sealed class ServiceRequest : AggregateRoot<ServiceRequestId>, ITenantSco
     /// </summary>
     public const int MaxDescriptionLength = 1000;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private ServiceRequest()
+    {
+        Details = null!;
+        Origin = null!;
+    }
+
     private ServiceRequest(
         ServiceRequestId id,
         Service service,

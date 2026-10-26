@@ -14,6 +14,11 @@ namespace HospitalityOS.Domain.Guests.Conversations;
 /// </summary>
 public sealed class Conversation : AggregateRoot<ConversationId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used.
+    private Conversation()
+    {
+    }
+
     private Conversation(ConversationId id, TenantId tenantId, PropertyId propertyId, ConversationChannel channel, DateTimeOffset startedAt)
         : base(id)
     {

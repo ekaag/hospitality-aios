@@ -5,10 +5,13 @@ namespace HospitalityOS.ArchitectureTests.Types;
 
 /// <summary>
 /// Adapters expose only their DI extension and options types; implementations are
-/// <c>internal sealed</c> (solution-structure.md §4).
+/// <c>internal sealed</c> (solution-structure.md §4). Generated EF Core migrations are exempt.
 /// </summary>
 public sealed class AdapterVisibilityTests
 {
+    // EF Core generates migrations as public, unsealed classes and they are never edited by hand.
+    private const string GeneratedMigrations = @"\.Migrations$";
+
     public static TheoryData<string> AdapterProjectNames => new(
         SolutionModel.SourceProjects.Where(project => project.Layer is Layer.Adapters).Select(project => project.Name));
 
@@ -19,6 +22,8 @@ public sealed class AdapterVisibilityTests
         NetArchTest.Rules.TestResult result = TypesIn(projectName)
             .That()
             .ArePublic()
+            .And()
+            .DoNotResideInNamespaceMatching(GeneratedMigrations)
             .Should()
             .BeStatic()
             .Or()
@@ -39,6 +44,8 @@ public sealed class AdapterVisibilityTests
             .AreNotAbstract()
             .And()
             .AreNotStatic()
+            .And()
+            .DoNotResideInNamespaceMatching(GeneratedMigrations)
             .Should()
             .BeSealed()
             .GetResult();

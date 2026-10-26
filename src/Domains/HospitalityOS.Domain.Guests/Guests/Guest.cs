@@ -13,6 +13,13 @@ namespace HospitalityOS.Domain.Guests.Guests;
 /// </summary>
 public sealed class Guest : AggregateRoot<GuestId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Guest()
+    {
+        Profile = null!;
+    }
+
     private Guest(GuestId id, TenantId tenantId, GuestProfile profile)
         : base(id)
     {

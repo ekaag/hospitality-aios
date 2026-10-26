@@ -27,6 +27,13 @@ public sealed class ContentItem : AggregateRoot<ContentItemId>, ITenantScoped
 
     private const int MaxTagLength = 50;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private ContentItem()
+    {
+        Details = null!;
+    }
+
     private ContentItem(ContentItemId id, TenantId tenantId, PropertyId propertyId, ContentItemDetails details)
         : base(id)
     {

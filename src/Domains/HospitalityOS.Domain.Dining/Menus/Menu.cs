@@ -14,6 +14,13 @@ namespace HospitalityOS.Domain.Dining.Menus;
 /// </summary>
 public sealed class Menu : AggregateRoot<MenuId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Menu()
+    {
+        Details = null!;
+    }
+
     private Menu(MenuId id, TenantId tenantId, PropertyId propertyId, RestaurantId restaurantId, MenuDetails details)
         : base(id)
     {

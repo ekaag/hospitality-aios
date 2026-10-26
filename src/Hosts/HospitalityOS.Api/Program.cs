@@ -1,4 +1,7 @@
+using HospitalityOS.Api.Persistence;
+using HospitalityOS.Api.Tenancy;
 using HospitalityOS.Bindings;
+using HospitalityOS.Ports.Tenancy;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +14,8 @@ builder.Host.UseDefaultServiceProvider(options =>
 });
 
 builder.Services.AddBindings(builder.Configuration);
+builder.Services.AddConfiguredPersistence(builder.Configuration);
+builder.Services.AddScoped<ICurrentTenant, UnresolvedCurrentTenant>();
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 
 WebApplication app = builder.Build();

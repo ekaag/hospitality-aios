@@ -8,6 +8,14 @@ public abstract class Entity<TId> : IEquatable<Entity<TId>>
     where TId : struct, IEquatable<TId>
 {
     /// <summary>
+    /// For persistence frameworks only: they create an empty instance, then set <see cref="Id"/> and the
+    /// rest of the state from storage. Domain code always uses the constructor taking an ID.
+    /// </summary>
+    protected Entity()
+    {
+    }
+
+    /// <summary>
     /// Creates an entity with the given identity.
     /// </summary>
     /// <param name="id">The identity; must not be the default value.</param>

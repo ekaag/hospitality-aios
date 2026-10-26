@@ -18,6 +18,13 @@ public sealed class AccommodationType : AggregateRoot<AccommodationTypeId>, ITen
     /// </summary>
     public const int MaxAllowedOccupancy = 50;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private AccommodationType()
+    {
+        Details = null!;
+    }
+
     private AccommodationType(AccommodationTypeId id, TenantId tenantId, PropertyId propertyId, AccommodationTypeDetails details)
         : base(id)
     {

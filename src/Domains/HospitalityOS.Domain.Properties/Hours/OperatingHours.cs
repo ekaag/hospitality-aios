@@ -15,6 +15,14 @@ namespace HospitalityOS.Domain.Properties.Hours;
 /// </summary>
 public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantScoped
 {
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private OperatingHours()
+    {
+        Subject = null!;
+        Schedule = null!;
+    }
+
     private OperatingHours(OperatingHoursId id, TenantId tenantId, PropertyId propertyId, SubjectReference subject, OperatingHoursSchedule schedule)
         : base(id)
     {

@@ -25,6 +25,13 @@ public sealed class AccommodationUnit : AggregateRoot<AccommodationUnitId>, ITen
     /// </summary>
     public const int MaxUnitNumberLength = 32;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private AccommodationUnit()
+    {
+        UnitNumber = null!;
+    }
+
     private AccommodationUnit(
         AccommodationUnitId id,
         TenantId tenantId,

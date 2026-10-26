@@ -16,6 +16,13 @@ public sealed class Organization : AggregateRoot<OrganizationId>, ITenantScoped
     /// </summary>
     public const int MaxNameLength = 200;
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Organization()
+    {
+        Name = null!;
+    }
+
     private Organization(OrganizationId id, TenantId tenantId, string name)
         : base(id)
     {

@@ -33,6 +33,13 @@ public sealed class Service : AggregateRoot<ServiceId>, ITenantScoped
     /// </summary>
     public static TimeSpan MaxTargetCompletion { get; } = TimeSpan.FromDays(7);
 
+    // For EF Core only: it sets every property from storage before the instance is used, so the
+    // placeholders below are never read.
+    private Service()
+    {
+        Details = null!;
+    }
+
     private Service(ServiceId id, TenantId tenantId, PropertyId propertyId, ServiceDetails details)
         : base(id)
     {

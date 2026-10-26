@@ -26,6 +26,7 @@ public abstract class PersistenceContractTests : IAsyncDisposable
             await provider.DisposeAsync();
         }
 
+        await DisposeStoreAsync();
         GC.SuppressFinalize(this);
     }
 
@@ -34,9 +35,25 @@ public abstract class PersistenceContractTests : IAsyncDisposable
     /// </summary>
     protected abstract void AddPersistence(IServiceCollection services);
 
+    /// <summary>
+    /// Prepares an empty store before the first session, e.g. applies a database's migrations.
+    /// </summary>
+    protected virtual void InitializeStore(IServiceProvider services)
+    {
+    }
+
+    /// <summary>
+    /// Releases what the store holds beyond the container, e.g. a database connection.
+    /// </summary>
+    protected virtual ValueTask DisposeStoreAsync() => ValueTask.CompletedTask;
+
     internal PersistenceSession OpenSession(TenantId? tenantId = null)
     {
-        provider ??= BuildProvider();
+        if (provider is null)
+        {
+            provider = BuildProvider();
+            InitializeStore(provider);
+        }
 
         AsyncServiceScope scope = provider.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<TestCurrentTenant>().TenantId = tenantId ?? TestData.TenantA;
