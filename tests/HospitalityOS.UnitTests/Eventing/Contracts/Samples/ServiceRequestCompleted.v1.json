@@ -1,0 +1,10 @@
+{
+  "serviceRequestId": "01890a5d-ac96-774b-bcce-000000000011",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "origin": {
+    "guestId": "01890a5d-ac96-774b-bcce-000000000014",
+    "stayContextId": "01890a5d-ac96-774b-bcce-000000000015",
+    "conversationId": "01890a5d-ac96-774b-bcce-000000000016",
+    "sourceMessageId": "01890a5d-ac96-774b-bcce-000000000017"
+  }
+}

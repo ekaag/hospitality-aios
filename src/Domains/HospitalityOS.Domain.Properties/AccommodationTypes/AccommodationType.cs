@@ -11,7 +11,7 @@ namespace HospitalityOS.Domain.Properties.AccommodationTypes;
 /// A category of room a property offers, e.g. Deluxe King. Individual rooms are
 /// <see cref="AccommodationUnits.AccommodationUnit"/>s of a type.
 /// </summary>
-public sealed class AccommodationType : AggregateRoot<AccommodationTypeId>, ITenantScoped
+public sealed class AccommodationType : AggregateRoot<AccommodationTypeId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Upper bound for <see cref="AccommodationTypeDetails.MaxOccupancy"/>; guards against typos, not real limits.

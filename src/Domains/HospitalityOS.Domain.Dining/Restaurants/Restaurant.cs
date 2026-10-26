@@ -11,7 +11,7 @@ namespace HospitalityOS.Domain.Dining.Restaurants;
 /// A place to eat or drink at the property (Journey 3). Its menus are <see cref="Menus.Menu"/> aggregates.
 /// Holds no POS-vendor fields; external identifiers live in <c>ExternalReference</c> (P3).
 /// </summary>
-public sealed class Restaurant : AggregateRoot<RestaurantId>, ITenantScoped
+public sealed class Restaurant : AggregateRoot<RestaurantId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used, so the
     // placeholders below are never read.

@@ -12,7 +12,7 @@ namespace HospitalityOS.Domain.Activities.PropertyEvents;
 /// Something happening at the property, e.g. live music or a yoga class (Journey 8). Named PropertyEvent to
 /// avoid confusion with domain events. Times are property-local, like operating hours.
 /// </summary>
-public sealed class PropertyEvent : AggregateRoot<PropertyEventId>, ITenantScoped
+public sealed class PropertyEvent : AggregateRoot<PropertyEventId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Longest allowed event; guards against date typos.

@@ -1,0 +1,23 @@
+{
+  "serviceRequestId": "01890a5d-ac96-774b-bcce-000000000011",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "serviceId": "01890a5d-ac96-774b-bcce-000000000010",
+  "serviceCategory": "Housekeeping",
+  "details": {
+    "location": {
+      "label": "Room 412",
+      "accommodationUnitId": "01890a5d-ac96-774b-bcce-000000000005",
+      "spaceId": "01890a5d-ac96-774b-bcce-000000000004"
+    },
+    "itemCode": "bath_towel",
+    "quantity": 2,
+    "description": null
+  },
+  "origin": {
+    "guestId": "01890a5d-ac96-774b-bcce-000000000014",
+    "stayContextId": "01890a5d-ac96-774b-bcce-000000000015",
+    "conversationId": "01890a5d-ac96-774b-bcce-000000000016",
+    "sourceMessageId": "01890a5d-ac96-774b-bcce-000000000017"
+  },
+  "dueAt": "2026-10-24T19:50:00+00:00"
+}

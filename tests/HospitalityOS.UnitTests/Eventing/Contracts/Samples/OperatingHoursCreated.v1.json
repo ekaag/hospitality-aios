@@ -1,0 +1,35 @@
+{
+  "operatingHoursId": "01890a5d-ac96-774b-bcce-000000000020",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "subject": {
+    "kind": "Amenity",
+    "id": "01890a5d-ac96-774b-bcce-000000000007"
+  },
+  "schedule": {
+    "weekly": [
+      {
+        "day": "Monday",
+        "intervals": [
+          {
+            "opens": "06:00:00",
+            "closes": "22:00:00"
+          }
+        ]
+      }
+    ],
+    "overrides": [
+      {
+        "date": "2026-12-25",
+        "intervals": [],
+        "note": "Closed for Christmas"
+      }
+    ],
+    "closures": [
+      {
+        "from": "2026-11-02",
+        "to": "2026-11-04",
+        "reason": "Maintenance"
+      }
+    ]
+  }
+}

@@ -12,7 +12,7 @@ namespace HospitalityOS.Domain.Guests.StayContexts;
 /// uses it to know where to deliver and which requests are the guest's (Journeys 9 and 12). In Phase 1 stays
 /// are created natively; a PMS connector later supplies them through <c>ExternalReference</c> (P3).
 /// </summary>
-public sealed class StayContext : AggregateRoot<StayContextId>, ITenantScoped
+public sealed class StayContext : AggregateRoot<StayContextId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Longest allowed stay; guards against date typos.

@@ -1,7 +1,9 @@
 using HospitalityOS.PortContractTests.Persistence.Support;
 using HospitalityOS.Ports.Persistence;
 using HospitalityOS.SharedKernel.Domain;
+using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
+using HospitalityOS.SharedKernel.Tenancy;
 using Xunit;
 
 namespace HospitalityOS.PortContractTests.Persistence;
@@ -43,7 +45,7 @@ public abstract class RepositoryContractTests : PersistenceContractTests
 
         Assert.True(commit.IsSuccess);
         Assert.Equal(
-            [new CommittedEvent(TestData.TenantA, aggregate, aggregateCase.IdOf(created), 1, raised)],
+            [new CommittedEvent(TestData.TenantA, PropertyOf(created), aggregate, aggregateCase.IdOf(created), 1, raised)],
             commit.Value.Events);
         Assert.Empty(created.DomainEvents);
     }
@@ -69,7 +71,7 @@ public abstract class RepositoryContractTests : PersistenceContractTests
             aggregateCase.Change(changed);
             IDomainEvent raised = Assert.Single(changed.DomainEvents);
             receipt = (await session.CommitAsync(Cancellation)).Value;
-            Assert.Equal([new CommittedEvent(TestData.TenantA, aggregate, id, 2, raised)], receipt.Events);
+            Assert.Equal([new CommittedEvent(TestData.TenantA, PropertyOf(changed), aggregate, id, 2, raised)], receipt.Events);
         }
 
         IAggregateRoot? loaded = await LoadAsync(aggregateCase, id);
@@ -278,6 +280,8 @@ public abstract class RepositoryContractTests : PersistenceContractTests
         Assert.Equal(expected, commit.Value.Events.Select(committed => committed.Event));
         Assert.Equal([1L, 2L, 1L], commit.Value.Events.Select(committed => committed.AggregateVersion));
     }
+
+    private static PropertyId? PropertyOf(IAggregateRoot aggregate) => (aggregate as IPropertyScoped)?.PropertyId;
 
     private static void AssertConflict(string code, Result<CommitReceipt> commit)
     {

@@ -16,7 +16,7 @@ namespace HospitalityOS.Domain.Operations.HumanActions;
 /// Repeating a transition that already happened is a successful no-op raising nothing, so duplicate taps and
 /// retried commands complete the work exactly once (Journey 14, P8).
 /// </remarks>
-public sealed class HumanAction : AggregateRoot<HumanActionId>, ITenantScoped
+public sealed class HumanAction : AggregateRoot<HumanActionId>, ITenantScoped, IPropertyScoped
 {
     private readonly List<TaskAssignment> assignments = [];
 

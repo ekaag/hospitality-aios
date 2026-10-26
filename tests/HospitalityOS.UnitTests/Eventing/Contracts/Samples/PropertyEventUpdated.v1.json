@@ -1,0 +1,15 @@
+{
+  "propertyEventId": "01890a5d-ac96-774b-bcce-000000000023",
+  "details": {
+    "title": "Jazz night",
+    "category": "Entertainment",
+    "audience": "AdultsOnly",
+    "localStart": "2026-10-24T20:00:00",
+    "localEnd": "2026-10-24T22:00:00",
+    "description": null,
+    "locationSpaceId": null,
+    "price": null,
+    "bookingRequired": false
+  },
+  "status": "Cancelled"
+}

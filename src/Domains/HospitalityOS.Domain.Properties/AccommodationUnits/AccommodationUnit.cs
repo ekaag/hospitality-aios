@@ -18,7 +18,7 @@ namespace HospitalityOS.Domain.Properties.AccommodationUnits;
 /// it through <see cref="IAccommodationUnitRepository.FindByUnitNumberAsync"/> and persistence backs it
 /// with a unique index.
 /// </remarks>
-public sealed class AccommodationUnit : AggregateRoot<AccommodationUnitId>, ITenantScoped
+public sealed class AccommodationUnit : AggregateRoot<AccommodationUnitId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Maximum length of <see cref="UnitNumber"/>.

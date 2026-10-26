@@ -13,7 +13,7 @@ namespace HospitalityOS.Domain.Properties.ContentItems;
 /// Descriptive property content — overviews, FAQs, directions, announcements — that the concierge searches
 /// (<c>Property.SearchContent</c>). Not authoritative for rules: those are <see cref="Policies.Policy"/> records.
 /// </summary>
-public sealed class ContentItem : AggregateRoot<ContentItemId>, ITenantScoped
+public sealed class ContentItem : AggregateRoot<ContentItemId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Maximum length of <see cref="ContentItemDetails.Body"/>.

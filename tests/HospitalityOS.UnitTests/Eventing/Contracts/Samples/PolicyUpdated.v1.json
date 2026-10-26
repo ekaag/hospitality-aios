@@ -1,0 +1,12 @@
+{
+  "policyId": "01890a5d-ac96-774b-bcce-000000000021",
+  "details": {
+    "type": "Children",
+    "title": "Children in the gym",
+    "content": "Guests under 16 must be accompanied by an adult.",
+    "effectiveFrom": null,
+    "effectiveTo": null,
+    "appliesTo": null
+  },
+  "status": "Active"
+}

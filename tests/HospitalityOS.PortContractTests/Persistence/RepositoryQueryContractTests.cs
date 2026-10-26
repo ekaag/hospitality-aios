@@ -66,7 +66,6 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         await using PersistenceSession session = OpenSession();
         IAccommodationUnitRepository units = session.Get<IAccommodationUnitRepository>();
         AccommodationUnit? loaded = await units.GetByIdAsync(unit.Id, Cancellation);
-
         AccommodationUnit? found = await units.FindByUnitNumberAsync(TestData.PropertyId, "412", Cancellation);
 
         Assert.NotNull(loaded);

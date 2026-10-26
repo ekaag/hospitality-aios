@@ -15,7 +15,7 @@ namespace HospitalityOS.Domain.Properties.Spaces;
 /// The parent is fixed at creation and must already exist in the same property, so the hierarchy can
 /// never contain a cycle. Re-parenting is deliberately not supported yet.
 /// </remarks>
-public sealed class Space : AggregateRoot<SpaceId>, ITenantScoped
+public sealed class Space : AggregateRoot<SpaceId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used, so the
     // placeholders below are never read.

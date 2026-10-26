@@ -13,7 +13,7 @@ namespace HospitalityOS.Domain.Properties.Hours;
 /// property-local time. Answers "what are the pool hours tonight?" and "is the gym open now?" from
 /// authoritative data, and its <see cref="AggregateRoot{TId}.Version"/> is what grounded answers cite (P4).
 /// </summary>
-public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantScoped
+public sealed class OperatingHours : AggregateRoot<OperatingHoursId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used, so the
     // placeholders below are never read.

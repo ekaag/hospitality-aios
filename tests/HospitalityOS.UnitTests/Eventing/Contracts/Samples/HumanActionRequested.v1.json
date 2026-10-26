@@ -1,0 +1,16 @@
+{
+  "humanActionId": "01890a5d-ac96-774b-bcce-000000000012",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "serviceRequestId": "01890a5d-ac96-774b-bcce-000000000011",
+  "actionType": "DeliverItems",
+  "priority": "Normal",
+  "location": {
+    "label": "Room 412",
+    "accommodationUnitId": "01890a5d-ac96-774b-bcce-000000000005",
+    "spaceId": "01890a5d-ac96-774b-bcce-000000000004"
+  },
+  "deadline": "2026-10-24T19:50:00+00:00",
+  "skillsRequired": [
+    "housekeeping"
+  ]
+}

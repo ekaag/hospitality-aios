@@ -1,0 +1,12 @@
+{
+  "serviceId": "01890a5d-ac96-774b-bcce-000000000010",
+  "details": {
+    "code": "housekeeping.amenities",
+    "name": "housekeepingService amenities",
+    "category": "Housekeeping",
+    "description": "Towels, pillows, toiletries",
+    "isGuestRequestable": true,
+    "items": [],
+    "targetCompletion": null
+  }
+}

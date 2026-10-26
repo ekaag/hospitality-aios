@@ -17,7 +17,7 @@ namespace HospitalityOS.Domain.Guests.GuestMessages;
 /// message twice, so callers pass the channel's message ID as <see cref="ClientMessageId"/> and check
 /// <see cref="IGuestMessageRepository.FindByClientMessageIdAsync"/> first (P8).
 /// </remarks>
-public sealed class GuestMessage : AggregateRoot<GuestMessageId>, ITenantScoped
+public sealed class GuestMessage : AggregateRoot<GuestMessageId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Maximum length of <see cref="Text"/>.

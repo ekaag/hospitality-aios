@@ -1,0 +1,10 @@
+{
+  "restaurantId": "01890a5d-ac96-774b-bcce-000000000008",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "details": {
+    "name": "Saffron",
+    "cuisine": "Indian",
+    "description": "Modern Indian dining",
+    "locationSpaceId": "01890a5d-ac96-774b-bcce-000000000003"
+  }
+}

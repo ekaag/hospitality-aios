@@ -59,6 +59,7 @@ internal sealed class EfUnitOfWork(HospitalityDbContext context, IDatabaseErrorC
 
             events.AddRange(raised.Select((domainEvent, index) => new CommittedEvent(
                 tracked.TenantId,
+                (tracked.Aggregate as IPropertyScoped)?.PropertyId,
                 tracked.Aggregate.GetType().Name,
                 tracked.Id,
                 firstVersion + index,

@@ -1,0 +1,16 @@
+{
+  "policyId": "01890a5d-ac96-774b-bcce-000000000021",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "details": {
+    "type": "Children",
+    "title": "Children in the gym",
+    "content": "Guests under 16 must be accompanied by an adult.",
+    "effectiveFrom": "2026-01-01",
+    "effectiveTo": null,
+    "appliesTo": {
+      "kind": "Amenity",
+      "id": "01890a5d-ac96-774b-bcce-000000000022"
+    }
+  },
+  "status": "Draft"
+}

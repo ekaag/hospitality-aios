@@ -1,0 +1,18 @@
+{
+  "operatingHoursId": "01890a5d-ac96-774b-bcce-000000000020",
+  "schedule": {
+    "weekly": [
+      {
+        "day": "Saturday",
+        "intervals": [
+          {
+            "opens": "00:00:00",
+            "closes": "00:00:00"
+          }
+        ]
+      }
+    ],
+    "overrides": [],
+    "closures": []
+  }
+}

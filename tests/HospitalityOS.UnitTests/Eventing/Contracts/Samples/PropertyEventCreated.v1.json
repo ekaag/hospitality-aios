@@ -1,0 +1,19 @@
+{
+  "propertyEventId": "01890a5d-ac96-774b-bcce-000000000023",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "details": {
+    "title": "Jazz night",
+    "category": "Entertainment",
+    "audience": "Everyone",
+    "localStart": "2026-10-24T20:00:00",
+    "localEnd": "2026-10-24T22:00:00",
+    "description": "Live trio in the lobby bar",
+    "locationSpaceId": "01890a5d-ac96-774b-bcce-000000000003",
+    "price": {
+      "amount": 10,
+      "currencyCode": "GBP"
+    },
+    "bookingRequired": true
+  },
+  "status": "Scheduled"
+}

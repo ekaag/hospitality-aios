@@ -19,7 +19,7 @@ namespace HospitalityOS.Domain.Services.ServiceRequests;
 /// and Cancelled. Completing a completed request is a no-op, so duplicate <c>HumanActionCompleted</c>
 /// delivery completes it once logically (Journey 19, P8).
 /// </remarks>
-public sealed class ServiceRequest : AggregateRoot<ServiceRequestId>, ITenantScoped
+public sealed class ServiceRequest : AggregateRoot<ServiceRequestId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Maximum length of <see cref="ServiceRequestDetails.Description"/>.

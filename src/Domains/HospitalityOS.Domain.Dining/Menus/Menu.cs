@@ -12,7 +12,7 @@ namespace HospitalityOS.Domain.Dining.Menus;
 /// A restaurant's menu and its items, edited as one unit so each change raises a single
 /// <see cref="MenuUpdated"/> (spec §8). Supports dietary search for Demo 3 ("what vegetarian food can I get?").
 /// </summary>
-public sealed class Menu : AggregateRoot<MenuId>, ITenantScoped
+public sealed class Menu : AggregateRoot<MenuId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used, so the
     // placeholders below are never read.

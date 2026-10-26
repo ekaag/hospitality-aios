@@ -59,6 +59,7 @@ internal sealed class InMemoryUnitOfWork(InMemoryStore store) : IUnitOfWork
 
             events.AddRange(raised.Select((domainEvent, index) => new CommittedEvent(
                 tracked.TenantId,
+                (tracked.Aggregate as IPropertyScoped)?.PropertyId,
                 tracked.Key.AggregateType.Name,
                 tracked.Key.Id,
                 firstVersion + index,

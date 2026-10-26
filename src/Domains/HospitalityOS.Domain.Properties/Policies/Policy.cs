@@ -13,7 +13,7 @@ namespace HospitalityOS.Domain.Properties.Policies;
 /// separate from descriptive <see cref="ContentItems.ContentItem"/>s so the concierge answers policy questions only
 /// from policy, and says it does not know when no policy exists (Journeys 4 and 6, P4).
 /// </summary>
-public sealed class Policy : AggregateRoot<PolicyId>, ITenantScoped
+public sealed class Policy : AggregateRoot<PolicyId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Maximum length of <see cref="PolicyDetails.Content"/>.

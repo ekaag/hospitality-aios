@@ -1,0 +1,25 @@
+{
+  "menuId": "01890a5d-ac96-774b-bcce-000000000009",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "restaurantId": "01890a5d-ac96-774b-bcce-000000000008",
+  "details": {
+    "name": "Dinner",
+    "items": [
+      {
+        "id": "01890a5d-ac96-774b-bcce-000000000018",
+        "name": "Paneer tikka",
+        "description": "Chargrilled paneer",
+        "price": {
+          "amount": 14.50,
+          "currencyCode": "GBP"
+        },
+        "category": "Mains",
+        "dietary": [
+          "Vegetarian"
+        ],
+        "isAvailable": true
+      }
+    ],
+    "description": "Served 18:00-22:30"
+  }
+}

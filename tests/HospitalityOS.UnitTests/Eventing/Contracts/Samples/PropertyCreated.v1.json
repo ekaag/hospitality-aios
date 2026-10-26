@@ -1,0 +1,18 @@
+{
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "organizationId": "01890a5d-ac96-774b-bcce-000000000002",
+  "details": {
+    "name": "Aurora Grand",
+    "timeZoneId": "Europe/London",
+    "address": {
+      "line1": "1 Strand",
+      "line2": null,
+      "city": "London",
+      "region": null,
+      "postalCode": "WC2N 5HR",
+      "countryCode": "GB"
+    },
+    "contactPhone": "\u002B44 20 7946 0000",
+    "contactEmail": "concierge@aurora-grand.example"
+  }
+}

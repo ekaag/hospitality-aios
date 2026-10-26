@@ -1,0 +1,5 @@
+{
+  "serviceRequestId": "01890a5d-ac96-774b-bcce-000000000011",
+  "status": "Exception",
+  "exceptionReason": "Worker could not access the room"
+}

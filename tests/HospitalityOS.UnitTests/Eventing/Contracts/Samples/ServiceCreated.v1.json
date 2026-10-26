@@ -1,0 +1,19 @@
+{
+  "serviceId": "01890a5d-ac96-774b-bcce-000000000010",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "details": {
+    "code": "housekeeping.amenities",
+    "name": "housekeepingService amenities",
+    "category": "Housekeeping",
+    "description": "Towels, pillows, toiletries",
+    "isGuestRequestable": true,
+    "items": [
+      {
+        "code": "bath_towel",
+        "name": "Bath towel",
+        "maxQuantityPerRequest": 4
+      }
+    ],
+    "targetCompletion": "00:20:00"
+  }
+}

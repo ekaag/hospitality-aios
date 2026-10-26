@@ -16,7 +16,7 @@ namespace HospitalityOS.Domain.Services.Services;
 /// Codes must be unique within a property. That spans aggregates, so the application layer checks it through
 /// <see cref="IServiceRepository.FindByCodeAsync"/> and persistence backs it with a unique index.
 /// </remarks>
-public sealed class Service : AggregateRoot<ServiceId>, ITenantScoped
+public sealed class Service : AggregateRoot<ServiceId>, ITenantScoped, IPropertyScoped
 {
     /// <summary>
     /// Maximum number of items per service.

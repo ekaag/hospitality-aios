@@ -1,0 +1,12 @@
+{
+  "spaceId": "01890a5d-ac96-774b-bcce-000000000004",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "parentSpaceId": "01890a5d-ac96-774b-bcce-000000000003",
+  "details": {
+    "name": "Room 412",
+    "kind": "Room",
+    "code": "412",
+    "description": null,
+    "directions": "Fourth floor, left from the lifts"
+  }
+}

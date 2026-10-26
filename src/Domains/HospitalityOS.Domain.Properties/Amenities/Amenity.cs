@@ -13,7 +13,7 @@ namespace HospitalityOS.Domain.Properties.Amenities;
 /// <see cref="Hours.OperatingHours"/> record and its rules are <see cref="Policies.Policy"/> records,
 /// both referring to it by subject.
 /// </summary>
-public sealed class Amenity : AggregateRoot<AmenityId>, ITenantScoped
+public sealed class Amenity : AggregateRoot<AmenityId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used, so the
     // placeholders below are never read.

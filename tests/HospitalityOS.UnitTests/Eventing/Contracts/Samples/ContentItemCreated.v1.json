@@ -1,0 +1,18 @@
+{
+  "contentItemId": "01890a5d-ac96-774b-bcce-000000000019",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "details": {
+    "type": "Faq",
+    "title": "Wi-Fi",
+    "body": "Join Aurora-Guest.",
+    "about": {
+      "kind": "Property",
+      "id": "01890a5d-ac96-774b-bcce-000000000001"
+    },
+    "tags": [
+      "connectivity",
+      "wifi"
+    ]
+  },
+  "status": "Draft"
+}

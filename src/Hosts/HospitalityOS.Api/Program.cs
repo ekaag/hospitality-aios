@@ -1,6 +1,9 @@
+using HospitalityOS.Adapters.Local;
 using HospitalityOS.Api.Persistence;
 using HospitalityOS.Api.Tenancy;
 using HospitalityOS.Bindings;
+using HospitalityOS.Eventing;
+using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -14,8 +17,11 @@ builder.Host.UseDefaultServiceProvider(options =>
 });
 
 builder.Services.AddBindings(builder.Configuration);
+builder.Services.AddLocalAdapters();
+builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddConfiguredPersistence(builder.Configuration);
 builder.Services.AddScoped<ICurrentTenant, UnresolvedCurrentTenant>();
+builder.Services.AddEventing();
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 
 WebApplication app = builder.Build();

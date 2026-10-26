@@ -12,7 +12,7 @@ namespace HospitalityOS.Domain.Guests.Conversations;
 /// aggregates so a long conversation never has to load in full. A conversation may start anonymous and be
 /// linked to a stay once the guest is identified.
 /// </summary>
-public sealed class Conversation : AggregateRoot<ConversationId>, ITenantScoped
+public sealed class Conversation : AggregateRoot<ConversationId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used.
     private Conversation()

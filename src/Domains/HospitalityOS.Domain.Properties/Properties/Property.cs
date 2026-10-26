@@ -10,7 +10,7 @@ namespace HospitalityOS.Domain.Properties.Properties;
 /// One hotel. Owns its base information; spaces, amenities, hours, and policies are separate
 /// aggregates that reference it by <see cref="PropertyId"/>.
 /// </summary>
-public sealed class Property : AggregateRoot<PropertyId>, ITenantScoped
+public sealed class Property : AggregateRoot<PropertyId>, ITenantScoped, IPropertyScoped
 {
     // For EF Core only: it sets every property from storage before the instance is used, so the
     // placeholders below are never read.
@@ -29,6 +29,9 @@ public sealed class Property : AggregateRoot<PropertyId>, ITenantScoped
 
     /// <inheritdoc />
     public TenantId TenantId { get; }
+
+    /// <inheritdoc />
+    PropertyId IPropertyScoped.PropertyId => Id;
 
     /// <summary>
     /// The organization that owns or operates the property.
