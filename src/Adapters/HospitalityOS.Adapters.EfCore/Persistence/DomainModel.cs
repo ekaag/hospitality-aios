@@ -3,6 +3,7 @@ using HospitalityOS.Domain.Activities.PropertyEvents;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Guests.Guests;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.Properties;
@@ -27,6 +28,7 @@ internal static class DomainModel
         typeof(HumanAction).Assembly,
         typeof(Guest).Assembly,
         typeof(CapabilityInvocation).Assembly,
+        typeof(IntegrationConfiguration).Assembly,
     ];
 
     public static IEnumerable<Type> TypedIdTypes => Types.Where(type => type.IsValueType && typeof(ITypedId).IsAssignableFrom(type));

@@ -19,6 +19,7 @@
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Capabilities/HospitalityOS.Domain.Capabilities.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+    <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Integrations/HospitalityOS.Domain.Integrations.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
@@ -27,6 +28,7 @@
     <ProjectReference Include="../../src/Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <ProjectReference Include="../../src/Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <ProjectReference Include="../../src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
+    <ProjectReference Include="../../src/Platform/HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
   </ItemGroup>
 
 </Project>

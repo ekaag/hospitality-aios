@@ -1,5 +1,7 @@
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Guests.GuestMessages;
+using HospitalityOS.Domain.Integrations.ExternalReferences;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Services.ServiceRequests;
@@ -21,6 +23,8 @@ internal static class UniqueKeys
         Key<OperatingHours>("subject", hours => (hours.PropertyId, hours.Subject)),
         Key<GuestMessage>("clientMessageId", message => message.ClientMessageId is { } clientId ? (message.ConversationId, clientId) : null),
         Key<ServiceRequest>("sourceMessageId", request => request.Origin.SourceMessageId),
+        Key<IntegrationConfiguration>("kind", configuration => (configuration.PropertyId, configuration.Kind)),
+        Key<ExternalReference>("externalId", reference => (reference.PropertyId, reference.ProviderName, reference.EntityType, reference.ExternalId)),
 
         // Only succeeded invocations hold their key, so a failed attempt can be retried with it.
         Key<CapabilityInvocation>(

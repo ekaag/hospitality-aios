@@ -2,6 +2,7 @@ using HospitalityOS.Contracts.Events.Activities;
 using HospitalityOS.Contracts.Events.Capabilities;
 using HospitalityOS.Contracts.Events.Dining;
 using HospitalityOS.Contracts.Events.Guests;
+using HospitalityOS.Contracts.Events.Integrations;
 using HospitalityOS.Contracts.Events.Operations;
 using HospitalityOS.Contracts.Events.Organizations;
 using HospitalityOS.Contracts.Events.Properties;
@@ -14,6 +15,8 @@ using HospitalityOS.Domain.Guests.Conversations.Events;
 using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests.Events;
 using HospitalityOS.Domain.Guests.StayContexts.Events;
+using HospitalityOS.Domain.Integrations.ExternalReferences.Events;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations.Events;
 using HospitalityOS.Domain.Operations.HumanActions.Events;
 using HospitalityOS.Domain.Organizations.Organizations.Events;
 using HospitalityOS.Domain.Properties.AccommodationTypes.Events;
@@ -91,6 +94,9 @@ internal static class EventContractMapper
             CapabilityInvocationRequested e => new(new CapabilityInvocationRequestedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
             CapabilityInvocationSucceeded e => new(new CapabilityInvocationSucceededV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
             CapabilityInvocationFailed e => new(new CapabilityInvocationFailedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion, e.ErrorCode)),
+            IntegrationConfigurationCreated e => new(new IntegrationConfigurationCreatedV1(e.IntegrationConfigurationId.Value, e.PropertyId, e.Kind.ToString(), e.ProviderName, e.Status.ToString())),
+            IntegrationConfigurationUpdated e => new(new IntegrationConfigurationUpdatedV1(e.IntegrationConfigurationId.Value, e.Kind.ToString(), e.ProviderName, e.Status.ToString())),
+            ExternalReferenceCreated e => new(new ExternalReferenceCreatedV1(e.ExternalReferenceId.Value, e.PropertyId, e.ProviderName, e.EntityType, e.ExternalId, e.CanonicalId)),
             _ => throw new InvalidOperationException($"{domainEvent.GetType().Name} has no published contract; add one to HospitalityOS.Contracts and map it here."),
         };
     }

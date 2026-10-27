@@ -6,6 +6,8 @@ using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
+using HospitalityOS.Domain.Integrations.ExternalReferences;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Amenities;
@@ -329,6 +331,60 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         IReadOnlyList<PropertyEvent> found = await session.Get<IPropertyEventRepository>().ListScheduledEndingAfterAsync(TestData.PropertyId, localNow, Cancellation);
 
         AssertSameIds([ongoing.Id, future.Id], found.Select(e => e.Id));
+    }
+
+    [Fact]
+    public async Task FindIntegrationConfigurationForProperty_MatchesPropertyAndKindInTheTenant()
+    {
+        IntegrationConfiguration pms = TestData.IntegrationConfiguration(TestData.TenantA, 1, ConnectorKind.Pms);
+        await SaveAsync(
+            pms,
+            TestData.IntegrationConfiguration(TestData.TenantA, 2, ConnectorKind.Messaging),
+            TestData.IntegrationConfiguration(TestData.TenantA, 3, ConnectorKind.Pms, TestData.OtherPropertyId),
+            TestData.IntegrationConfiguration(TestData.TenantB, 4, ConnectorKind.Cms));
+        await using PersistenceSession session = OpenSession();
+        IIntegrationConfigurationRepository configurations = session.Get<IIntegrationConfigurationRepository>();
+
+        IntegrationConfiguration? found = await configurations.FindForPropertyAsync(TestData.PropertyId, ConnectorKind.Pms, Cancellation);
+        IntegrationConfiguration? otherTenantsKind = await configurations.FindForPropertyAsync(TestData.PropertyId, ConnectorKind.Cms, Cancellation);
+        IReadOnlyList<IntegrationConfiguration> all = await configurations.ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        Assert.Equal(pms.Id, found?.Id);
+        Assert.Null(otherTenantsKind);
+        AssertSameIds([pms.Id, new IntegrationConfigurationId(TestData.Id(23002))], all.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task FindExternalReference_MatchesExactlyInTheTenant()
+    {
+        ExternalReference reference = TestData.ExternalReference(TestData.TenantA, 1, "RES-0412");
+        await SaveAsync(reference, TestData.ExternalReference(TestData.TenantB, 2, "RES-0999"));
+        await using PersistenceSession session = OpenSession();
+        IExternalReferenceRepository references = session.Get<IExternalReferenceRepository>();
+
+        ExternalReference? found = await references.FindAsync(TestData.PropertyId, "MockPms", "StayContext", "RES-0412", Cancellation);
+        ExternalReference? otherCase = await references.FindAsync(TestData.PropertyId, "MockPms", "StayContext", "res-0412", Cancellation);
+        ExternalReference? otherProvider = await references.FindAsync(TestData.PropertyId, "OperaCloud", "StayContext", "RES-0412", Cancellation);
+        ExternalReference? otherType = await references.FindAsync(TestData.PropertyId, "MockPms", "Guest", "RES-0412", Cancellation);
+        ExternalReference? otherProperty = await references.FindAsync(TestData.OtherPropertyId, "MockPms", "StayContext", "RES-0412", Cancellation);
+        ExternalReference? otherTenant = await references.FindAsync(TestData.PropertyId, "MockPms", "StayContext", "RES-0999", Cancellation);
+
+        Assert.Equal((reference.Id, reference.CanonicalId), (found?.Id, found?.CanonicalId));
+        Assert.All([otherCase, otherProvider, otherType, otherProperty, otherTenant], Assert.Null);
+    }
+
+    [Fact]
+    public async Task ListExternalReferencesForCanonical_ReturnsEveryProvidersIdsForTheRecord()
+    {
+        Guid stay = TestData.Id(25999);
+        ExternalReference mock = TestData.ExternalReference(TestData.TenantA, 1, "RES-0412", stay);
+        ExternalReference opera = TestData.ExternalReference(TestData.TenantA, 2, "8812734", stay, "OperaCloud");
+        await SaveAsync(mock, opera, TestData.ExternalReference(TestData.TenantA, 3, "RES-0413"), TestData.ExternalReference(TestData.TenantB, 4, "RES-0500", stay));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<ExternalReference> found = await session.Get<IExternalReferenceRepository>().ListForCanonicalAsync(TestData.PropertyId, "StayContext", stay, Cancellation);
+
+        AssertSameIds([mock.Id, opera.Id], found.Select(r => r.Id));
     }
 
     private static Policy Activated(Policy policy)

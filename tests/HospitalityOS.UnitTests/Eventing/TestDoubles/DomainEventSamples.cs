@@ -13,6 +13,10 @@ using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests.Events;
 using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Guests.StayContexts.Events;
+using HospitalityOS.Domain.Integrations.ExternalReferences;
+using HospitalityOS.Domain.Integrations.ExternalReferences.Events;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations.Events;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Operations.HumanActions.Events;
 using HospitalityOS.Domain.Organizations.Organizations.Events;
@@ -156,6 +160,9 @@ public static class DomainEventSamples
         new CapabilityInvocationRequested(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationSucceeded(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationFailed(new CapabilityInvocationId(Id(26)), "HumanAction.Complete", 1, "humanaction.not_assigned", Now),
+        new IntegrationConfigurationCreated(new IntegrationConfigurationId(Id(27)), auroraGrand, ConnectorKind.Pms, "MockPms", IntegrationStatus.Active, Now),
+        new IntegrationConfigurationUpdated(new IntegrationConfigurationId(Id(27)), ConnectorKind.Pms, "OperaCloud", IntegrationStatus.Disabled, Now),
+        new ExternalReferenceCreated(new ExternalReferenceId(Id(28)), auroraGrand, "MockPms", "StayContext", "RES-0412", alexStay.Value, Now),
     ];
 
     public static IReadOnlyList<IDomainEvent> All => all;

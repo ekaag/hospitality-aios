@@ -1,5 +1,6 @@
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Guests.Conversations;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.PortContractTests.Persistence.Support;
@@ -144,6 +145,50 @@ public abstract class UniqueKeyContractTests : PersistenceContractTests
         AssertDuplicateKey(commit);
         await using PersistenceSession reader = OpenSession();
         Assert.Null(await reader.Get<IAccommodationUnitRepository>().GetByIdAsync(first.Id, Cancellation));
+    }
+
+    [Fact]
+    public async Task Commit_SecondConfigurationOfKindForProperty_ReturnsDuplicateKey()
+    {
+        await SaveAsync(TestData.IntegrationConfiguration(TestData.TenantA, 1, ConnectorKind.Pms));
+
+        Result<CommitReceipt> commit = await AddAndCommitAsync(TestData.IntegrationConfiguration(TestData.TenantA, 2, ConnectorKind.Pms));
+
+        AssertDuplicateKey(commit);
+    }
+
+    [Fact]
+    public async Task Commit_ConfigurationOfOtherKindOrProperty_Succeeds()
+    {
+        await SaveAsync(TestData.IntegrationConfiguration(TestData.TenantA, 1, ConnectorKind.Pms));
+
+        Result<CommitReceipt> otherKind = await AddAndCommitAsync(TestData.IntegrationConfiguration(TestData.TenantA, 2, ConnectorKind.Messaging));
+        Result<CommitReceipt> otherProperty = await AddAndCommitAsync(TestData.IntegrationConfiguration(TestData.TenantA, 3, ConnectorKind.Pms, TestData.OtherPropertyId));
+
+        Assert.True(otherKind.IsSuccess);
+        Assert.True(otherProperty.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Commit_ExternalIdAlreadyLinked_ReturnsDuplicateKey()
+    {
+        await SaveAsync(TestData.ExternalReference(TestData.TenantA, 1, "RES-0412"));
+
+        Result<CommitReceipt> commit = await AddAndCommitAsync(TestData.ExternalReference(TestData.TenantA, 2, "RES-0412"));
+
+        AssertDuplicateKey(commit);
+    }
+
+    [Fact]
+    public async Task Commit_ExternalIdDifferingInCaseOrFromOtherProvider_Succeeds()
+    {
+        await SaveAsync(TestData.ExternalReference(TestData.TenantA, 1, "res-0412"));
+
+        Result<CommitReceipt> otherCase = await AddAndCommitAsync(TestData.ExternalReference(TestData.TenantA, 2, "RES-0412"));
+        Result<CommitReceipt> otherProvider = await AddAndCommitAsync(TestData.ExternalReference(TestData.TenantA, 3, "res-0412", providerName: "OperaCloud"));
+
+        Assert.True(otherCase.IsSuccess);
+        Assert.True(otherProvider.IsSuccess);
     }
 
     private static void AssertDuplicateKey(Result<CommitReceipt> commit)

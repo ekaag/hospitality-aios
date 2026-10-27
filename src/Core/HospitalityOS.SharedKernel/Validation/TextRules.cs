@@ -75,8 +75,14 @@ public static class TextRules
         return trimmed;
     }
 
-    private static bool IsCode(string code)
+    /// <summary>
+    /// Whether <paramref name="code"/> is already a normalized machine code (see <see cref="Code"/>).
+    /// </summary>
+    public static bool IsCode(string code)
     {
+        ArgumentNullException.ThrowIfNull(code);
+
+
         bool previousWasSeparator = true;
 
         foreach (char character in code)

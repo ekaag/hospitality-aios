@@ -19,6 +19,7 @@
     <Project Path="src/Domains/HospitalityOS.Domain.Capabilities/HospitalityOS.Domain.Capabilities.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+    <Project Path="src/Domains/HospitalityOS.Domain.Integrations/HospitalityOS.Domain.Integrations.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Organizations/HospitalityOS.Domain.Organizations.csproj" />
     <Project Path="src/Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
@@ -32,6 +33,7 @@
     <Project Path="src/Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <Project Path="src/Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <Project Path="src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
+    <Project Path="src/Platform/HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HospitalityOS.ArchitectureTests/HospitalityOS.ArchitectureTests.csproj" />

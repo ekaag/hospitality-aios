@@ -619,6 +619,95 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
                     b.ToTable("StayContexts", (string)null);
                 });
 
+            modelBuilder.Entity("HospitalityOS.Domain.Integrations.ExternalReferences.ExternalReference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CanonicalId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("PropertyId", "EntityType", "CanonicalId");
+
+                    b.HasIndex("PropertyId", "ProviderName", "EntityType", "ExternalId")
+                        .IsUnique();
+
+                    b.ToTable("ExternalReferences", (string)null);
+                });
+
+            modelBuilder.Entity("HospitalityOS.Domain.Integrations.IntegrationConfigurations.IntegrationConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("PropertyId", "Kind")
+                        .IsUnique();
+
+                    b.ToTable("IntegrationConfigurations", (string)null);
+                });
+
             modelBuilder.Entity("HospitalityOS.Domain.Operations.HumanActions.HumanAction", b =>
                 {
                     b.Property<Guid>("Id")

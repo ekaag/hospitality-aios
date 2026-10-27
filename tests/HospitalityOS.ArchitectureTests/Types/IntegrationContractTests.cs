@@ -36,15 +36,26 @@ public sealed class IntegrationContractTests
 
     private static Assembly Contracts => Assembly.Load(new AssemblyName(ProjectName));
 
-    [Fact]
-    public void Interfaces_AreExactlyTheSpecConnectors()
-    {
-        IEnumerable<string> interfaces = Contracts.GetExportedTypes()
-            .Where(type => type.IsInterface)
-            .Select(type => type.Name)
-            .Order(StringComparer.Ordinal);
+    private static IEnumerable<Type> Connectors => Contracts.GetExportedTypes()
+        .Where(type => type.IsInterface && type.Name.EndsWith("Connector", StringComparison.Ordinal));
 
-        Assert.Equal(specConnectors, interfaces);
+    [Fact]
+    public void Connectors_AreExactlyTheSpecConnectors()
+    {
+        IEnumerable<string> connectors = Connectors.Select(type => type.Name).Order(StringComparer.Ordinal);
+
+        Assert.Equal(specConnectors, connectors);
+    }
+
+    [Fact]
+    public void Interfaces_AreTheConnectorsAndTheProviderSeam()
+    {
+        IEnumerable<string> others = Contracts.GetExportedTypes()
+            .Where(type => type.IsInterface)
+            .Except(Connectors)
+            .Select(type => type.Name);
+
+        Assert.Equal(["IIntegrationProvider`1"], others);
     }
 
     [Fact]
@@ -64,8 +75,7 @@ public sealed class IntegrationContractTests
     [Fact]
     public void ConnectorMethods_AreAsyncAndTakeCancellationTokenLast()
     {
-        List<string> violations = Contracts.GetExportedTypes()
-            .Where(type => type.IsInterface)
+        List<string> violations = Connectors
             .SelectMany(type => type.GetMethods())
             .Where(method => !typeof(Task).IsAssignableFrom(method.ReturnType)
                 || method.GetParameters().LastOrDefault()?.ParameterType != typeof(CancellationToken))

@@ -10,6 +10,8 @@ using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
+using HospitalityOS.Domain.Integrations.ExternalReferences;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
@@ -70,6 +72,8 @@ public static class DependencyInjection
         services.TryAddScoped<IConversationRepository, EfConversationRepository>();
         services.TryAddScoped<IGuestMessageRepository, EfGuestMessageRepository>();
         services.TryAddScoped<ICapabilityInvocationRepository, EfCapabilityInvocationRepository>();
+        services.TryAddScoped<IIntegrationConfigurationRepository, EfIntegrationConfigurationRepository>();
+        services.TryAddScoped<IExternalReferenceRepository, EfExternalReferenceRepository>();
 
         return services;
     }

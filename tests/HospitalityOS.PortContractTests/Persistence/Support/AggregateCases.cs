@@ -6,6 +6,8 @@ using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
+using HospitalityOS.Domain.Integrations.ExternalReferences;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
@@ -96,6 +98,12 @@ public static class AggregateCases
 
                 return Result.Success();
             }),
+        new AggregateCase<IntegrationConfiguration, IntegrationConfigurationId, IIntegrationConfigurationRepository>(
+            (tenant, seed) => TestData.IntegrationConfiguration(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            a => a.Reconfigure("OperaCloud", [new IntegrationSetting("hotelCode", "AG02")], TestData.Now)),
+        new AggregateCase<ExternalReference, ExternalReferenceId, IExternalReferenceRepository>(
+            (tenant, seed) => TestData.ExternalReference(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            change: null),
     ];
 
     public static TheoryData<string> Names => new(all.Select(aggregateCase => aggregateCase.Name));

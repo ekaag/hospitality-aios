@@ -11,6 +11,7 @@
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Dining/HospitalityOS.Domain.Dining.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Capabilities/HospitalityOS.Domain.Capabilities.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Integrations/HospitalityOS.Domain.Integrations.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Operations/HospitalityOS.Domain.Operations.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />

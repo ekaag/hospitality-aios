@@ -6,6 +6,8 @@ using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
+using HospitalityOS.Domain.Integrations.ExternalReferences;
+using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
@@ -233,4 +235,31 @@ internal static class TestData
 
         return invocation;
     }
+
+    public static IntegrationConfiguration IntegrationConfiguration(TenantId tenantId, int seed, ConnectorKind kind = ConnectorKind.Pms, PropertyId? propertyId = null) =>
+        Domain.Integrations.IntegrationConfigurations.IntegrationConfiguration.Create(
+            new IntegrationConfigurationId(Id(23000 + seed)),
+            tenantId,
+            propertyId ?? PropertyId,
+            kind,
+            "MockPms",
+            [new IntegrationSetting("hotelCode", "AG01")],
+            Now).Value;
+
+    public static ExternalReference ExternalReference(
+        TenantId tenantId,
+        int seed,
+        string externalId = "RES-0412",
+        Guid? canonicalId = null,
+        string providerName = "MockPms",
+        PropertyId? propertyId = null) =>
+        Domain.Integrations.ExternalReferences.ExternalReference.Create(
+            new ExternalReferenceId(Id(24000 + seed)),
+            tenantId,
+            propertyId ?? PropertyId,
+            providerName,
+            "StayContext",
+            externalId,
+            canonicalId ?? Id(25000 + seed),
+            Now).Value;
 }
