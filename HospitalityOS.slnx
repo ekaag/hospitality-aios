@@ -10,6 +10,7 @@
     <Project Path="src/Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
   </Folder>
   <Folder Name="/src/Core/">
+    <Project Path="src/Core/HospitalityOS.IntegrationContracts/HospitalityOS.IntegrationContracts.csproj" />
     <Project Path="src/Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
     <Project Path="src/Core/HospitalityOS.SharedKernel/HospitalityOS.SharedKernel.csproj" />
   </Folder>
