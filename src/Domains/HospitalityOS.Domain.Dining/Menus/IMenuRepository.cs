@@ -1,3 +1,6 @@
+using HospitalityOS.Domain.Dining.Restaurants;
+using HospitalityOS.SharedKernel.Ids;
+
 namespace HospitalityOS.Domain.Dining.Menus;
 
 /// <summary>
@@ -10,6 +13,16 @@ public interface IMenuRepository
     /// Loads a menu, or returns <c>null</c> when it does not exist in the current tenant.
     /// </summary>
     Task<Menu?> GetByIdAsync(MenuId id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The restaurant's menus, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Menu>> ListForRestaurantAsync(RestaurantId restaurantId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Every menu of the property's restaurants, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Menu>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a new menu, persisted when the unit of work commits.

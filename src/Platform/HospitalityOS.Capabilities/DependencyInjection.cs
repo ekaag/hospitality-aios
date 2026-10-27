@@ -1,6 +1,9 @@
 using HospitalityOS.Application.Auditing;
+using HospitalityOS.Capabilities.Activities;
 using HospitalityOS.Capabilities.Definitions;
+using HospitalityOS.Capabilities.Dining;
 using HospitalityOS.Capabilities.Execution;
+using HospitalityOS.Capabilities.Properties;
 using HospitalityOS.Capabilities.Registry;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Ports.Execution;
@@ -44,6 +47,20 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// Registers the platform's own capabilities: the property, dining, and events reads (spec §11). The host must
+    /// register persistence for their repositories.
+    /// </summary>
+    public static IServiceCollection AddBuiltInCapabilities(this IServiceCollection services) =>
+        services
+            .AddCapability<GetPropertyCapability>()
+            .AddCapability<GetOperatingHoursCapability>()
+            .AddCapability<GetPolicyCapability>()
+            .AddCapability<SearchContentCapability>()
+            .AddCapability<SearchRestaurantsCapability>()
+            .AddCapability<GetMenuCapability>()
+            .AddCapability<SearchPropertyEventsCapability>();
 
     /// <summary>
     /// Registers <typeparamref name="TCapability"/>, scoped. Its definition is built and checked here, so an invalid

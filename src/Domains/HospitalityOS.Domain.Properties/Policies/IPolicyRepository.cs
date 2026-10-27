@@ -1,3 +1,5 @@
+using HospitalityOS.SharedKernel.Ids;
+
 namespace HospitalityOS.Domain.Properties.Policies;
 
 /// <summary>
@@ -10,6 +12,11 @@ public interface IPolicyRepository
     /// Loads a policy, or returns <c>null</c> when it does not exist in the current tenant.
     /// </summary>
     Task<Policy?> GetByIdAsync(PolicyId id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The property's active policies (whatever their effective dates), in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Policy>> ListActiveForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a new policy, persisted when the unit of work commits.

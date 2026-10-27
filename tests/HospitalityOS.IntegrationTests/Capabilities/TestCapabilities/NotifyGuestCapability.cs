@@ -14,7 +14,7 @@ internal sealed record NotifyGuestOutput(Guid MessageId);
 /// </summary>
 internal sealed class NotifyGuestCapability(CapabilityProbe probe) : ICapability<NotifyGuestInput, NotifyGuestOutput>
 {
-    public const string Name = "Messaging.NotifyGuest";
+    public const string Name = "Test.NotifyGuest";
 
     public static CapabilityDescriptor Descriptor { get; } = new()
     {

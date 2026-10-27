@@ -50,22 +50,22 @@ public static class AggregateCases
             (tenant, seed) => TestData.OperatingHours(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Update(TestData.Weekly(DayOfWeek.Monday, DayOfWeek.Tuesday), TestData.Now)),
         new AggregateCase<Amenity, AmenityId, IAmenityRepository>(
-            TestData.Amenity, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.Amenity(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Update(a.Details with { Description = "Heated indoor pool" }, null, TestData.Now)),
         new AggregateCase<Policy, PolicyId, IPolicyRepository>(
-            TestData.Policy, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.Policy(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Activate(TestData.Now)),
         new AggregateCase<ContentItem, ContentItemId, IContentItemRepository>(
-            TestData.ContentItem, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.ContentItem(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Publish(TestData.Now)),
         new AggregateCase<Restaurant, RestaurantId, IRestaurantRepository>(
-            TestData.Restaurant, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.Restaurant(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Update(a.Details with { Cuisine = "Indian" }, TestData.Now)),
         new AggregateCase<Menu, MenuId, IMenuRepository>(
-            TestData.Menu, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.Menu(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.SetItemAvailability(TestData.PaneerTikka, false, TestData.Now)),
         new AggregateCase<PropertyEvent, PropertyEventId, IPropertyEventRepository>(
-            TestData.PropertyEvent, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.PropertyEvent(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Cancel(TestData.Now)),
         new AggregateCase<Service, ServiceId, IServiceRepository>(
             (tenant, seed) => TestData.Service(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),

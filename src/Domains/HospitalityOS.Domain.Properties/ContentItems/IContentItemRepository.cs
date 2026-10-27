@@ -1,3 +1,5 @@
+using HospitalityOS.SharedKernel.Ids;
+
 namespace HospitalityOS.Domain.Properties.ContentItems;
 
 /// <summary>
@@ -10,6 +12,11 @@ public interface IContentItemRepository
     /// Loads a content item, or returns <c>null</c> when it does not exist in the current tenant.
     /// </summary>
     Task<ContentItem?> GetByIdAsync(ContentItemId id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The property's published content, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<ContentItem>> ListPublishedForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a new content item, persisted when the unit of work commits.

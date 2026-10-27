@@ -92,44 +92,48 @@ internal static class TestData
     public static OperatingHoursSchedule Weekly(params DayOfWeek[] days) =>
         OperatingHoursSchedule.WeeklyOnly([.. days.Select(day => new DayHours(day, [new TimeInterval(new TimeOnly(6, 0), new TimeOnly(22, 0))]))]);
 
-    public static Amenity Amenity(TenantId tenantId, int seed) =>
-        Domain.Properties.Amenities.Amenity.Create(new AmenityId(Id(7000 + seed)), tenantId, PropertyId, new AmenityDetails("Pool", AmenityCategory.Pool), null, Now).Value;
+    public static Amenity Amenity(TenantId tenantId, int seed, PropertyId? propertyId = null) =>
+        Domain.Properties.Amenities.Amenity.Create(new AmenityId(Id(7000 + seed)), tenantId, propertyId ?? PropertyId, new AmenityDetails("Pool", AmenityCategory.Pool), null, Now).Value;
 
-    public static Policy Policy(TenantId tenantId, int seed) =>
+    public static Policy Policy(TenantId tenantId, int seed, PropertyId? propertyId = null) =>
         Domain.Properties.Policies.Policy.Create(
             new PolicyId(Id(8000 + seed)),
             tenantId,
-            PropertyId,
+            propertyId ?? PropertyId,
             new PolicyDetails(PolicyType.Children, "Children in the gym", "Guests under 16 must be accompanied by an adult."),
             Now).Value;
 
-    public static ContentItem ContentItem(TenantId tenantId, int seed) =>
+    public static ContentItem ContentItem(TenantId tenantId, int seed, PropertyId? propertyId = null) =>
         Domain.Properties.ContentItems.ContentItem.Create(
             new ContentItemId(Id(9000 + seed)),
             tenantId,
-            PropertyId,
+            propertyId ?? PropertyId,
             new ContentItemDetails(ContentType.Faq, "Wi-Fi", "Join the Aurora-Guest network."),
             Now).Value;
 
-    public static Restaurant Restaurant(TenantId tenantId, int seed) =>
-        Domain.Dining.Restaurants.Restaurant.Create(new RestaurantId(Id(10000 + seed)), tenantId, PropertyId, new RestaurantDetails("Saffron"), Now).Value;
+    public static Restaurant Restaurant(TenantId tenantId, int seed, PropertyId? propertyId = null) =>
+        Domain.Dining.Restaurants.Restaurant.Create(new RestaurantId(Id(10000 + seed)), tenantId, propertyId ?? PropertyId, new RestaurantDetails("Saffron"), Now).Value;
 
     public static MenuItemId PaneerTikka { get; } = new(Id(11999));
 
-    public static Menu Menu(TenantId tenantId, int seed) =>
+    public static Menu Menu(TenantId tenantId, int seed, Restaurant? restaurant = null) =>
         Domain.Dining.Menus.Menu.Create(
             new MenuId(Id(11000 + seed)),
-            Restaurant(tenantId, seed),
+            restaurant ?? Restaurant(tenantId, seed),
             new MenuDetails("Dinner", [new MenuItem(PaneerTikka, "Paneer tikka", Dietary: [DietaryTag.Vegetarian])]),
             Now).Value;
 
-    public static PropertyEvent PropertyEvent(TenantId tenantId, int seed) =>
-        Domain.Activities.PropertyEvents.PropertyEvent.Create(
+    public static PropertyEvent PropertyEvent(TenantId tenantId, int seed, PropertyId? propertyId = null, DateTime? localStart = null)
+    {
+        DateTime start = localStart ?? new DateTime(2026, 10, 24, 20, 0, 0);
+
+        return Domain.Activities.PropertyEvents.PropertyEvent.Create(
             new PropertyEventId(Id(12000 + seed)),
             tenantId,
-            PropertyId,
-            new PropertyEventDetails("Jazz night", PropertyEventCategory.Entertainment, EventAudience.Everyone, new DateTime(2026, 10, 24, 20, 0, 0), new DateTime(2026, 10, 24, 22, 0, 0)),
+            propertyId ?? PropertyId,
+            new PropertyEventDetails("Jazz night", PropertyEventCategory.Entertainment, EventAudience.Everyone, start, start.AddHours(2)),
             Now).Value;
+    }
 
     public static Service Service(TenantId tenantId, int seed, string? code = null, PropertyId? propertyId = null) =>
         Domain.Services.Services.Service.Create(

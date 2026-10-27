@@ -31,7 +31,7 @@ builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredService<TenantContext>());
 builder.Services.AddEventing(builder.Configuration);
 builder.Services.AddApplication();
-builder.Services.AddCapabilities();
+builder.Services.AddCapabilities().AddBuiltInCapabilities();
 builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 

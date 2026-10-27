@@ -1,11 +1,17 @@
+using HospitalityOS.Domain.Activities.PropertyEvents;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
+using HospitalityOS.Domain.Dining.Menus;
+using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
+using HospitalityOS.Domain.Properties.Amenities;
+using HospitalityOS.Domain.Properties.ContentItems;
 using HospitalityOS.Domain.Properties.Hours;
+using HospitalityOS.Domain.Properties.Policies;
 using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
@@ -221,4 +227,125 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-3", Cancellation));
         Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-4", Cancellation));
     }
+
+    [Fact]
+    public async Task ListAmenitiesForProperty_ReturnsThatPropertysAmenitiesInTheTenant()
+    {
+        Amenity[] mine = [TestData.Amenity(TestData.TenantA, 1), TestData.Amenity(TestData.TenantA, 2)];
+        await SaveAsync([.. mine, TestData.Amenity(TestData.TenantA, 3, TestData.OtherPropertyId), TestData.Amenity(TestData.TenantB, 4)]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Amenity> found = await session.Get<IAmenityRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds(mine.Select(a => a.Id), found.Select(a => a.Id));
+    }
+
+    [Fact]
+    public async Task ListRestaurantsForProperty_ReturnsThatPropertysRestaurantsInTheTenant()
+    {
+        Restaurant[] mine = [TestData.Restaurant(TestData.TenantA, 1), TestData.Restaurant(TestData.TenantA, 2)];
+        await SaveAsync([.. mine, TestData.Restaurant(TestData.TenantA, 3, TestData.OtherPropertyId), TestData.Restaurant(TestData.TenantB, 4)]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Restaurant> found = await session.Get<IRestaurantRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds(mine.Select(r => r.Id), found.Select(r => r.Id));
+    }
+
+    [Fact]
+    public async Task ListMenus_ByRestaurantAndByProperty_ReturnOnlyMatchingMenusInTheTenant()
+    {
+        Restaurant saffron = TestData.Restaurant(TestData.TenantA, 1);
+        Restaurant elsewhere = TestData.Restaurant(TestData.TenantA, 2, TestData.OtherPropertyId);
+        Menu dinner = TestData.Menu(TestData.TenantA, 1, saffron);
+        Menu lunch = TestData.Menu(TestData.TenantA, 2, saffron);
+        Menu bar = TestData.Menu(TestData.TenantA, 3);
+        await SaveAsync(saffron, elsewhere, dinner, lunch, bar, TestData.Menu(TestData.TenantA, 4, elsewhere), TestData.Menu(TestData.TenantB, 5));
+        await using PersistenceSession session = OpenSession();
+        IMenuRepository menus = session.Get<IMenuRepository>();
+
+        IReadOnlyList<Menu> forRestaurant = await menus.ListForRestaurantAsync(saffron.Id, Cancellation);
+        IReadOnlyList<Menu> forProperty = await menus.ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds([dinner.Id, lunch.Id], forRestaurant.Select(m => m.Id));
+        AssertSameIds([dinner.Id, lunch.Id, bar.Id], forProperty.Select(m => m.Id));
+    }
+
+    [Fact]
+    public async Task ListActivePolicies_ReturnsOnlyActivePoliciesOfThatProperty()
+    {
+        Policy active = Activated(TestData.Policy(TestData.TenantA, 1));
+        Policy retired = Activated(TestData.Policy(TestData.TenantA, 2));
+        Assert.True(retired.Retire(TestData.Now).IsSuccess);
+        await SaveAsync(
+            active,
+            retired,
+            TestData.Policy(TestData.TenantA, 3),
+            Activated(TestData.Policy(TestData.TenantA, 4, TestData.OtherPropertyId)),
+            Activated(TestData.Policy(TestData.TenantB, 5)));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Policy> found = await session.Get<IPolicyRepository>().ListActiveForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds([active.Id], found.Select(p => p.Id));
+    }
+
+    [Fact]
+    public async Task ListPublishedContent_ReturnsOnlyPublishedItemsOfThatProperty()
+    {
+        ContentItem published = Published(TestData.ContentItem(TestData.TenantA, 1));
+        ContentItem archived = Published(TestData.ContentItem(TestData.TenantA, 2));
+        Assert.True(archived.Archive(TestData.Now).IsSuccess);
+        await SaveAsync(
+            published,
+            archived,
+            TestData.ContentItem(TestData.TenantA, 3),
+            Published(TestData.ContentItem(TestData.TenantA, 4, TestData.OtherPropertyId)),
+            Published(TestData.ContentItem(TestData.TenantB, 5)));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<ContentItem> found = await session.Get<IContentItemRepository>().ListPublishedForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds([published.Id], found.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task ListScheduledEndingAfter_ReturnsOngoingAndFutureScheduledEventsOfThatProperty()
+    {
+        DateTime localNow = new(2026, 10, 26, 21, 0, 0);
+        PropertyEvent ongoing = TestData.PropertyEvent(TestData.TenantA, 1, localStart: localNow.AddHours(-1));
+        PropertyEvent future = TestData.PropertyEvent(TestData.TenantA, 2, localStart: localNow.AddDays(1));
+        PropertyEvent cancelled = TestData.PropertyEvent(TestData.TenantA, 3, localStart: localNow.AddDays(1));
+        Assert.True(cancelled.Cancel(TestData.Now).IsSuccess);
+        await SaveAsync(
+            ongoing,
+            future,
+            cancelled,
+            TestData.PropertyEvent(TestData.TenantA, 4, localStart: localNow.AddHours(-2)),
+            TestData.PropertyEvent(TestData.TenantA, 5, TestData.OtherPropertyId, localNow.AddDays(1)),
+            TestData.PropertyEvent(TestData.TenantB, 6, localStart: localNow.AddDays(1)));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<PropertyEvent> found = await session.Get<IPropertyEventRepository>().ListScheduledEndingAfterAsync(TestData.PropertyId, localNow, Cancellation);
+
+        AssertSameIds([ongoing.Id, future.Id], found.Select(e => e.Id));
+    }
+
+    private static Policy Activated(Policy policy)
+    {
+        Assert.True(policy.Activate(TestData.Now).IsSuccess);
+
+        return policy;
+    }
+
+    private static ContentItem Published(ContentItem item)
+    {
+        Assert.True(item.Publish(TestData.Now).IsSuccess);
+
+        return item;
+    }
+
+    private static void AssertSameIds<TId>(IEnumerable<TId> expected, IEnumerable<TId> actual)
+        where TId : struct, HospitalityOS.SharedKernel.Ids.ITypedId =>
+        Assert.Equal(expected.Select(id => id.Value).Order(), actual.Select(id => id.Value).Order());
 }

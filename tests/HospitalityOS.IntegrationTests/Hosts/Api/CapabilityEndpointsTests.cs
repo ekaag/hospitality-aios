@@ -34,11 +34,11 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
 
         using JsonDocument body = JsonDocument.Parse(await client.GetStringAsync(Route, TestContext.Current.CancellationToken));
 
-        JsonElement[] capabilities = [.. body.RootElement.EnumerateArray()];
+        JsonElement[] capabilities = [.. body.RootElement.EnumerateArray().Where(capability => capability.GetProperty("name").GetString()!.StartsWith("Test.", StringComparison.Ordinal))];
         Assert.Equal(
-            ["Messaging.NotifyGuest v1", "Messaging.NotifyGuest v2", "Property.GetOperatingHours v1"],
+            ["Test.GetHours v1", "Test.NotifyGuest v1", "Test.NotifyGuest v2"],
             capabilities.Select(capability => $"{capability.GetProperty("name").GetString()} v{capability.GetProperty("version").GetInt32()}"));
-        JsonElement getHours = capabilities[2];
+        JsonElement getHours = capabilities[0];
         Assert.Equal(
             ["name", "version", "description", "inputSchema", "outputSchema", "authorization", "confirmationPolicy", "sideEffects", "idempotency", "auditClassification"],
             getHours.EnumerateObject().Select(field => field.Name));
@@ -61,10 +61,10 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     {
         using HttpClient client = factory.CreateClient();
 
-        CapabilityDescription? description = await GetAsync(client, $"{Route}/Messaging.NotifyGuest");
+        CapabilityDescription? description = await GetAsync(client, $"{Route}/Test.NotifyGuest");
 
         Assert.Equal(
-            ("Messaging.NotifyGuest", 2, SideEffect.External, IdempotencyPolicy.KeyRequired, ConfirmationPolicy.Required, AuditClassification.Sensitive),
+            ("Test.NotifyGuest", 2, SideEffect.External, IdempotencyPolicy.KeyRequired, ConfirmationPolicy.Required, AuditClassification.Sensitive),
             (description?.Name, description?.Version, description?.SideEffects, description?.Idempotency, description?.ConfirmationPolicy, description?.AuditClassification));
     }
 
@@ -73,15 +73,15 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     {
         using HttpClient client = factory.CreateClient();
 
-        CapabilityDescription? description = await GetAsync(client, $"{Route}/Messaging.NotifyGuest?version=1");
+        CapabilityDescription? description = await GetAsync(client, $"{Route}/Test.NotifyGuest?version=1");
 
         Assert.Equal(1, description?.Version);
     }
 
     [Theory]
-    [InlineData("Messaging.Unknown")]
-    [InlineData("messaging.notifyguest")]
-    [InlineData("Messaging.NotifyGuest?version=3")]
+    [InlineData("Test.Unknown")]
+    [InlineData("test.notifyguest")]
+    [InlineData("Test.NotifyGuest?version=3")]
     public async Task Get_Unknown_IsNotFound(string path)
     {
         using HttpClient client = factory.CreateClient();
@@ -92,14 +92,22 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task List_InTheHostAsShipped_IsEmptyUntilCapabilitiesAreImplemented()
+    public async Task List_InTheHostAsShipped_PublishesTheSpecReadCapabilities()
     {
         await using WebApplicationFactory<Program> shipped = new();
         using HttpClient client = shipped.CreateClient();
 
-        string body = await client.GetStringAsync(Route, TestContext.Current.CancellationToken);
+        using JsonDocument body = JsonDocument.Parse(await client.GetStringAsync(Route, TestContext.Current.CancellationToken));
 
-        Assert.Equal("[]", body);
+        JsonElement[] capabilities = [.. body.RootElement.EnumerateArray()];
+        Assert.Equal(
+            ["Dining.GetMenu", "Dining.SearchRestaurants", "Events.SearchPropertyEvents", "Property.GetOperatingHours", "Property.GetPolicy", "Property.GetProperty", "Property.SearchContent"],
+            capabilities.Select(capability => capability.GetProperty("name").GetString()));
+        JsonElement hoursInput = capabilities[3].GetProperty("inputSchema");
+        Assert.Equal(
+            "The amenity, restaurant, space, or service ID; required unless the subject is the property.",
+            hoursInput.GetProperty("properties").GetProperty("subjectId").GetProperty("description").GetString());
+        Assert.Equal(["propertyId"], hoursInput.GetProperty("required").EnumerateArray().Select(field => field.GetString()));
     }
 
     private static async Task<CapabilityDescription?> GetAsync(HttpClient client, string path)
@@ -121,7 +129,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     {
         public static CapabilityDescriptor Descriptor { get; } = new()
         {
-            Name = "Property.GetOperatingHours",
+            Name = "Test.GetHours",
             Version = 1,
             Description = "Returns today's opening hours.",
             Authorization = CapabilityAuthorization.Allow(CapabilityCaller.Agent, CapabilityCaller.Guest),
@@ -139,7 +147,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     {
         public static CapabilityDescriptor Descriptor { get; } = new()
         {
-            Name = "Messaging.NotifyGuest",
+            Name = "Test.NotifyGuest",
             Version = 1,
             Description = "Sends the guest a message.",
             Authorization = CapabilityAuthorization.Allow(CapabilityCaller.System),

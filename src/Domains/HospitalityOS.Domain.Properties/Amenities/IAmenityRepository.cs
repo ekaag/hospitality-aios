@@ -1,3 +1,5 @@
+using HospitalityOS.SharedKernel.Ids;
+
 namespace HospitalityOS.Domain.Properties.Amenities;
 
 /// <summary>
@@ -10,6 +12,11 @@ public interface IAmenityRepository
     /// Loads an amenity, or returns <c>null</c> when it does not exist in the current tenant.
     /// </summary>
     Task<Amenity?> GetByIdAsync(AmenityId id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The property's amenities, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Amenity>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a new amenity, persisted when the unit of work commits.

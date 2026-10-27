@@ -1,3 +1,5 @@
+using HospitalityOS.SharedKernel.Ids;
+
 namespace HospitalityOS.Domain.Activities.PropertyEvents;
 
 /// <summary>
@@ -11,6 +13,12 @@ public interface IPropertyEventRepository
     /// Loads an event, or returns <c>null</c> when it does not exist in the current tenant.
     /// </summary>
     Task<PropertyEvent?> GetByIdAsync(PropertyEventId id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The property's scheduled (not cancelled) events that end after <paramref name="localTime"/> (property-local),
+    /// so ongoing and future events, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<PropertyEvent>> ListScheduledEndingAfterAsync(PropertyId propertyId, DateTime localTime, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a new event, persisted when the unit of work commits.

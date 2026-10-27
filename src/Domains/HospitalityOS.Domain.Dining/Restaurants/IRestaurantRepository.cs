@@ -1,3 +1,5 @@
+using HospitalityOS.SharedKernel.Ids;
+
 namespace HospitalityOS.Domain.Dining.Restaurants;
 
 /// <summary>
@@ -10,6 +12,11 @@ public interface IRestaurantRepository
     /// Loads a restaurant, or returns <c>null</c> when it does not exist in the current tenant.
     /// </summary>
     Task<Restaurant?> GetByIdAsync(RestaurantId id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The property's restaurants, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Restaurant>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Adds a new restaurant, persisted when the unit of work commits.
