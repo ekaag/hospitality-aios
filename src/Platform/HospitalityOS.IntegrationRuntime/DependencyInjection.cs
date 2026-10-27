@@ -10,6 +10,7 @@ using HospitalityOS.IntegrationRuntime.Health;
 using HospitalityOS.IntegrationRuntime.Providers;
 using HospitalityOS.IntegrationRuntime.References;
 using HospitalityOS.IntegrationRuntime.Resolution;
+using HospitalityOS.IntegrationRuntime.Stays;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -17,7 +18,7 @@ namespace HospitalityOS.IntegrationRuntime;
 
 /// <summary>
 /// Registers the integration runtime (spec §10, Epic 5): the provider registry, the per-property connector resolver,
-/// configuration, health, and external references. Providers are registered by their own integration projects as
+/// configuration, health, external references, and the PMS stay import. Providers are registered by their own integration projects as
 /// <see cref="IIntegrationProvider{TConnector}"/> singletons. The host must register persistence (configuration,
 /// external reference, and property repositories), <see cref="TimeProvider"/>, and bind <c>IIdGenerator</c>.
 /// </summary>
@@ -25,7 +26,7 @@ public static class DependencyInjection
 {
     /// <summary>
     /// Registers <see cref="IIntegrationResolver{TConnector}"/> for every connector, <see cref="IIntegrationConfigurator"/>,
-    /// <see cref="IIntegrationHealth"/>, and <see cref="IExternalReferences"/>, all scoped, over one provider registry per
+    /// <see cref="IIntegrationHealth"/>, <see cref="IExternalReferences"/>, and <see cref="IPmsStayImport"/>, all scoped, over one provider registry per
     /// connector (singleton, caching connectors).
     /// </summary>
     public static IServiceCollection AddIntegrationRuntime(this IServiceCollection services)
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.TryAddScoped<IIntegrationConfigurator, IntegrationConfigurator>();
         services.TryAddScoped<IIntegrationHealth, IntegrationHealthChecker>();
         services.TryAddScoped<IExternalReferences, ExternalReferences>();
+        services.TryAddScoped<IPmsStayImport, PmsStayImport>();
 
         return services;
     }

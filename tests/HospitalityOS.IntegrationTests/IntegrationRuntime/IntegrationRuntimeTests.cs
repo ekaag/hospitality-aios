@@ -39,7 +39,7 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
         builder.UseSetting("Eventing:Dispatcher:Enabled", "false");
         builder.ConfigureTestServices(services =>
         {
-            services.AddSingleton<IIntegrationProvider<IPmsConnector>>(new TestPmsProvider("MockPms"));
+            services.AddSingleton<IIntegrationProvider<IPmsConnector>>(new TestPmsProvider("TestPms"));
             services.AddSingleton<IIntegrationProvider<IPmsConnector>>(new TestPmsProvider("OperaCloud"));
             services.AddSingleton<IIntegrationProvider<IMessagingConnector>, TestMessagingProvider>();
         });
@@ -64,13 +64,13 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
     [Fact]
     public async Task Configure_ThenResolve_GivesTheProvidersConnectorForThePropertyUntilItChanges()
     {
-        await ConfigurePmsAsync("mockpms", auroraPms);
+        await ConfigurePmsAsync("testpms", auroraPms);
 
         ResolvedConnector<IPmsConnector> first = await ResolvePmsAsync();
         ResolvedConnector<IPmsConnector> second = await ResolvePmsAsync();
 
         TestPmsConnector connector = Assert.IsType<TestPmsConnector>(first.Connector);
-        Assert.Equal(("MockPms", "MockPms", Property, "AG01"), (first.ProviderName, connector.ProviderName, connector.Context.PropertyId, connector.Context.Settings["hotelCode"]));
+        Assert.Equal(("TestPms", "TestPms", Property, "AG01"), (first.ProviderName, connector.ProviderName, connector.Context.PropertyId, connector.Context.Settings["hotelCode"]));
         Assert.Same(first.Connector, second.Connector);
     }
 
@@ -78,8 +78,8 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
     public async Task SwappingProvider_ChangesOnlyConfiguration_AndCanonicalIdsKeepEveryProvidersReferences()
     {
         Guid alexStay = Guid.CreateVersion7();
-        await ConfigurePmsAsync("MockPms", auroraPms);
-        await LinkStayAsync("MockPms", "RES-0412", alexStay);
+        await ConfigurePmsAsync("TestPms", auroraPms);
+        await LinkStayAsync("TestPms", "RES-0412", alexStay);
 
         await ConfigurePmsAsync("OperaCloud", new Dictionary<string, string> { ["hotelCode"] = "8812" });
         ResolvedConnector<IPmsConnector> swapped = await ResolvePmsAsync();
@@ -89,10 +89,10 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
         await InTenantAsync(async services =>
         {
             IExternalReferences references = services.GetRequiredService<IExternalReferences>();
-            Assert.Equal(alexStay, await references.FindCanonicalIdAsync(Property, "MockPms", StayContext, new ExternalId("RES-0412"), Cancellation));
+            Assert.Equal(alexStay, await references.FindCanonicalIdAsync(Property, "TestPms", StayContext, new ExternalId("RES-0412"), Cancellation));
             Assert.Equal(alexStay, await references.FindCanonicalIdAsync(Property, "OperaCloud", StayContext, new ExternalId("8812-0007"), Cancellation));
             IReadOnlyList<ExternalReference> all = await references.ListForCanonicalAsync(Property, StayContext, alexStay, Cancellation);
-            Assert.Equal([("MockPms", "RES-0412"), ("OperaCloud", "8812-0007")], all.Select(reference => (reference.ProviderName, reference.ExternalId)).Order());
+            Assert.Equal([("OperaCloud", "8812-0007"), ("TestPms", "RES-0412")], all.Select(reference => (reference.ProviderName, reference.ExternalId)).Order());
         });
     }
 
@@ -103,13 +103,13 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
 
         FieldError field = Assert.Single(Assert.IsType<ValidationError>(result.Error).Fields);
         Assert.Equal(("providerName", IntegrationRuntimeErrors.ProviderUnknownCode), (field.Field, field.Code));
-        Assert.Equal("No Pms provider named 'Protel' is registered. Registered: MockPms, OperaCloud.", field.Message);
+        Assert.Equal("No Pms provider named 'Protel' is registered. Registered: MockPms, OperaCloud, TestPms.", field.Message);
     }
 
     [Fact]
     public async Task Configure_WithSettingsTheProviderRejects_IsInvalid()
     {
-        Result<IntegrationConfigurationId> result = await TryConfigurePmsAsync("MockPms", new Dictionary<string, string> { ["region"] = "eu" });
+        Result<IntegrationConfigurationId> result = await TryConfigurePmsAsync("TestPms", new Dictionary<string, string> { ["region"] = "eu" });
 
         FieldError field = Assert.Single(Assert.IsType<ValidationError>(result.Error).Fields);
         Assert.Equal(("settings", IntegrationRuntimeErrors.SettingsInvalidCode, "hotelCode is required."), (field.Field, field.Code, field.Message));
@@ -118,11 +118,11 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
     [Fact]
     public async Task Configure_AnotherTenantsProperty_IsNotFoundAndInvisible()
     {
-        await ConfigurePmsAsync("MockPms", auroraPms);
+        await ConfigurePmsAsync("TestPms", auroraPms);
         TenantId otherTenant = new(Guid.CreateVersion7());
 
         Result<IntegrationConfigurationId> configure = await InTenantAsync(
-            services => services.GetRequiredService<IIntegrationConfigurator>().ConfigureAsync(Property, ConnectorKind.Pms, "MockPms", auroraPms, Cancellation),
+            services => services.GetRequiredService<IIntegrationConfigurator>().ConfigureAsync(Property, ConnectorKind.Pms, "TestPms", auroraPms, Cancellation),
             otherTenant);
         Result<ResolvedConnector<IPmsConnector>> resolve = await InTenantAsync(
             services => services.GetRequiredService<IIntegrationResolver<IPmsConnector>>().ResolveAsync(Property, Cancellation),
@@ -135,7 +135,7 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
     [Fact]
     public async Task Disable_StopsResolution_AndEnableRestoresIt()
     {
-        await ConfigurePmsAsync("MockPms", auroraPms);
+        await ConfigurePmsAsync("TestPms", auroraPms);
 
         await SetPmsEnabledAsync(false);
         Error disabled = await ResolvePmsFailureAsync();
@@ -143,7 +143,7 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
         ResolvedConnector<IPmsConnector> enabled = await ResolvePmsAsync();
 
         Assert.Equal((IntegrationRuntimeErrors.DisabledCode, ErrorKind.InvalidState), (disabled.Code, disabled.Kind));
-        Assert.Equal("MockPms", enabled.ProviderName);
+        Assert.Equal("TestPms", enabled.ProviderName);
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
     [Fact]
     public async Task Health_ReportsEveryConfiguredConnectorByKind()
     {
-        await ConfigurePmsAsync("MockPms", auroraPms);
+        await ConfigurePmsAsync("TestPms", auroraPms);
         await SaveConfigurationAsync(ConnectorKind.Messaging, "TestMessaging", ("health", "down"));
         await SaveConfigurationAsync(ConnectorKind.Cms, "NativeCms", disabled: true);
 
@@ -167,7 +167,7 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
 
         Assert.Equal(
             [
-                (ConnectorKind.Pms, "MockPms", IntegrationStatus.Active, true, (string?)null),
+                (ConnectorKind.Pms, "TestPms", IntegrationStatus.Active, true, (string?)null),
                 (ConnectorKind.Cms, "NativeCms", IntegrationStatus.Disabled, true, "Disabled; not checked."),
                 (ConnectorKind.Messaging, "TestMessaging", IntegrationStatus.Active, false, "Messaging gateway down"),
             ],
@@ -178,24 +178,24 @@ public sealed class IntegrationRuntimeTests : IAsyncLifetime
     public async Task Link_AgainToTheSameRecordReturnsIt_ButToAnotherRecordConflicts()
     {
         Guid alexStay = Guid.CreateVersion7();
-        ExternalReference linked = await LinkStayAsync("MockPms", "RES-0412", alexStay);
+        ExternalReference linked = await LinkStayAsync("TestPms", "RES-0412", alexStay);
 
-        ExternalReference again = await LinkStayAsync("MockPms", "RES-0412", alexStay);
+        ExternalReference again = await LinkStayAsync("TestPms", "RES-0412", alexStay);
         Result<ExternalReference> conflict = await InTenantAsync(services => services.GetRequiredService<IExternalReferences>()
-            .LinkAsync(Property, "MockPms", StayContext, new ExternalId("RES-0412"), Guid.CreateVersion7(), Cancellation));
+            .LinkAsync(Property, "TestPms", StayContext, new ExternalId("RES-0412"), Guid.CreateVersion7(), Cancellation));
 
         Assert.Equal(linked.Id, again.Id);
         Assert.Equal((IntegrationRuntimeErrors.ReferenceConflictCode, ErrorKind.Conflict), (conflict.Error.Code, conflict.Error.Kind));
     }
 
     [Fact]
-    public async Task ListProviders_ReturnsTheRegisteredProvidersOfAKind()
+    public async Task ListProviders_ReturnsTheRegisteredProvidersOfAKindIncludingTheHostsMocks()
     {
         IReadOnlyList<string> pms = await InTenantAsync(services => Task.FromResult(services.GetRequiredService<IIntegrationConfigurator>().ListProviders(ConnectorKind.Pms)));
         IReadOnlyList<string> pos = await InTenantAsync(services => Task.FromResult(services.GetRequiredService<IIntegrationConfigurator>().ListProviders(ConnectorKind.Pos)));
 
-        Assert.Equal(["MockPms", "OperaCloud"], pms);
-        Assert.Empty(pos);
+        Assert.Equal(["MockPms", "OperaCloud", "TestPms"], pms);
+        Assert.Equal(["MockPos"], pos);
     }
 
     private async Task ConfigurePmsAsync(string providerName, IReadOnlyDictionary<string, string> settings)

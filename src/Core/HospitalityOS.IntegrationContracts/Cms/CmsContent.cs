@@ -10,11 +10,12 @@ namespace HospitalityOS.IntegrationContracts.Cms;
 /// <param name="Title">The item's title.</param>
 /// <param name="Body">The item's text.</param>
 /// <param name="Tags">Search keywords.</param>
-/// <param name="UpdatedAt">When the provider last changed the item, so unchanged items can be skipped.</param>
+/// <param name="Revision">The provider's change marker (revision number, ETag, version): it changes whenever the item
+/// changes, so unchanged items can be skipped. Opaque; compared for equality only.</param>
 public sealed record CmsContent(
     ExternalId Id,
     ContentType Type,
     string Title,
     string Body,
     ValueList<string> Tags,
-    DateTimeOffset UpdatedAt);
+    string Revision);

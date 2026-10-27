@@ -14,4 +14,11 @@ internal sealed class InMemoryStayContextRepository(InMemoryStore store, InMemor
             stay => stay.PropertyId == propertyId && stay.GuestId == guestId && stay.Status == StayStatus.InHouse,
             cancellationToken);
     }
+
+    public Task<StayContext?> FindInHouseInUnitAsync(PropertyId propertyId, AccommodationUnitId unitId, CancellationToken cancellationToken)
+    {
+        return FindFirstAsync(
+            stay => stay.PropertyId == propertyId && stay.AccommodationUnitId == unitId && stay.Status == StayStatus.InHouse,
+            cancellationToken);
+    }
 }

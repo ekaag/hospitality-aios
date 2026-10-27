@@ -161,6 +161,30 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
     }
 
     [Fact]
+    public async Task FindInHouseInUnit_ReturnsOnlyTheCheckedInStayInThatUnitAndTenant()
+    {
+        AccommodationUnitId room415 = new(TestData.Id(17998));
+        StayContext reserved = TestData.StayContext(TestData.TenantA, 1);
+        StayContext inHouse = TestData.StayContext(TestData.TenantA, 2);
+        inHouse.CheckIn(null, TestData.Now);
+        StayContext otherUnit = TestData.StayContext(TestData.TenantA, 3);
+        otherUnit.CheckIn(room415, TestData.Now);
+        StayContext otherProperty = TestData.StayContext(TestData.TenantA, 4, propertyId: TestData.OtherPropertyId);
+        otherProperty.CheckIn(null, TestData.Now);
+        await SaveAsync(reserved, inHouse, otherUnit, otherProperty);
+        await using PersistenceSession session = OpenSession();
+        await using PersistenceSession otherTenant = OpenSession(TestData.TenantB);
+
+        StayContext? found = await session.Get<IStayContextRepository>().FindInHouseInUnitAsync(TestData.PropertyId, TestData.Room412, Cancellation);
+        StayContext? fromOtherTenant = await otherTenant.Get<IStayContextRepository>().FindInHouseInUnitAsync(TestData.PropertyId, TestData.Room412, Cancellation);
+        StayContext? inEmptyUnit = await session.Get<IStayContextRepository>().FindInHouseInUnitAsync(TestData.PropertyId, new AccommodationUnitId(TestData.Id(17997)), Cancellation);
+
+        Assert.Equal(inHouse.Id, found?.Id);
+        Assert.Null(fromOtherTenant);
+        Assert.Null(inEmptyUnit);
+    }
+
+    [Fact]
     public async Task FindBySourceMessage_ReturnsRequestCreatedFromThatMessage()
     {
         GuestMessageId source = new(TestData.Id(1));

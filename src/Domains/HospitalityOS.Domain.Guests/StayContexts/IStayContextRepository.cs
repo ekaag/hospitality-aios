@@ -19,6 +19,12 @@ public interface IStayContextRepository
     Task<StayContext?> FindInHouseAsync(PropertyId propertyId, GuestId guestId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Finds the in-house stay in a unit, or returns <c>null</c> when nobody is staying there (matching a PMS stay to an
+    /// existing one when its provider is swapped, Journey 18). Should several be in house, any one of them.
+    /// </summary>
+    Task<StayContext?> FindInHouseInUnitAsync(PropertyId propertyId, AccommodationUnitId unitId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new stay, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(StayContext stayContext, CancellationToken cancellationToken);

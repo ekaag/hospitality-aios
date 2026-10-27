@@ -5,6 +5,7 @@
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
+    <Project Path="src/Adapters/HospitalityOS.Integrations.Mock/HospitalityOS.Integrations.Mock.csproj" />
   </Folder>
   <Folder Name="/src/Contracts/">
     <Project Path="src/Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
@@ -34,6 +35,7 @@
     <Project Path="src/Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <Project Path="src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
     <Project Path="src/Platform/HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
+    <Project Path="src/Platform/HospitalityOS.Integrations.Native/HospitalityOS.Integrations.Native.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HospitalityOS.ArchitectureTests/HospitalityOS.ArchitectureTests.csproj" />

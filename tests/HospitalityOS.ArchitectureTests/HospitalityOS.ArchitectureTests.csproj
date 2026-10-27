@@ -30,10 +30,12 @@
     <ProjectReference Include="../../src/Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <ProjectReference Include="../../src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
     <ProjectReference Include="../../src/Platform/HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
+    <ProjectReference Include="../../src/Platform/HospitalityOS.Integrations.Native/HospitalityOS.Integrations.Native.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Integrations.Mock/HospitalityOS.Integrations.Mock.csproj" />
     <ProjectReference Include="../../src/Hosts/HospitalityOS.Api/HospitalityOS.Api.csproj" />
   </ItemGroup>
 

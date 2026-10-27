@@ -8,6 +8,8 @@ using HospitalityOS.Capabilities;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Eventing;
 using HospitalityOS.IntegrationRuntime;
+using HospitalityOS.Integrations.Mock;
+using HospitalityOS.Integrations.Native;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
@@ -33,8 +35,10 @@ builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredServi
 builder.Services.AddEventing(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddCapabilities().AddBuiltInCapabilities();
-// Providers come from integration projects (E3); each property's configuration selects one per connector.
+// Providers available to every property; each property's integration configuration selects one per connector.
 builder.Services.AddIntegrationRuntime();
+builder.Services.AddMockIntegrations();
+builder.Services.AddNativeIntegrations();
 builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 
