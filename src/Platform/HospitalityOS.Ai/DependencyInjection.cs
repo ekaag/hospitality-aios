@@ -45,7 +45,7 @@ public static class DependencyInjection
         services.AddOptions<ToolLoopStartupCheck>().ValidateOnStart();
         services.AddOptions<GroundingStartupCheck>().ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<AITraceRedactionOptions>, AITraceRedactionValidator>());
-        services.AddOptions<AITraceRedactionOptions>();
+        services.AddOptions<AITraceRedactionOptions>().ValidateOnStart();
 
         return services;
     }

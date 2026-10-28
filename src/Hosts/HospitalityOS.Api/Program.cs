@@ -104,7 +104,6 @@ app.MapRestaurantEndpoints();
 app.MapMenuEndpoints();
 app.MapPropertyEventEndpoints();
 app.MapServiceEndpoints();
-app.MapAITraceEndpoints();
 
 app.Run();
 
