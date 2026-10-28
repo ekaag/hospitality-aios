@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../src/Core/HospitalityOS.IntegrationContracts/HospitalityOS.IntegrationContracts.csproj" />
     <ProjectReference Include="../../src/Domains/HospitalityOS.Domain.Activities/HospitalityOS.Domain.Activities.csproj" />

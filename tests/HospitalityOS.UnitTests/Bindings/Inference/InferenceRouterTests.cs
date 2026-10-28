@@ -25,12 +25,12 @@ public sealed class InferenceRouterTests
         using ServiceProvider services = Build(Settings(
             Provider("primary"),
             Route(Answer, "primary", "big-model"),
-            [new("Inference:Tasks:concierge.answer:Parameters:Temperature", "0.2"), new("Inference:Tasks:concierge.answer:Parameters:MaxOutputTokens", "800")]));
+            [new("Inference:Tasks:concierge.answer:Parameters:Effort", "low"), new("Inference:Tasks:concierge.answer:Parameters:MaxOutputTokens", "800")]));
 
         InferenceOutcome<ChatCompletion> outcome = await AnswerAsync(services);
 
         Assert.Equal("primary:big-model", outcome.Value.Message.Text);
-        Assert.Equal(("primary", "big-model", new InferenceParameters(0.2, 800)), Assert.Single(services.GetRequiredService<ModelCalls>().Calls));
+        Assert.Equal(("primary", "big-model", new InferenceParameters(800, InferenceEffort.Low)), Assert.Single(services.GetRequiredService<ModelCalls>().Calls));
         Assert.Equal((Answer, "primary", "big-model", true), (outcome.ServedBy.Task, outcome.ServedBy.Provider, outcome.ServedBy.Model, outcome.ServedBy.Succeeded));
     }
 

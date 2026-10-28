@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Adapters/">
+    <Project Path="src/Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />

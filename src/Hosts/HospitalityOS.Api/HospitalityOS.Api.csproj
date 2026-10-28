@@ -12,6 +12,7 @@
     <ProjectReference Include="../../Platform/HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Integrations.Native/HospitalityOS.Integrations.Native.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Seeding/HospitalityOS.Seeding.csproj" />
+    <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />

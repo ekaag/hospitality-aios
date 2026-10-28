@@ -12,6 +12,8 @@ namespace HospitalityOS.PortContractTests.Inference;
 /// </summary>
 public abstract class ChatModelContractTests
 {
+    private const string Concierge = "You are a hotel concierge. Use tools for facts.";
+
     protected static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     /// <summary>
@@ -38,7 +40,7 @@ public abstract class ChatModelContractTests
     public async Task Complete_AskedSomethingOnlyAToolKnows_CallsTheTool_AndStopsForItsResult()
     {
         ChatCompletion completion = await CreateModel().CompleteAsync(
-            new ChatRequest("You are a hotel concierge. Use tools for facts.", [ChatMessage.User("What time is it at the hotel right now? Use get_local_time.")], [LocalTimeTool]),
+            new ChatRequest(Concierge, [ChatMessage.User("What time is it at the hotel right now? Use get_local_time.")], [LocalTimeTool]),
             Model,
             Cancellation);
 
@@ -54,26 +56,24 @@ public abstract class ChatModelContractTests
     }
 
     [Fact]
-    public async Task Complete_GivenTheToolsResult_AnswersFromIt()
+    public async Task Complete_GivenTheResultOfItsOwnToolCall_AnswersFromIt()
     {
-        ChatToolCall call = new("call-1", LocalTimeTool.Name, JsonDocument.Parse("{}").RootElement.Clone());
+        IChatModel model = CreateModel();
+        ChatMessage question = ChatMessage.User("What time is it at the hotel right now? Use get_local_time.");
+        ChatCompletion asked = await model.CompleteAsync(new ChatRequest(Concierge, [question], [LocalTimeTool]), Model, Cancellation);
+        ChatToolResult[] results = [.. asked.Message.Content.OfType<ChatToolCall>().Select(call => new ChatToolResult(call.CallId, """{"localTime":"21:40"}"""))];
+        Assert.NotEmpty(results);
 
-        ChatCompletion completion = await CreateModel().CompleteAsync(
-            new ChatRequest(
-                "You are a hotel concierge. Use tools for facts.",
-                [
-                    ChatMessage.User("What time is it at the hotel right now?"),
-                    new ChatMessage(ChatRole.Assistant, [call]),
-                    new ChatMessage(ChatRole.Tool, [new ChatToolResult(call.CallId, """{"localTime":"21:40"}""")]),
-                ],
-                [LocalTimeTool]),
+        // The model's message goes back exactly as received (with any provider reasoning), then the results.
+        ChatCompletion answered = await model.CompleteAsync(
+            new ChatRequest(Concierge, [question, asked.Message, new ChatMessage(ChatRole.Tool, [.. results])], [LocalTimeTool]),
             Model,
             Cancellation);
 
-        Assert.Equal(ChatStopReason.Completed, completion.StopReason);
+        Assert.Equal(ChatStopReason.Completed, answered.StopReason);
         Assert.True(
-            completion.Message.Text.Contains("21:40", StringComparison.Ordinal) || completion.Message.Text.Contains("9:40", StringComparison.Ordinal),
-            completion.Message.Text);
+            answered.Message.Text.Contains("21:40", StringComparison.Ordinal) || answered.Message.Text.Contains("9:40", StringComparison.Ordinal),
+            answered.Message.Text);
     }
 
     [Fact]

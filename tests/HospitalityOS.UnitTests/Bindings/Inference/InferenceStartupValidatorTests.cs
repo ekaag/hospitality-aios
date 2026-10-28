@@ -64,11 +64,11 @@ public sealed class InferenceStartupValidatorTests
     }
 
     [Theory]
-    [InlineData("Inference:Tasks:concierge.answer:Parameters:Temperature", "2.5", "must be a number from 0 to 2")]
-    [InlineData("Inference:Tasks:concierge.answer:Parameters:TopP", "high", "must be a number from 0 to 1")]
+    [InlineData("Inference:Tasks:concierge.answer:Parameters:Effort", "extreme", "must be one of Low, Medium, High, Max")]
+    [InlineData("Inference:Tasks:concierge.answer:Parameters:Effort", "1", "must be one of Low, Medium, High, Max")]
+    [InlineData("Inference:Tasks:concierge.answer:Parameters:Temperature", "0.2", "is not an inference parameter; use MaxOutputTokens or Effort")]
     [InlineData("Inference:Tasks:concierge.answer:Parameters:MaxOutputTokens", "0", "must be a whole number of at least 1")]
     [InlineData("Inference:Tasks:concierge.answer:Parameters:MaxOutputTokens", "12.5", "must be a whole number of at least 1")]
-    [InlineData("Inference:Tasks:concierge.answer:Parameters:Seed", "7", "is not an inference parameter")]
     public void Validate_AnInvalidParameter_Fails(string key, string value, string expected) =>
         AssertFails(Routed([new(key, value)]), expected);
 

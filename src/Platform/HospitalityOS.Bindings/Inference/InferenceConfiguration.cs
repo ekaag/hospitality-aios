@@ -14,7 +14,7 @@ namespace HospitalityOS.Bindings.Inference;
 /// "Inference": {
 ///   "Providers": { "anthropic": { "Adapter": "Anthropic", "Settings": { "ApiKeySecret": "anthropic-api-key" } } },
 ///   "Tasks": { "concierge.answer": { "Provider": "anthropic", "Model": "claude-sonnet-5-5",
-///                                    "Parameters": { "Temperature": 0.2 }, "Fallback": [ "fake:scripted" ] } },
+///                                    "Parameters": { "Effort": "Medium" }, "Fallback": [ "fake:scripted" ] } },
 ///   "Tenants": { "&lt;tenant id&gt;": { "Tasks": { "concierge.answer": { "Provider": "...", "Model": "..." } } } }
 /// }
 /// </code>
@@ -129,40 +129,36 @@ internal sealed class InferenceConfiguration
 
     private InferenceParameters ReadParameters(IConfigurationSection section)
     {
-        double? temperature = null;
         int? maxOutputTokens = null;
-        double? topP = null;
+        InferenceEffort? effort = null;
 
         foreach (IConfigurationSection parameter in section.GetChildren())
         {
             switch (parameter.Key.ToUpperInvariant())
             {
-                case "TEMPERATURE":
-                    temperature = ReadNumber(parameter, 0, 2);
-                    break;
                 case "MAXOUTPUTTOKENS":
                     maxOutputTokens = ReadTokens(parameter);
                     break;
-                case "TOPP":
-                    topP = ReadNumber(parameter, 0, 1);
+                case "EFFORT":
+                    effort = ReadEffort(parameter);
                     break;
                 default:
-                    errors.Add($"'{parameter.Path}' is not an inference parameter; use Temperature, MaxOutputTokens, or TopP.");
+                    errors.Add($"'{parameter.Path}' is not an inference parameter; use MaxOutputTokens or Effort.");
                     break;
             }
         }
 
-        return new InferenceParameters(temperature, maxOutputTokens, topP);
+        return new InferenceParameters(maxOutputTokens, effort);
     }
 
-    private double? ReadNumber(IConfigurationSection parameter, double minimum, double maximum)
+    private InferenceEffort? ReadEffort(IConfigurationSection parameter)
     {
-        if (double.TryParse(parameter.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value >= minimum && value <= maximum)
+        if (Enum.TryParse(parameter.Value, ignoreCase: true, out InferenceEffort effort) && Enum.IsDefined(effort) && !int.TryParse(parameter.Value, out _))
         {
-            return value;
+            return effort;
         }
 
-        errors.Add($"'{parameter.Path}' must be a number from {minimum.ToString(CultureInfo.InvariantCulture)} to {maximum.ToString(CultureInfo.InvariantCulture)}, not '{parameter.Value}'.");
+        errors.Add($"'{parameter.Path}' must be one of {string.Join(", ", Enum.GetNames<InferenceEffort>())}, not '{parameter.Value}'.");
 
         return null;
     }

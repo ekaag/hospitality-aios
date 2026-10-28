@@ -1,3 +1,4 @@
+using HospitalityOS.Adapters.Anthropic;
 using HospitalityOS.Adapters.Local;
 using HospitalityOS.Api.Amenities;
 using HospitalityOS.Api.Authentication;
@@ -40,6 +41,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 builder.Services.AddBindings(builder.Configuration);
 builder.Services.AddLocalAdapters();
+builder.Services.AddAnthropicAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();
 // Inference tasks are declared by the modules that run them (from G4 on) and routed by the Inference section.

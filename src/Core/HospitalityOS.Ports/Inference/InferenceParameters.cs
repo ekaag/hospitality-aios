@@ -1,12 +1,13 @@
 namespace HospitalityOS.Ports.Inference;
 
 /// <summary>
-/// Provider-neutral generation settings bound to a task; <c>null</c> leaves the provider's default.
+/// Provider-neutral generation settings bound to a task; <c>null</c> leaves the provider's default. Sampling settings
+/// (temperature, top-p) are deliberately absent: current models are steered by effort instead, and some providers
+/// reject sampling settings outright.
 /// </summary>
-/// <param name="Temperature">Randomness, 0 to 2; low for factual answers and extraction.</param>
-/// <param name="MaxOutputTokens">Longest output, in tokens.</param>
-/// <param name="TopP">Nucleus sampling, 0 to 1.</param>
-public sealed record InferenceParameters(double? Temperature = null, int? MaxOutputTokens = null, double? TopP = null)
+/// <param name="MaxOutputTokens">Longest output, in tokens (reasoning included where the provider counts it).</param>
+/// <param name="Effort">How much reasoning to spend: low for routing and extraction, higher for answers that need care.</param>
+public sealed record InferenceParameters(int? MaxOutputTokens = null, InferenceEffort? Effort = null)
 {
     /// <summary>
     /// The provider's defaults for everything.

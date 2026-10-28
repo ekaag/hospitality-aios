@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HospitalityOS.UnitTests" />
+    <InternalsVisibleTo Include="HospitalityOS.PortContractTests" />
+  </ItemGroup>
+
+</Project>
