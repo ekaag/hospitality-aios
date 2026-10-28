@@ -8,6 +8,9 @@ namespace HospitalityOS.Adapters.InMemory.Repositories;
 internal sealed class InMemoryPolicyRepository(InMemoryStore store, InMemoryUnitOfWork unitOfWork, ICurrentTenant currentTenant)
     : InMemoryRepository<Policy, PolicyId>(store, unitOfWork, currentTenant), IPolicyRepository
 {
+    public Task<IReadOnlyList<Policy>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken) =>
+        QueryAsync(aggregates => aggregates.Where(policy => policy.PropertyId == propertyId), cancellationToken);
+
     public Task<IReadOnlyList<Policy>> ListActiveForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken) =>
         QueryAsync(aggregates => aggregates.Where(policy => policy.PropertyId == propertyId && policy.Status == PolicyStatus.Active), cancellationToken);
 }

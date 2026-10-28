@@ -1,9 +1,19 @@
+using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using HospitalityOS.Capabilities.Execution;
+using HospitalityOS.Contracts.Api.Organizations;
+using HospitalityOS.Contracts.Api.Properties;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Ports.Auditing;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Tenancy;
+using HospitalityOS.SharedKernel.Execution;
+using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -12,6 +22,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Xunit;
 
 namespace HospitalityOS.IntegrationTests.Hosts.Api;
 
@@ -93,6 +104,96 @@ internal sealed class StaffApi : IAsyncDisposable
         IReadOnlyList<StoredEvent> stored = await scope.ServiceProvider.GetRequiredService<IEventStore>().ReadAsync(new EventStoreQuery(TenantId: tenant), cancellationToken);
 
         return [.. stored.Select(entry => entry.Message)];
+    }
+
+    /// <summary>
+    /// An organization and one of its properties in <paramref name="tenant"/>, created over HTTP by an administrator.
+    /// </summary>
+    public async Task<PropertyResponse> CreatePropertyAsync(TenantId tenant, CancellationToken cancellationToken, string name = "Aurora Grand")
+    {
+        using HttpClient admin = Staff(tenant);
+        using HttpResponseMessage organization = await admin.PostAsJsonAsync("/api/v1/organizations", new { name = "Aurora Hotels" }, cancellationToken);
+        OrganizationResponse owner = await CreatedAsync<OrganizationResponse>(organization, cancellationToken);
+        using HttpResponseMessage property = await admin.PostAsJsonAsync(
+            "/api/v1/properties",
+            new { organizationId = owner.Id.Value, name, timeZone = "Europe/London", address = new { line1 = "1 Strand", city = "London", countryCode = "GB" } },
+            cancellationToken);
+
+        return await CreatedAsync<PropertyResponse>(property, cancellationToken);
+    }
+
+    /// <summary>
+    /// Runs a capability as a guest of <paramref name="tenant"/>, as the concierge would, and reads its output.
+    /// </summary>
+    public async Task<TOutput> AskAsGuestAsync<TOutput>(TenantId tenant, string capability, object input, CancellationToken cancellationToken)
+    {
+        await using AsyncServiceScope scope = Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(tenant);
+        scope.ServiceProvider.GetRequiredService<OperationContext>().ActAs(new Actor(ActorType.Guest, "guest-1"));
+        Result<CapabilityResponse> result = await scope.ServiceProvider.GetRequiredService<ICapabilityExecutor>()
+            .ExecuteAsync(new CapabilityRequest(capability, JsonSerializer.SerializeToElement(input, ContractJson.Options)), cancellationToken);
+        Assert.True(result.IsSuccess, result.IsFailure ? $"{result.Error.Code}: {result.Error.Message}" : null);
+
+        return Assert.IsType<TOutput>(result.Value.Output.Deserialize<TOutput>(ContractJson.Options));
+    }
+
+    /// <summary>
+    /// Asserts <c>201 Created</c> and reads the new record.
+    /// </summary>
+    public static async Task<T> CreatedAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        Assert.True(response.StatusCode == HttpStatusCode.Created, await response.Content.ReadAsStringAsync(cancellationToken));
+
+        return (await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Asserts <c>200 OK</c> and reads the record.
+    /// </summary>
+    public static async Task<T> OkAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync(cancellationToken));
+
+        return (await response.Content.ReadFromJsonAsync<T>(ContractJson.Options, cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Asserts <c>400</c> with field errors and returns their codes in order.
+    /// </summary>
+    public static async Task<IReadOnlyList<string?>> FieldCodesAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        string body = await response.Content.ReadAsStringAsync(cancellationToken);
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+        using JsonDocument problem = JsonDocument.Parse(body);
+
+        return [.. problem.RootElement.GetProperty("fieldErrors").EnumerateArray().Select(field => field.GetProperty("code").GetString())];
+    }
+
+    /// <summary>
+    /// The problem's status and <c>code</c>.
+    /// </summary>
+    public static async Task<(HttpStatusCode Status, string? Code)> ProblemAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        using JsonDocument problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+
+        return (response.StatusCode, problem.RootElement.GetProperty("code").GetString());
+    }
+
+    /// <summary>
+    /// Sends <paramref name="body"/> (if any) with an optional <c>If-Match</c>.
+    /// </summary>
+    public static async Task<HttpResponseMessage> SendAsync(HttpClient client, HttpMethod method, string uri, object? body, string? ifMatch, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        using HttpRequestMessage request = new(method, uri) { Content = body is null ? null : JsonContent.Create(body) };
+
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
+        return await client.SendAsync(request, cancellationToken);
     }
 
     public ValueTask DisposeAsync() => Factory.DisposeAsync();

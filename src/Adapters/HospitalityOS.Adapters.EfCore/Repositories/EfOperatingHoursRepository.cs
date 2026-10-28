@@ -10,6 +10,9 @@ namespace HospitalityOS.Adapters.EfCore.Repositories;
 internal sealed class EfOperatingHoursRepository(HospitalityDbContext context, EfUnitOfWork unitOfWork, ICurrentTenant currentTenant)
     : EfRepository<OperatingHours, OperatingHoursId>(context, unitOfWork, currentTenant), IOperatingHoursRepository
 {
+    public Task<IReadOnlyList<OperatingHours>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken) =>
+        QueryAsync(aggregates => aggregates.Where(hours => hours.PropertyId == propertyId), cancellationToken);
+
     public Task<OperatingHours?> FindBySubjectAsync(PropertyId propertyId, SubjectReference subject, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(subject);

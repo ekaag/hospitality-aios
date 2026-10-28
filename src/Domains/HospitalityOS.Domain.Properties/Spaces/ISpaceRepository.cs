@@ -14,6 +14,11 @@ public interface ISpaceRepository
     Task<Space?> GetByIdAsync(SpaceId id, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The property's spaces, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Space>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new space, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(Space space, CancellationToken cancellationToken);

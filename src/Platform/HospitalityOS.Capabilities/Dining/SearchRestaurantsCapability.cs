@@ -1,5 +1,6 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities.Dining;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
@@ -43,7 +44,7 @@ internal sealed class SearchRestaurantsCapability(
 
         PropertyClock clock = loaded.Value;
         string? text = string.IsNullOrWhiteSpace(input.Query) ? null : input.Query.Trim();
-        DomainDietaryTag[] dietary = [.. (input.Dietary ?? []).Select(tag => ContractEnum.To<DomainDietaryTag>(tag))];
+        DomainDietaryTag[] dietary = [.. (input.Dietary ?? []).Select(tag => EnumMirror.To<DomainDietaryTag>(tag))];
         HashSet<RestaurantId>? servingDietary = dietary.Length == 0 ? null : await ServingAsync(input, dietary, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<Restaurant> all = await restaurants.ListForPropertyAsync(input.PropertyId, cancellationToken).ConfigureAwait(false);
         List<RestaurantEntry> entries = [];

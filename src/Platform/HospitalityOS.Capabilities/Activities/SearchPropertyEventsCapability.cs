@@ -1,5 +1,6 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities.Activities;
 using HospitalityOS.Domain.Activities.PropertyEvents;
 using HospitalityOS.Domain.Properties.Properties;
@@ -51,8 +52,8 @@ internal sealed class SearchPropertyEventsCapability(
         PropertyEventFilter filter = new(
             from,
             input.To,
-            input.Category is { } category ? ContractEnum.To<DomainCategory>(category) : null,
-            input.Audience is { } audience ? ContractEnum.To<DomainAudience>(audience) : null);
+            input.Category is { } category ? EnumMirror.To<DomainCategory>(category) : null,
+            input.Audience is { } audience ? EnumMirror.To<DomainAudience>(audience) : null);
 
         IEnumerable<PropertyEvent> upcoming = PropertyEvent.SelectUpcoming(candidates, clock.Now, clock.TimeZone, filter).Take(input.Limit);
 
@@ -62,8 +63,8 @@ internal sealed class SearchPropertyEventsCapability(
             ValueList.From(upcoming.Select(propertyEvent => new EventEntry(
                 Sources.Of(propertyEvent),
                 propertyEvent.Details.Title,
-                ContractEnum.To<ContractCategory>(propertyEvent.Details.Category),
-                ContractEnum.To<ContractAudience>(propertyEvent.Details.Audience),
+                EnumMirror.To<ContractCategory>(propertyEvent.Details.Category),
+                EnumMirror.To<ContractAudience>(propertyEvent.Details.Audience),
                 propertyEvent.Details.LocalStart,
                 propertyEvent.Details.LocalEnd,
                 propertyEvent.Details.Description,

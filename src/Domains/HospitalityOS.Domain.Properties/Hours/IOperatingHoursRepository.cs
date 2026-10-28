@@ -20,6 +20,11 @@ public interface IOperatingHoursRepository
     Task<OperatingHours?> FindBySubjectAsync(PropertyId propertyId, SubjectReference subject, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The property's operating hours, one record per subject, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<OperatingHours>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds new operating hours, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(OperatingHours operatingHours, CancellationToken cancellationToken);

@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.Properties;
 using HospitalityOS.Domain.Properties.ContentItems;
@@ -61,7 +62,7 @@ internal sealed partial class SearchContentCapability(
         IReadOnlyList<ContentItem> published = await content.ListPublishedForPropertyAsync(input.PropertyId, cancellationToken).ConfigureAwait(false);
 
         IEnumerable<ContentItem> ranked = published
-            .Where(item => input.Type is null || ContractEnum.To<ContractContentType>(item.Details.Type) == input.Type)
+            .Where(item => input.Type is null || EnumMirror.To<ContractContentType>(item.Details.Type) == input.Type)
             .Select(item => (Item: item, Score: Score(item.Details, terms)))
             .Where(match => match.Score > 0)
             .OrderByDescending(match => match.Score)
@@ -71,11 +72,11 @@ internal sealed partial class SearchContentCapability(
 
         return new SearchContentOutput(ValueList.From(ranked.Select(item => new ContentEntry(
             Sources.Of(item),
-            ContractEnum.To<ContractContentType>(item.Details.Type),
+            EnumMirror.To<ContractContentType>(item.Details.Type),
             item.Details.Title,
             item.Details.Body,
             item.Details.Tags ?? [],
-            item.Details.About is { } about ? new Subject(ContractEnum.To<ContractSubjectKind>(about.Kind), about.Id) : null))));
+            item.Details.About is { } about ? new Subject(EnumMirror.To<ContractSubjectKind>(about.Kind), about.Id) : null))));
     }
 
     private static string[] Terms(string? query) =>

@@ -1,5 +1,6 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.Properties;
 using HospitalityOS.Domain.Properties.Hours;
@@ -45,7 +46,7 @@ internal sealed class GetOperatingHoursCapability(
         }
 
         PropertyClock clock = loaded.Value;
-        SubjectReference subject = new(ContractEnum.To<DomainSubjectKind>(input.Subject), subjectId.Value);
+        SubjectReference subject = new(EnumMirror.To<DomainSubjectKind>(input.Subject), subjectId.Value);
         OperatingHours? hours = await operatingHours.FindBySubjectAsync(input.PropertyId, subject, cancellationToken).ConfigureAwait(false);
 
         if (hours is null)

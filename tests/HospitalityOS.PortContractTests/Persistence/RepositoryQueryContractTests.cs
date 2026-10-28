@@ -17,6 +17,7 @@ using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Properties.Policies;
 using HospitalityOS.Domain.Properties.Properties;
 using HospitalityOS.Domain.Properties.Shared;
+using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.PortContractTests.Persistence.Support;
@@ -298,6 +299,30 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
     }
 
     [Fact]
+    public async Task ListSpacesForProperty_ReturnsThatPropertysSpacesInTheTenant()
+    {
+        Space[] mine = [TestData.Space(TestData.TenantA, 1), TestData.Space(TestData.TenantA, 2)];
+        await SaveAsync([.. mine, TestData.Space(TestData.TenantA, 3, TestData.OtherPropertyId), TestData.Space(TestData.TenantB, 4)]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Space> found = await session.Get<ISpaceRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds(mine.Select(s => s.Id), found.Select(s => s.Id));
+    }
+
+    [Fact]
+    public async Task ListOperatingHoursForProperty_ReturnsThatPropertysHoursInTheTenant()
+    {
+        OperatingHours[] mine = [TestData.OperatingHours(TestData.TenantA, 1), TestData.OperatingHours(TestData.TenantA, 2)];
+        await SaveAsync([.. mine, TestData.OperatingHours(TestData.TenantA, 3, propertyId: TestData.OtherPropertyId), TestData.OperatingHours(TestData.TenantB, 4)]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<OperatingHours> found = await session.Get<IOperatingHoursRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds(mine.Select(h => h.Id), found.Select(h => h.Id));
+    }
+
+    [Fact]
     public async Task ListRestaurantsForProperty_ReturnsThatPropertysRestaurantsInTheTenant()
     {
         Restaurant[] mine = [TestData.Restaurant(TestData.TenantA, 1), TestData.Restaurant(TestData.TenantA, 2)];
@@ -348,6 +373,21 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
     }
 
     [Fact]
+    public async Task ListPoliciesForProperty_ReturnsEveryStatusOfThatPropertyInTheTenant()
+    {
+        Policy draft = TestData.Policy(TestData.TenantA, 1);
+        Policy active = Activated(TestData.Policy(TestData.TenantA, 2));
+        Policy retired = Activated(TestData.Policy(TestData.TenantA, 3));
+        Assert.True(retired.Retire(TestData.Now).IsSuccess);
+        await SaveAsync(draft, active, retired, TestData.Policy(TestData.TenantA, 4, TestData.OtherPropertyId), TestData.Policy(TestData.TenantB, 5));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Policy> found = await session.Get<IPolicyRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds([draft.Id, active.Id, retired.Id], found.Select(p => p.Id));
+    }
+
+    [Fact]
     public async Task ListPublishedContent_ReturnsOnlyPublishedItemsOfThatProperty()
     {
         ContentItem published = Published(TestData.ContentItem(TestData.TenantA, 1));
@@ -364,6 +404,21 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         IReadOnlyList<ContentItem> found = await session.Get<IContentItemRepository>().ListPublishedForPropertyAsync(TestData.PropertyId, Cancellation);
 
         AssertSameIds([published.Id], found.Select(c => c.Id));
+    }
+
+    [Fact]
+    public async Task ListContentForProperty_ReturnsEveryStatusOfThatPropertyInTheTenant()
+    {
+        ContentItem draft = TestData.ContentItem(TestData.TenantA, 1);
+        ContentItem published = Published(TestData.ContentItem(TestData.TenantA, 2));
+        ContentItem archived = Published(TestData.ContentItem(TestData.TenantA, 3));
+        Assert.True(archived.Archive(TestData.Now).IsSuccess);
+        await SaveAsync(draft, published, archived, TestData.ContentItem(TestData.TenantA, 4, TestData.OtherPropertyId), TestData.ContentItem(TestData.TenantB, 5));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<ContentItem> found = await session.Get<IContentItemRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds([draft.Id, published.Id, archived.Id], found.Select(c => c.Id));
     }
 
     [Fact]

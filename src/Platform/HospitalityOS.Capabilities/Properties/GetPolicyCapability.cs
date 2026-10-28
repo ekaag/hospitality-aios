@@ -1,5 +1,6 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.Properties;
 using HospitalityOS.Domain.Properties.Policies;
@@ -42,7 +43,7 @@ internal sealed class GetPolicyCapability(
 
         IEnumerable<Policy> matching = active
             .Where(policy => policy.IsInEffectOn(today))
-            .Where(policy => input.Type is null || ContractEnum.To<ContractPolicyType>(policy.Details.Type) == input.Type)
+            .Where(policy => input.Type is null || EnumMirror.To<ContractPolicyType>(policy.Details.Type) == input.Type)
             .Where(policy => input.SubjectId is null || policy.Details.AppliesTo is null || policy.Details.AppliesTo.Id == input.SubjectId)
             .OrderBy(policy => policy.Details.AppliesTo is null)
             .ThenBy(policy => policy.Details.Type)
@@ -50,11 +51,11 @@ internal sealed class GetPolicyCapability(
 
         return new GetPolicyOutput(ValueList.From(matching.Select(policy => new PolicyEntry(
             Sources.Of(policy),
-            ContractEnum.To<ContractPolicyType>(policy.Details.Type),
+            EnumMirror.To<ContractPolicyType>(policy.Details.Type),
             policy.Details.Title,
             policy.Details.Content,
             policy.Details.EffectiveFrom,
             policy.Details.EffectiveTo,
-            policy.Details.AppliesTo is { } subject ? new Subject(ContractEnum.To<ContractSubjectKind>(subject.Kind), subject.Id) : null))));
+            policy.Details.AppliesTo is { } subject ? new Subject(EnumMirror.To<ContractSubjectKind>(subject.Kind), subject.Id) : null))));
     }
 }

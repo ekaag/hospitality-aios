@@ -1,5 +1,6 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities.Properties;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Properties.Amenities;
@@ -54,7 +55,7 @@ internal sealed class GetPropertyCapability(
                 .Select(amenity => new AmenityEntry(
                     Sources.Of(amenity),
                     amenity.Details.Name,
-                    ContractEnum.To<ContractAmenityCategory>(amenity.Details.Category),
+                    EnumMirror.To<ContractAmenityCategory>(amenity.Details.Category),
                     amenity.Details.Description,
                     amenity.LocationSpaceId))),
             ValueList.From(propertyRestaurants

@@ -1,3 +1,4 @@
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.SharedKernel.Collections;
@@ -16,7 +17,7 @@ internal static class Hours
         return new HoursOnDate(
             Sources.Of(hours),
             day.Date,
-            ContractEnum.To<HoursBasis>(day.Source),
+            EnumMirror.To<HoursBasis>(day.Source),
             ValueList.From(day.Periods.Select(period => new OpeningPeriod(period.Start, period.End))),
             day.Note,
             hours.GetStatusAt(clock.Now, clock.TimeZone).IsOpen);

@@ -19,6 +19,11 @@ public interface IPolicyRepository
     Task<IReadOnlyList<Policy>> ListActiveForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The property's policies, whatever their status, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Policy>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new policy, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(Policy policy, CancellationToken cancellationToken);

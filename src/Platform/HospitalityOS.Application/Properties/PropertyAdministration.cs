@@ -40,15 +40,13 @@ internal sealed class PropertyAdministration(
         PropertyId id = new(idGenerators.Resolve().NewId());
         Result<Property> created = Property.Create(id, currentTenant.TenantId, organization.Id, Details(request.Name, request.TimeZone, request.Address, request.ContactPhone, request.ContactEmail), timeProvider.GetUtcNow());
 
-        if (created.IsFailure)
-        {
-            return await commit.RejectAsync(AdministrationActions.PropertyCreate, created.Error, null, cancellationToken).ConfigureAwait(false);
-        }
-
-        await properties.AddAsync(created.Value, cancellationToken).ConfigureAwait(false);
-        Result committed = await commit.SucceedAsync(AdministrationActions.PropertyCreate, Target(id), cancellationToken).ConfigureAwait(false);
-
-        return committed.IsFailure ? committed.Error : Response(created.Value);
+        return await commit.CreateAsync(
+            AdministrationActions.PropertyCreate,
+            created,
+            property => properties.AddAsync(property, cancellationToken),
+            property => Target(property.Id),
+            Response,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<PropertyResponse>> UpdateAsync(PropertyId id, UpdatePropertyRequest request, long? expectedVersion, CancellationToken cancellationToken)
@@ -56,18 +54,16 @@ internal sealed class PropertyAdministration(
         ArgumentNullException.ThrowIfNull(request);
 
         Property? property = await properties.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        Result updated = property is null ? AdministrationErrors.PropertyNotFound
-            : expectedVersion is { } expected && expected != property.Version ? AdministrationErrors.VersionMismatch(expected, property.Version)
-            : property.Update(Details(request.Name, request.TimeZone, request.Address, request.ContactPhone, request.ContactEmail), timeProvider.GetUtcNow());
 
-        if (updated.IsFailure)
-        {
-            return await commit.RejectAsync(AdministrationActions.PropertyUpdate, updated.Error, Target(id), cancellationToken).ConfigureAwait(false);
-        }
-
-        Result committed = await commit.SucceedAsync(AdministrationActions.PropertyUpdate, Target(id), cancellationToken).ConfigureAwait(false);
-
-        return committed.IsFailure ? committed.Error : Response(property!);
+        return await commit.ChangeAsync(
+            AdministrationActions.PropertyUpdate,
+            Target(id),
+            property,
+            AdministrationErrors.PropertyNotFound,
+            expectedVersion,
+            found => Task.FromResult(found.Update(Details(request.Name, request.TimeZone, request.Address, request.ContactPhone, request.ContactEmail), timeProvider.GetUtcNow())),
+            Response,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<PropertyResponse>> GetAsync(PropertyId id, CancellationToken cancellationToken)

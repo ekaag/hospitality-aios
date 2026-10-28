@@ -1,11 +1,12 @@
-using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using Xunit;
+using Api = HospitalityOS.Contracts.Api;
 using Contract = HospitalityOS.Contracts.Capabilities;
 using Model = HospitalityOS.Domain;
 
-namespace HospitalityOS.UnitTests.Capabilities.Reading;
+namespace HospitalityOS.UnitTests.Contracts;
 
-public sealed class ContractEnumTests
+public sealed class EnumMirrorTests
 {
     public static TheoryData<Type, Type> Mirrors => new()
     {
@@ -17,11 +18,14 @@ public sealed class ContractEnumTests
         { typeof(Model.Dining.Menus.DietaryTag), typeof(Contract.Dining.DietaryTag) },
         { typeof(Model.Activities.PropertyEvents.PropertyEventCategory), typeof(Contract.Activities.PropertyEventCategory) },
         { typeof(Model.Activities.PropertyEvents.EventAudience), typeof(Contract.Activities.EventAudience) },
+        { typeof(Model.Properties.Spaces.SpaceKind), typeof(Api.Spaces.SpaceKind) },
+        { typeof(Model.Properties.Policies.PolicyStatus), typeof(Api.Policies.PolicyStatus) },
+        { typeof(Model.Properties.ContentItems.ContentStatus), typeof(Api.Content.ContentStatus) },
     };
 
     [Theory]
     [MemberData(nameof(Mirrors))]
-    public void ContractEnum_NamesEveryDomainMemberAndNothingElse(Type domain, Type contract)
+    public void Mirror_NamesEveryDomainMemberAndNothingElse(Type domain, Type contract)
     {
         Assert.Equal(Enum.GetNames(domain), Enum.GetNames(contract));
     }
@@ -29,7 +33,7 @@ public sealed class ContractEnumTests
     [Fact]
     public void To_ConvertsByName()
     {
-        Assert.Equal(Contract.Dining.DietaryTag.GlutenFree, ContractEnum.To<Contract.Dining.DietaryTag>(Model.Dining.Menus.DietaryTag.GlutenFree));
-        Assert.Equal(Model.Properties.Shared.SubjectKind.Restaurant, ContractEnum.To<Model.Properties.Shared.SubjectKind>(Contract.SubjectKind.Restaurant));
+        Assert.Equal(Contract.Dining.DietaryTag.GlutenFree, EnumMirror.To<Contract.Dining.DietaryTag>(Model.Dining.Menus.DietaryTag.GlutenFree));
+        Assert.Equal(Model.Properties.Shared.SubjectKind.Restaurant, EnumMirror.To<Model.Properties.Shared.SubjectKind>(Contract.SubjectKind.Restaurant));
     }
 }

@@ -1,5 +1,6 @@
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities.Dining;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
@@ -37,7 +38,7 @@ internal sealed class GetMenuCapability(IRestaurantRepository restaurants, IMenu
             return ReadErrors.RestaurantNotFound;
         }
 
-        DomainDietaryTag[] dietary = [.. (input.Dietary ?? []).Select(tag => ContractEnum.To<DomainDietaryTag>(tag))];
+        DomainDietaryTag[] dietary = [.. (input.Dietary ?? []).Select(tag => EnumMirror.To<DomainDietaryTag>(tag))];
         IReadOnlyList<Menu> restaurantMenus = await menus.ListForRestaurantAsync(restaurant.Id, cancellationToken).ConfigureAwait(false);
         List<MenuEntry> entries = [];
 
@@ -63,6 +64,6 @@ internal sealed class GetMenuCapability(IRestaurantRepository restaurants, IMenu
             item.Description,
             item.Price,
             item.Category,
-            ValueList.From((item.Dietary ?? []).Select(tag => ContractEnum.To<ContractDietaryTag>(tag))),
+            ValueList.From((item.Dietary ?? []).Select(tag => EnumMirror.To<ContractDietaryTag>(tag))),
             item.IsAvailable);
 }

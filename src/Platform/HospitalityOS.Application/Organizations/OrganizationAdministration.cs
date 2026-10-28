@@ -24,15 +24,13 @@ internal sealed class OrganizationAdministration(
         OrganizationId id = new(idGenerators.Resolve().NewId());
         Result<Organization> created = Organization.Create(id, currentTenant.TenantId, request.Name!, timeProvider.GetUtcNow());
 
-        if (created.IsFailure)
-        {
-            return await commit.RejectAsync(AdministrationActions.OrganizationCreate, created.Error, null, cancellationToken).ConfigureAwait(false);
-        }
-
-        await organizations.AddAsync(created.Value, cancellationToken).ConfigureAwait(false);
-        Result committed = await commit.SucceedAsync(AdministrationActions.OrganizationCreate, Target(id), cancellationToken).ConfigureAwait(false);
-
-        return committed.IsFailure ? committed.Error : Response(created.Value);
+        return await commit.CreateAsync(
+            AdministrationActions.OrganizationCreate,
+            created,
+            organization => organizations.AddAsync(organization, cancellationToken),
+            organization => Target(organization.Id),
+            Response,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<OrganizationResponse>> RenameAsync(OrganizationId id, RenameOrganizationRequest request, long? expectedVersion, CancellationToken cancellationToken)
@@ -40,18 +38,16 @@ internal sealed class OrganizationAdministration(
         ArgumentNullException.ThrowIfNull(request);
 
         Organization? organization = await organizations.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        Result renamed = organization is null ? AdministrationErrors.OrganizationNotFound
-            : expectedVersion is { } expected && expected != organization.Version ? AdministrationErrors.VersionMismatch(expected, organization.Version)
-            : organization.Rename(request.Name!, timeProvider.GetUtcNow());
 
-        if (renamed.IsFailure)
-        {
-            return await commit.RejectAsync(AdministrationActions.OrganizationRename, renamed.Error, Target(id), cancellationToken).ConfigureAwait(false);
-        }
-
-        Result committed = await commit.SucceedAsync(AdministrationActions.OrganizationRename, Target(id), cancellationToken).ConfigureAwait(false);
-
-        return committed.IsFailure ? committed.Error : Response(organization!);
+        return await commit.ChangeAsync(
+            AdministrationActions.OrganizationRename,
+            Target(id),
+            organization,
+            AdministrationErrors.OrganizationNotFound,
+            expectedVersion,
+            found => Task.FromResult(found.Rename(request.Name!, timeProvider.GetUtcNow())),
+            Response,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<OrganizationResponse>> GetAsync(OrganizationId id, CancellationToken cancellationToken)

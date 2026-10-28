@@ -19,6 +19,11 @@ public interface IContentItemRepository
     Task<IReadOnlyList<ContentItem>> ListPublishedForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The property's content items, whatever their status, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<ContentItem>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new content item, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(ContentItem contentItem, CancellationToken cancellationToken);

@@ -4,7 +4,6 @@ using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Properties;
 using HospitalityOS.Contracts.Api.Properties;
 using HospitalityOS.SharedKernel.Ids;
-using HospitalityOS.SharedKernel.Results;
 
 namespace HospitalityOS.Api.Properties;
 
@@ -21,43 +20,27 @@ internal static class PropertyEndpoints
 
         group.MapPost("/", CreateAsync).WithName(AdministrationActions.PropertyCreate).RequireAuthorization(StaffPolicies.Admin);
         group.MapGet("/", ListAsync).WithName("Property.List");
-        group.MapGet("/{id:guid}", GetAsync).WithName("Property.Get");
-        group.MapPut("/{id:guid}", UpdateAsync).WithName(AdministrationActions.PropertyUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/{id}", GetAsync).WithName("Property.Get");
+        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.PropertyUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }
 
-    private static async Task<IResult> CreateAsync(CreatePropertyRequest request, IPropertyAdministration administration, CancellationToken cancellationToken)
-    {
-        Result<PropertyResponse> created = await administration.CreateAsync(request, cancellationToken);
-
-        return created.IsFailure ? created.Error.ToProblem() : new VersionedResult(TypedResults.Created($"{Route}/{created.Value.Id}", created.Value), created.Value.Version);
-    }
+    private static async Task<IResult> CreateAsync(CreatePropertyRequest request, IPropertyAdministration administration, CancellationToken cancellationToken) =>
+        VersionedResult.Created(await administration.CreateAsync(request, cancellationToken), property => $"{Route}/{property.Id}", property => property.Version);
 
     /// <summary>
     /// All the tenant's properties, or one organization's (<c>?organizationId=</c>).
     /// </summary>
-    private static async Task<IResult> ListAsync(Guid? organizationId, IPropertyAdministration administration, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await administration.ListAsync(organizationId is { } id ? new OrganizationId(id) : null, cancellationToken));
+    private static async Task<IResult> ListAsync(RecordId? organizationId, IPropertyAdministration administration, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await administration.ListAsync(organizationId is { } id ? new OrganizationId(id.Value) : null, cancellationToken));
 
-    private static async Task<IResult> GetAsync(Guid id, IPropertyAdministration administration, CancellationToken cancellationToken)
-    {
-        Result<PropertyResponse> found = await administration.GetAsync(new PropertyId(id), cancellationToken);
+    private static async Task<IResult> GetAsync(RecordId id, IPropertyAdministration administration, CancellationToken cancellationToken) =>
+        VersionedResult.Ok(await administration.GetAsync(new PropertyId(id.Value), cancellationToken), property => property.Version);
 
-        return found.IsFailure ? found.Error.ToProblem() : new VersionedResult(TypedResults.Ok(found.Value), found.Value.Version);
-    }
-
-    private static async Task<IResult> UpdateAsync(Guid id, UpdatePropertyRequest request, HttpRequest http, IPropertyAdministration administration, CancellationToken cancellationToken)
-    {
-        Result<long?> expected = Versions.ExpectedVersion(http);
-
-        if (expected.IsFailure)
-        {
-            return expected.Error.ToProblem();
-        }
-
-        Result<PropertyResponse> updated = await administration.UpdateAsync(new PropertyId(id), request, expected.Value, cancellationToken);
-
-        return updated.IsFailure ? updated.Error.ToProblem() : new VersionedResult(TypedResults.Ok(updated.Value), updated.Value.Version);
-    }
+    private static Task<IResult> UpdateAsync(RecordId id, UpdatePropertyRequest request, HttpRequest http, IPropertyAdministration administration, CancellationToken cancellationToken) =>
+        VersionedResult.ChangeAsync(
+            http,
+            expectedVersion => administration.UpdateAsync(new PropertyId(id.Value), request, expectedVersion, cancellationToken),
+            property => property.Version);
 }

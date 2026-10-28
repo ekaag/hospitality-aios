@@ -1,10 +1,16 @@
 using HospitalityOS.Adapters.Local;
+using HospitalityOS.Api.Amenities;
 using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
+using HospitalityOS.Api.Content;
 using HospitalityOS.Api.Execution;
+using HospitalityOS.Api.Hours;
+using HospitalityOS.Api.Http;
 using HospitalityOS.Api.Organizations;
 using HospitalityOS.Api.Persistence;
+using HospitalityOS.Api.Policies;
 using HospitalityOS.Api.Properties;
+using HospitalityOS.Api.Spaces;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
 using HospitalityOS.Capabilities;
@@ -43,11 +49,16 @@ builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();
 builder.Services.AddNativeIntegrations();
 builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
+// Requests that cannot be read are thrown to the exception handler, which answers with a coded problem.
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<MalformedRequestHandler>();
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
 builder.Services.AddStaffAuthentication();
 
 WebApplication app = builder.Build();
 
+app.UseExceptionHandler();
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<CallerContextMiddleware>();
@@ -56,6 +67,11 @@ app.MapHealthChecks("/health");
 app.MapCapabilityEndpoints();
 app.MapOrganizationEndpoints();
 app.MapPropertyEndpoints();
+app.MapSpaceEndpoints();
+app.MapAmenityEndpoints();
+app.MapOperatingHoursEndpoints();
+app.MapPolicyEndpoints();
+app.MapContentEndpoints();
 
 app.Run();
 
