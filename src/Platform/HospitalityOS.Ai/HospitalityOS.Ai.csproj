@@ -11,6 +11,7 @@
     <ProjectReference Include="../../Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
     <ProjectReference Include="../HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <ProjectReference Include="../HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
+    <ProjectReference Include="../HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

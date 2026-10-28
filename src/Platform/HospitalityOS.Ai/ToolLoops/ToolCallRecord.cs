@@ -13,7 +13,8 @@ namespace HospitalityOS.Ai.ToolLoops;
 /// <param name="InvocationId">The capability invocation that answered it, when it succeeded.</param>
 /// <param name="ErrorCode">Why it failed, e.g. <c>capability.invalid_input</c> or <c>tool.unavailable</c>; <c>null</c>
 /// when it succeeded.</param>
-public sealed record ToolCallRecord(string CallId, string Tool, string? Capability, JsonElement Arguments, Guid? InvocationId, string? ErrorCode)
+/// <param name="Output">The capability's output, when it succeeded.</param>
+public sealed record ToolCallRecord(string CallId, string Tool, string? Capability, JsonElement Arguments, Guid? InvocationId, string? ErrorCode, JsonElement? Output = null)
 {
     /// <summary>
     /// Whether the call succeeded.

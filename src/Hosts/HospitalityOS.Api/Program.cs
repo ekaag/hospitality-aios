@@ -21,6 +21,7 @@ using HospitalityOS.Api.Spaces;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
 using HospitalityOS.Capabilities;
+using HospitalityOS.Capabilities.Retrieval;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Eventing;
 using HospitalityOS.IntegrationRuntime;
@@ -28,6 +29,7 @@ using HospitalityOS.Integrations.Mock;
 using HospitalityOS.Integrations.Native;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
+using HospitalityOS.Ports.Search;
 using HospitalityOS.Ports.Tenancy;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -45,6 +47,8 @@ builder.Services.AddLocalAdapters();
 builder.Services.AddAnthropicAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();
+builder.Services.AddPortBinding<ISearchIndex>();
+builder.Services.AddPortBinding<IVectorStore>();
 // Inference tasks are declared by the modules that run them (from G4 on) and routed by the Inference section.
 builder.Services.AddInference(builder.Configuration);
 builder.Services.AddConfiguredPersistence(builder.Configuration);
@@ -54,7 +58,8 @@ builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredServi
 builder.Services.AddEventing(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddCapabilities().AddBuiltInCapabilities();
-builder.Services.AddAi();
+builder.Services.Configure<ContentSearchOptions>(builder.Configuration.GetSection(ContentSearchOptions.SectionName));
+builder.Services.AddAi().AddContentIndexing();
 // Providers available to every property; each property's integration configuration selects one per connector.
 builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();

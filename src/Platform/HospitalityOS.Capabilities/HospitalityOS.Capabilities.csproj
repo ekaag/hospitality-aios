@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
   <ItemGroup>
@@ -13,6 +14,7 @@
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Capabilities/HospitalityOS.Domain.Capabilities.csproj" />
     <ProjectReference Include="../HospitalityOS.Application/HospitalityOS.Application.csproj" />
+    <ProjectReference Include="../HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
   </ItemGroup>
 
   <ItemGroup>

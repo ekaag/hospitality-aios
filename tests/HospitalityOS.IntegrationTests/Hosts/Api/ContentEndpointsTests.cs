@@ -25,6 +25,26 @@ public sealed class ContentEndpointsTests : IAsyncDisposable
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
+    // Content events index asynchronously: ask again until the answer settles, for at most ten seconds.
+    private async Task<SearchContentOutput> SearchUntilAsync(StaffApi host, object question, Func<IReadOnlyList<ContentEntry>, bool> settled)
+    {
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+
+        while (true)
+        {
+            SearchContentOutput output = await host.AskAsGuestAsync<SearchContentOutput>(tenant, "Property.SearchContent", question, timeout.Token);
+
+            if (settled(output.Results))
+            {
+                return output;
+            }
+
+            host.Clock.Advance(TimeSpan.FromMilliseconds(50));
+            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
+        }
+    }
+
     public ValueTask DisposeAsync() => api.DisposeAsync();
 
     [Fact]
@@ -46,19 +66,23 @@ public sealed class ContentEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task OnlyPublishedContent_ReachesTheConcierge()
+    public async Task OnlyPublishedContent_ReachesTheConcierge_OnceTheIndexHasCaughtUp()
     {
-        PropertyResponse property = await api.CreatePropertyAsync(tenant, Cancellation);
-        using HttpClient admin = api.Staff(tenant);
+        await using StaffApi dispatching = new(dispatchEvents: true);
+        PropertyResponse property = await dispatching.CreatePropertyAsync(tenant, Cancellation);
+        using HttpClient admin = dispatching.Staff(tenant);
         ContentItemResponse draft = await CreateAsync(admin, property);
         object question = new { propertyId = property.Id.Value, query = "wifi" };
 
-        SearchContentOutput whileDraft = await api.AskAsGuestAsync<SearchContentOutput>(tenant, "Property.SearchContent", question, Cancellation);
+        SearchContentOutput whileDraft = await dispatching.AskAsGuestAsync<SearchContentOutput>(tenant, "Property.SearchContent", question, Cancellation);
         using HttpResponseMessage publish = await admin.PostAsync($"{Route}/{draft.Id}/publish", null, Cancellation);
-        SearchContentOutput whilePublished = await api.AskAsGuestAsync<SearchContentOutput>(tenant, "Property.SearchContent", question, Cancellation);
+        SearchContentOutput whilePublished = await SearchUntilAsync(dispatching, question, results => results.Count == 1);
+        using HttpResponseMessage archive = await admin.PostAsync($"{Route}/{draft.Id}/archive", null, Cancellation);
+        SearchContentOutput whileArchived = await SearchUntilAsync(dispatching, question, results => results.Count == 0);
 
         Assert.Empty(whileDraft.Results);
-        Assert.Equal((draft.Id, 2L), (Assert.Single(whilePublished.Results).Source.Id, whilePublished.Results[0].Source.Version));
+        Assert.Equal((draft.Id, 2L), (whilePublished.Results[0].Source.Id, whilePublished.Results[0].Source.Version));
+        Assert.Empty(whileArchived.Results);
     }
 
     [Fact]

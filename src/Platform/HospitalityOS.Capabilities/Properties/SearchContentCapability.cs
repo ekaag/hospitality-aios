@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Reading;
+using HospitalityOS.Capabilities.Retrieval;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.Properties;
@@ -10,22 +11,20 @@ using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Results;
 using ContractContentType = HospitalityOS.Contracts.Capabilities.Properties.ContentType;
 using ContractSubjectKind = HospitalityOS.Contracts.Capabilities.SubjectKind;
+using DomainContentType = HospitalityOS.Domain.Properties.ContentItems.ContentType;
 
 namespace HospitalityOS.Capabilities.Properties;
 
 /// <summary>
-/// <c>Property.SearchContent</c>: keyword search over the property's published content (FAQs, directions, notices).
-/// A word in the title or a tag counts more than one in the body. Phase 1 scale (one property's content) is searched
-/// in memory; <c>ISearchIndex</c> and semantic retrieval replace this in G5 behind the same contract.
+/// <c>Property.SearchContent</c>: hybrid keyword and semantic search over the property's published content (FAQs,
+/// directions, notices), through the search index and vector store (<see cref="ContentSearch"/>). The query must hold at
+/// least one meaningful word.
 /// </summary>
 internal sealed partial class SearchContentCapability(
     IPropertyRepository properties,
-    IContentItemRepository content) : ICapability<SearchContentInput, SearchContentOutput>
+    ContentSearch search) : ICapability<SearchContentInput, SearchContentOutput>
 {
     public const int MaxLimit = 20;
-
-    private const int TitleOrTagWeight = 3;
-    private const int BodyWeight = 1;
 
     private static readonly HashSet<string> ignoredWords = new(StringComparer.Ordinal)
     {
@@ -47,9 +46,7 @@ internal sealed partial class SearchContentCapability(
             return ReadErrors.OutOfRange("limit", 1, MaxLimit);
         }
 
-        string[] terms = Terms(input.Query);
-
-        if (terms.Length == 0)
+        if (!HasMeaningfulWord(input.Query))
         {
             return ReadErrors.Required("query");
         }
@@ -59,18 +56,10 @@ internal sealed partial class SearchContentCapability(
             return ReadErrors.PropertyNotFound;
         }
 
-        IReadOnlyList<ContentItem> published = await content.ListPublishedForPropertyAsync(input.PropertyId, cancellationToken).ConfigureAwait(false);
+        DomainContentType? type = input.Type is { } contractType ? EnumMirror.To<DomainContentType>(contractType) : null;
+        IReadOnlyList<ContentItem> found = await search.SearchAsync(input.PropertyId, input.Query, type, input.Limit, cancellationToken).ConfigureAwait(false);
 
-        IEnumerable<ContentItem> ranked = published
-            .Where(item => input.Type is null || EnumMirror.To<ContractContentType>(item.Details.Type) == input.Type)
-            .Select(item => (Item: item, Score: Score(item.Details, terms)))
-            .Where(match => match.Score > 0)
-            .OrderByDescending(match => match.Score)
-            .ThenBy(match => match.Item.Details.Title, StringComparer.OrdinalIgnoreCase)
-            .Take(input.Limit)
-            .Select(match => match.Item);
-
-        return new SearchContentOutput(ValueList.From(ranked.Select(item => new ContentEntry(
+        return new SearchContentOutput(ValueList.From(found.Select(item => new ContentEntry(
             Sources.Of(item),
             EnumMirror.To<ContractContentType>(item.Details.Type),
             item.Details.Title,
@@ -79,27 +68,9 @@ internal sealed partial class SearchContentCapability(
             item.Details.About is { } about ? new Subject(EnumMirror.To<ContractSubjectKind>(about.Kind), about.Id) : null))));
     }
 
-    private static string[] Terms(string? query) =>
-        query is null
-            ? []
-            : [.. Word().Matches(Normalize(query))
-                .Select(match => match.Value)
-                .Where(word => word.Length > 1 && !ignoredWords.Contains(word))
-                .Distinct(StringComparer.Ordinal)];
-
-    private static int Score(ContentItemDetails details, string[] terms)
-    {
-        HashSet<string> title = [.. Word().Matches(Normalize(details.Title)).Select(match => match.Value)];
-        HashSet<string> body = [.. Word().Matches(Normalize(details.Body)).Select(match => match.Value)];
-        HashSet<string> tags = new((details.Tags ?? []).SelectMany(tag => Word().Matches(Normalize(tag)).Select(match => match.Value)), StringComparer.Ordinal);
-
-        return terms.Sum(term => (title.Contains(term) || tags.Contains(term) ? TitleOrTagWeight : 0) + (body.Contains(term) ? BodyWeight : 0));
-    }
-
-    /// <summary>
-    /// Lower case without hyphens, so "wifi" finds "Wi-Fi".
-    /// </summary>
-    private static string Normalize(string text) => text.ToLowerInvariant().Replace("-", string.Empty, StringComparison.Ordinal);
+    private static bool HasMeaningfulWord(string? query) =>
+        query is not null && Word().Matches(query.ToLowerInvariant().Replace("-", string.Empty, StringComparison.Ordinal))
+            .Any(match => match.Value.Length > 1 && !ignoredWords.Contains(match.Value));
 
     [GeneratedRegex(@"[\p{L}\p{N}]+")]
     private static partial Regex Word();

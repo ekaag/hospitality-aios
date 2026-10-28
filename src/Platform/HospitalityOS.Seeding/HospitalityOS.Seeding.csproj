@@ -13,6 +13,7 @@
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Integrations/HospitalityOS.Domain.Integrations.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Properties/HospitalityOS.Domain.Properties.csproj" />
     <ProjectReference Include="../HospitalityOS.Application/HospitalityOS.Application.csproj" />
+    <ProjectReference Include="../HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <ProjectReference Include="../HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
   </ItemGroup>
 

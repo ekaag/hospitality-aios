@@ -1,11 +1,16 @@
 using System.Text.Json;
 using HospitalityOS.Capabilities.Execution;
+using HospitalityOS.Capabilities.Retrieval;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.Activities;
 using HospitalityOS.Contracts.Capabilities.Dining;
 using HospitalityOS.Contracts.Capabilities.Properties;
 using HospitalityOS.Contracts.Serialization;
+using HospitalityOS.Domain.Properties.ContentItems;
+using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Execution;
+using HospitalityOS.Ports.Persistence;
+using HospitalityOS.Ports.Search;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Pricing;
@@ -38,7 +43,11 @@ public sealed class ReadCapabilitiesTests : IAsyncLifetime
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    public async ValueTask InitializeAsync() => await aurora.SaveAsync(factory.Services, Cancellation);
+    public async ValueTask InitializeAsync()
+    {
+        await aurora.SaveAsync(factory.Services, Cancellation);
+        await aurora.IndexContentAsync(factory.Services, Cancellation);
+    }
 
     public async ValueTask DisposeAsync() => await factory.DisposeAsync();
 
@@ -144,6 +153,48 @@ public sealed class ReadCapabilitiesTests : IAsyncLifetime
 
         Assert.Equal(expectedFirst, output.Results[0].Title);
         Assert.DoesNotContain(output.Results, result => result.Title == "Spa opening");
+    }
+
+    [Fact]
+    public async Task SearchContent_AnIndexEntryNoLongerPublished_IsNotReturned_BecauseHitsAreReReadFromTheRepository()
+    {
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<TenantContext>().Set(aurora.TenantId);
+            ContentItem? wifi = await scope.ServiceProvider.GetRequiredService<IContentItemRepository>().GetByIdAsync(aurora.WiFi.Id, Cancellation);
+            Assert.True(wifi!.Archive(AuroraGrand.Now).IsSuccess);
+            Assert.True((await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().CommitAsync(Cancellation)).IsSuccess);
+        }
+
+        SearchContentOutput output = await ReadAsync<SearchContentOutput>("Property.SearchContent", new { propertyId = aurora.PropertyId, query = "wifi password" });
+
+        Assert.DoesNotContain(output.Results, result => result.Title == "Wi-Fi");
+    }
+
+    [Fact]
+    public async Task IndexContent_AnItemNoLongerPublished_IsRemovedFromTheKeywordIndexAndTheVectorStore()
+    {
+        await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(aurora.TenantId);
+        ContentItem? wifi = await scope.ServiceProvider.GetRequiredService<IContentItemRepository>().GetByIdAsync(aurora.WiFi.Id, Cancellation);
+        Assert.True(wifi!.Archive(AuroraGrand.Now).IsSuccess);
+        Assert.True((await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().CommitAsync(Cancellation)).IsSuccess);
+        BindingContext binding = new("content", aurora.TenantId.Value.ToString());
+        string scopeId = aurora.PropertyId.Value.ToString();
+        IVectorStore vectors = scope.ServiceProvider.GetRequiredService<IBindingResolver<IVectorStore>>().Resolve(binding);
+        ISearchIndex keywords = scope.ServiceProvider.GetRequiredService<IBindingResolver<ISearchIndex>>().Resolve(binding);
+        Assert.Contains(await keywords.SearchAsync("content", new KeywordQuery(aurora.TenantId, scopeId, "wifi", null, 5), Cancellation), hit => hit.Id == aurora.WiFi.Id.Value.ToString());
+
+        Result indexed = await scope.ServiceProvider.GetRequiredService<IContentIndexer>().IndexAsync(aurora.WiFi.Id, Cancellation);
+
+        Assert.True(indexed.IsSuccess);
+        Assert.DoesNotContain(await keywords.SearchAsync("content", new KeywordQuery(aurora.TenantId, scopeId, "wifi", null, 5), Cancellation), hit => hit.Id == aurora.WiFi.Id.Value.ToString());
+        Assert.DoesNotContain(
+            await vectors.SearchAsync("content", new VectorQuery(aurora.TenantId, scopeId, new float[64], null, 5, -1), Cancellation),
+            hit => hit.Id == aurora.WiFi.Id.Value.ToString());
+        Assert.Contains(
+            await vectors.SearchAsync("content", new VectorQuery(aurora.TenantId, scopeId, new float[64], null, 5, -1), Cancellation),
+            hit => hit.Id == aurora.Parking.Id.Value.ToString());
     }
 
     [Fact]

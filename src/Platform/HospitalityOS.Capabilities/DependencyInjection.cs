@@ -1,13 +1,17 @@
 using HospitalityOS.Application.Auditing;
+using HospitalityOS.Bindings;
 using HospitalityOS.Capabilities.Activities;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Dining;
 using HospitalityOS.Capabilities.Execution;
 using HospitalityOS.Capabilities.Properties;
 using HospitalityOS.Capabilities.Registry;
+using HospitalityOS.Capabilities.Retrieval;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Ports.Execution;
+using HospitalityOS.Ports.Inference;
 using HospitalityOS.Ports.Persistence;
+using HospitalityOS.Ports.Search;
 using HospitalityOS.Ports.Tenancy;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -49,11 +53,19 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Registers the platform's own capabilities: the property, dining, and events reads (spec §11). The host must
-    /// register persistence for their repositories.
+    /// Registers the platform's own capabilities: the property, dining, and events reads (spec §11), with content search
+    /// over the search index and vector store (<see cref="IContentIndexer"/> keeps them current) and the
+    /// <c>content.embed</c> inference task (<see cref="IEmbeddingModel"/>). The host must register persistence for their
+    /// repositories, bind <see cref="ISearchIndex"/> and <see cref="IVectorStore"/>, and route <c>content.embed</c>.
     /// </summary>
-    public static IServiceCollection AddBuiltInCapabilities(this IServiceCollection services) =>
-        services
+    public static IServiceCollection AddBuiltInCapabilities(this IServiceCollection services)
+    {
+        services.AddOptions<ContentSearchOptions>();
+        services.TryAddScoped<ContentSearch>();
+        services.TryAddScoped<IContentIndexer, ContentIndexer>();
+        services.AddInferenceTask<IEmbeddingModel>(ContentIndex.EmbeddingTask);
+
+        return services
             .AddCapability<GetPropertyCapability>()
             .AddCapability<GetOperatingHoursCapability>()
             .AddCapability<GetPolicyCapability>()
@@ -61,6 +73,7 @@ public static class DependencyInjection
             .AddCapability<SearchRestaurantsCapability>()
             .AddCapability<GetMenuCapability>()
             .AddCapability<SearchPropertyEventsCapability>();
+    }
 
     /// <summary>
     /// Registers <typeparamref name="TCapability"/>, scoped. Its definition is built and checked here, so an invalid

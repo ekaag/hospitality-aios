@@ -35,7 +35,7 @@ internal sealed class AnthropicModel(IAnthropicClient client, AnthropicSettings 
         ArgumentNullException.ThrowIfNull(model);
 
         BetaMessage response = await SendAsync(
-            Parameters(model, ChatMaxTokens, request.SystemPrompt, AnthropicMessages.From(request.Messages), request.Tools, format: null),
+            Parameters(model, ChatMaxTokens, request.SystemPrompt, AnthropicMessages.From(request.Messages), request.Tools, format: request.ResponseSchema),
             cancellationToken).ConfigureAwait(false);
 
         return new ChatCompletion(AnthropicMessages.ToChatMessage(response), StopReason(response), Usage(response), Served(response, model));
@@ -180,18 +180,24 @@ internal sealed class AnthropicModel(IAnthropicClient client, AnthropicSettings 
             return null;
         }
 
-        return new BetaOutputConfig
+        // Only the settings given: assigning null would send an explicit null.
+        BetaOutputConfig config = new();
+
+        if (effort is { } level)
         {
-            Effort = effort switch
+            config = config with
             {
-                InferenceEffort.Low => Effort.Low,
-                InferenceEffort.Medium => Effort.Medium,
-                InferenceEffort.High => Effort.High,
-                InferenceEffort.Max => Effort.Max,
-                _ => null,
-            },
-            Format = format is { } schema ? new BetaJsonOutputFormat { Schema = AnthropicMessages.ToDictionary(schema) } : null,
-        };
+                Effort = level switch
+                {
+                    InferenceEffort.Low => Effort.Low,
+                    InferenceEffort.Medium => Effort.Medium,
+                    InferenceEffort.High => Effort.High,
+                    _ => Effort.Max,
+                },
+            };
+        }
+
+        return format is { } schema ? config with { Format = new BetaJsonOutputFormat { Schema = AnthropicMessages.ToDictionary(schema) } } : config;
     }
 
     private async Task<BetaMessage> SendAsync(MessageCreateParams parameters, CancellationToken cancellationToken)

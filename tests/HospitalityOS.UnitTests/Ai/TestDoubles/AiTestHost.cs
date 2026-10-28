@@ -19,16 +19,19 @@ namespace HospitalityOS.UnitTests.Ai.TestDoubles;
 
 /// <summary>
 /// A service provider with the AI layer over inference routing (task <see cref="Concierge"/> for chat and
-/// <see cref="Extract"/> for extraction, both on the scripted provider and both always declared) and a capability registry holding
+/// <see cref="Extract"/> for extraction, and <see cref="Grounded"/> for grounded answering with the hours tool, all on the
+/// scripted provider and always declared) and a capability registry holding
 /// <see cref="Capabilities"/>; the executor is <see cref="RecordingExecutor"/>.
 /// </summary>
 internal static class AiTestHost
 {
     public const string Concierge = "test.concierge";
     public const string Extract = "test.extract";
+    public const string Grounded = "test.grounded";
 
     /// <summary>
-    /// Hours v1 and v2 (read-only, agents allowed), a staff-only read, and a write agents may call.
+    /// Hours v1 and v2 (read-only, agents allowed), a staff-only read, a write agents may call, and the two reads grounded
+    /// answering builds its context from.
     /// </summary>
     public static IReadOnlyList<CapabilityDefinition> Capabilities { get; } =
     [
@@ -36,6 +39,8 @@ internal static class AiTestHost
         HoursLookupCapability.Define("Test.GetHours", 2, "When an amenity is open, with notes."),
         HoursLookupCapability.Define("Test.GetSecret", 1, "Staff-only figures.", callers: [CapabilityCaller.Manager]),
         HoursLookupCapability.Define("Test.BookTable", 1, "Books a table.", SideEffect.PlatformState),
+        HoursLookupCapability.Define("Property.GetProperty", 1, "The property's profile."),
+        HoursLookupCapability.Define("Property.SearchContent", 1, "Published content matching words."),
     ];
 
     public static ServiceProvider Build(ScriptedModel model, ExecutorScript executor, Action<IServiceCollection> declare)
@@ -47,6 +52,8 @@ internal static class AiTestHost
             [$"Inference:Tasks:{Concierge}:Model"] = "scripted-model",
             [$"Inference:Tasks:{Extract}:Provider"] = "scripted",
             [$"Inference:Tasks:{Extract}:Model"] = "scripted-model",
+            [$"Inference:Tasks:{Grounded}:Provider"] = "scripted",
+            [$"Inference:Tasks:{Grounded}:Model"] = "scripted-model",
         }).Build();
         ServiceCollection services = new();
 
@@ -61,6 +68,7 @@ internal static class AiTestHost
         services.AddSingleton(executor);
         services.AddScoped<ICapabilityExecutor, RecordingExecutor>();
         services.AddExtraction(Extract, "test.extract");
+        services.AddGroundedAnswering(Grounded, "test.grounded", ["Test.GetHours@1"]);
         declare(services);
 
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });

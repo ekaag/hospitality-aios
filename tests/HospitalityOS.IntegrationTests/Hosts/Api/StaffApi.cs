@@ -41,11 +41,14 @@ internal sealed class StaffApi : IAsyncDisposable
 
     /// <param name="seedAuroraGrand">Whether the host seeds the Aurora Grand reference property at startup, as the local
     /// launch profile does.</param>
-    public StaffApi(bool seedAuroraGrand = false)
+    /// <param name="dispatchEvents">Whether committed events are dispatched to handlers (polling every 50 ms), e.g. so
+    /// content indexing runs; off by default, so tests see events stay in the outbox.</param>
+    public StaffApi(bool seedAuroraGrand = false, bool dispatchEvents = false)
     {
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("Eventing:Dispatcher:Enabled", "false");
+            builder.UseSetting("Eventing:Dispatcher:Enabled", dispatchEvents ? "true" : "false");
+            builder.UseSetting("Eventing:Dispatcher:PollInterval", "00:00:00.050");
 
             // Left unset otherwise, so other hosts run on the host's own default (off).
             if (seedAuroraGrand)
@@ -55,7 +58,7 @@ internal sealed class StaffApi : IAsyncDisposable
 
             builder.ConfigureTestServices(services =>
             {
-                services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+                services.AddSingleton<TimeProvider>(Clock);
                 services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     options.TokenValidationParameters.ValidIssuer = Issuer;
@@ -67,6 +70,11 @@ internal sealed class StaffApi : IAsyncDisposable
     }
 
     public WebApplicationFactory<Program> Factory { get; }
+
+    /// <summary>
+    /// The host's clock, fixed at <see cref="Now"/> until a test advances it (the event dispatcher waits on it between polls).
+    /// </summary>
+    public FakeTimeProvider Clock { get; } = new(Now);
 
     /// <summary>
     /// A token from the trusted issuer with exactly <paramref name="claims"/> (an array value becomes several claims).

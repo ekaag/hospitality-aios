@@ -44,9 +44,9 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
         {
             { CallTool: { } tool } => ToolCall(tool, rule.Arguments ?? "{}", request, model),
             { Reply: { } reply } => Answer(reply.Replace("{user}", user, StringComparison.Ordinal).Replace("{toolResult}", toolResult, StringComparison.Ordinal), user, model),
-            _ when last.Role == ChatRole.Tool => Answer($"From the tool: {toolResult}", user, model),
+            _ when last.Role == ChatRole.Tool => Answer(Shaped(request, $"From the tool: {toolResult}"), user, model),
             _ when request.Tools?.FirstOrDefault(tool => last.Text.Contains(tool.Name, StringComparison.Ordinal)) is { } tool => ToolCall(tool.Name, "{}", request, model),
-            _ => Answer($"Hello! You said: {last.Text}", user, model),
+            _ => Answer(Shaped(request, $"Hello! You said: {last.Text}"), user, model),
         };
 
         return Task.FromResult(completion);
@@ -83,20 +83,7 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
             return Task.FromResult(new Extraction(Parse(rule.Output), Usage(request.Input, rule.Output), model.Model));
         }
 
-        JsonObject output = [];
-
-        if (request.OutputSchema.TryGetProperty("properties", out JsonElement properties))
-        {
-            foreach (JsonProperty property in properties.EnumerateObject())
-            {
-                output[property.Name] = TypeOf(property.Value) switch
-                {
-                    "integer" or "number" => FirstNumber(request.Input),
-                    "boolean" => false,
-                    _ => request.Input,
-                };
-            }
-        }
+        JsonObject output = Fill(request.OutputSchema, request.Input);
 
         return Task.FromResult(new Extraction(JsonSerializer.SerializeToElement(output), Usage(request.Input, output.ToJsonString()), model.Model));
     }
@@ -206,6 +193,33 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
     private static ChatCompletion Answer(string text, string user, ModelSelection model) =>
         new(ChatMessage.Assistant(text), ChatStopReason.Completed, Usage(user, text), model.Model);
 
+    /// <summary>
+    /// An object for <paramref name="schema"/>'s properties: numbers from the text, false, an enum's first value, an empty
+    /// list, or the text itself.
+    /// </summary>
+    private static JsonObject Fill(JsonElement schema, string text)
+    {
+        JsonObject output = [];
+
+        if (schema.TryGetProperty("properties", out JsonElement properties))
+        {
+            foreach (JsonProperty property in properties.EnumerateObject())
+            {
+                output[property.Name] = property.Value.TryGetProperty("enum", out JsonElement values) && values.GetArrayLength() > 0
+                    ? JsonNode.Parse(values[0].GetRawText())
+                    : TypeOf(property.Value) switch
+                    {
+                        "integer" or "number" => FirstNumber(text),
+                        "boolean" => false,
+                        "array" => new JsonArray(),
+                        _ => text,
+                    };
+            }
+        }
+
+        return output;
+    }
+
     private static JsonElement Parse(string json)
     {
         using JsonDocument document = JsonDocument.Parse(json);
@@ -214,6 +228,10 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
     }
 
     private static bool Contains(string text, string fragment) => text.Contains(fragment, StringComparison.OrdinalIgnoreCase);
+
+    // With a response schema, a default answer is an object of that shape around the text.
+    private static string Shaped(ChatRequest request, string text) =>
+        request.ResponseSchema is { } schema ? Fill(schema, text).ToJsonString() : text;
 
     // A schema's "type" is a name, or for a nullable member an array of names such as ["string", "null"].
     private static string? TypeOf(JsonElement schema) =>

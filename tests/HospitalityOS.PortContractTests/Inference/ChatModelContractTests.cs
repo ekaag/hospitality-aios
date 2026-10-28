@@ -37,6 +37,25 @@ public abstract class ChatModelContractTests
     }
 
     [Fact]
+    public async Task Complete_WithAResponseSchema_AnswersWithJsonMatchingIt()
+    {
+        JsonElement schema = JsonDocument.Parse("""
+            {"type":"object","properties":{"greeting":{"type":"string"},"formal":{"type":"boolean"},"tone":{"type":"string","enum":["warm","neutral"]}},
+             "required":["greeting","formal","tone"],"additionalProperties":false}
+            """).RootElement.Clone();
+
+        ChatCompletion completion = await CreateModel().CompleteAsync(
+            new ChatRequest("Greet the guest.", [ChatMessage.User("Please say hello to Alex.")], ResponseSchema: schema), Model, Cancellation);
+
+        Assert.Equal(ChatStopReason.Completed, completion.StopReason);
+        JsonElement answer = JsonDocument.Parse(completion.Message.Text).RootElement;
+        Assert.Equal(
+            (JsonValueKind.String, true, true),
+            (answer.GetProperty("greeting").ValueKind, answer.GetProperty("formal").ValueKind is JsonValueKind.True or JsonValueKind.False, answer.GetProperty("tone").GetString() is "warm" or "neutral"));
+        Assert.Equal(3, answer.EnumerateObject().Count());
+    }
+
+    [Fact]
     public async Task Complete_AskedSomethingOnlyAToolKnows_CallsTheTool_AndStopsForItsResult()
     {
         ChatCompletion completion = await CreateModel().CompleteAsync(

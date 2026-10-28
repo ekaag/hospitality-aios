@@ -56,7 +56,9 @@ public sealed class ToolLoopTests
         Assert.Equal([poolQuestion.Messages[0], asks.Message, result.Added[1]], model.ChatRequests[1].Messages);
         Assert.Equal(asks.Message, result.Added[0]);
         Assert.Equal(("The pool closes at 22:00.", ChatStopReason.Completed, 3), (result.Answer.Text, result.StopReason, result.Added.Count));
-        Assert.Equal(new ToolCallRecord("call-1", "Test_GetHours", "Test.GetHours@1", request.Input, RecordingExecutor.InvocationFor(1), null), Assert.Single(result.ToolCalls));
+        ToolCallRecord record = Assert.Single(result.ToolCalls);
+        Assert.Equal(new ToolCallRecord("call-1", "Test_GetHours", "Test.GetHours@1", request.Input, RecordingExecutor.InvocationFor(1), null), record with { Output = null });
+        Assert.Equal("""{"opens":"07:00","closes":"22:00"}""", record.Output?.GetRawText());
         Assert.Equal(["test.concierge@2", "test.concierge@2"], result.Attempts.Select(attempt => attempt.Prompt?.ToString()));
         Assert.Equal(new InferenceUsage(20, 10), result.Usage);
     }

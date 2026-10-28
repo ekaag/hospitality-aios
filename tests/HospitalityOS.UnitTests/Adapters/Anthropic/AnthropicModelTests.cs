@@ -160,6 +160,23 @@ public sealed class AnthropicModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Complete_WithAResponseSchema_AsksForItAlongsideTheTools_AndWithoutOneAsksForNoFormat()
+    {
+        api.Returns(RecordedAnthropicApi.Message("end_turn", """{"type":"text","text":"{\"status\":\"Unknown\"}"}"""));
+        api.Returns(RecordedAnthropicApi.Message("end_turn", """{"type":"text","text":"Hello."}"""));
+        JsonElement schema = JsonDocument.Parse("""{"type":"object","properties":{"status":{"type":"string"}},"required":["status"],"additionalProperties":false}""").RootElement.Clone();
+        ModelSelection sonnet = new("claude-sonnet-5-5", new InferenceParameters(null, InferenceEffort.Low));
+
+        await api.Model().CompleteAsync(new ChatRequest("Reply as JSON.", [ChatMessage.User("Helicopters?")], [localTime], schema), sonnet, Cancellation);
+        JsonElement structured = api.LastBody;
+        await api.Model().CompleteAsync(new ChatRequest("Reply.", [ChatMessage.User("Hi")], [localTime]), sonnet, Cancellation);
+
+        JsonElement format = structured.GetProperty("output_config").GetProperty("format");
+        Assert.Equal(("json_schema", "string", 1), (format.GetProperty("type").GetString(), format.GetProperty("schema").GetProperty("properties").GetProperty("status").GetProperty("type").GetString(), structured.GetProperty("tools").GetArrayLength()));
+        Assert.False(api.LastBody.GetProperty("output_config").TryGetProperty("format", out _));
+    }
+
+    [Fact]
     public async Task Extract_AsksForTheSchema_AndReturnsTheJsonValue()
     {
         api.Returns(RecordedAnthropicApi.Message("end_turn", """{"type":"text","text":"{\"item\":\"bath_towel\",\"quantity\":2}"}""", "claude-haiku-5-5"));
@@ -171,6 +188,7 @@ public sealed class AnthropicModelTests : IDisposable
         Assert.Equal(2, extraction.Output.GetProperty("quantity").GetInt32());
         JsonElement format = api.LastBody.GetProperty("output_config").GetProperty("format");
         Assert.Equal(("json_schema", "integer"), (format.GetProperty("type").GetString(), format.GetProperty("schema").GetProperty("properties").GetProperty("quantity").GetProperty("type").GetString()));
+        Assert.False(api.LastBody.GetProperty("output_config").TryGetProperty("effort", out _));
         Assert.Equal(("Extract the request.", 4096), (api.LastBody.GetProperty("system").GetString(), api.LastBody.GetProperty("max_tokens").GetInt32()));
     }
 

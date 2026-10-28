@@ -35,7 +35,7 @@ internal sealed class ToolLoop(IInferenceRouter router, ICapabilityExecutor exec
         {
             Result<InferenceOutcome<ChatCompletion>> outcome = await router.RunAsync<IChatModel, ChatCompletion>(
                 loop.Task,
-                (chat, model, prompt, token) => chat.CompleteAsync(new ChatRequest(SystemPrompt(loop, prompt, request), [.. request.Messages, .. added], loop.Tools), model, token),
+                (chat, model, prompt, token) => chat.CompleteAsync(new ChatRequest(SystemPrompt(loop, prompt, request), [.. request.Messages, .. added], loop.Tools, request.ResponseSchema), model, token),
                 cancellationToken).ConfigureAwait(false);
 
             if (outcome.IsFailure)
@@ -108,7 +108,7 @@ internal sealed class ToolLoop(IInferenceRouter router, ICapabilityExecutor exec
             .ConfigureAwait(false);
 
         return response.IsSuccess
-            ? (new ChatToolResult(call.CallId, response.Value.Output.GetRawText()), new ToolCallRecord(call.CallId, call.Name, ranAs, call.Arguments, response.Value.InvocationId, null))
+            ? (new ChatToolResult(call.CallId, response.Value.Output.GetRawText()), new ToolCallRecord(call.CallId, call.Name, ranAs, call.Arguments, response.Value.InvocationId, null, response.Value.Output))
             : (Failure(call, response.Error.Code, response.Error.Message), new ToolCallRecord(call.CallId, call.Name, ranAs, call.Arguments, null, response.Error.Code));
     }
 

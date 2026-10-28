@@ -1,3 +1,4 @@
+using HospitalityOS.Capabilities.Retrieval;
 using HospitalityOS.Domain.Activities.PropertyEvents;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
@@ -147,6 +148,18 @@ internal sealed class AuroraGrand
 
         Result<CommitReceipt> commit = await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().CommitAsync(cancellationToken);
         Assert.True(commit.IsSuccess, commit.IsFailure ? commit.Error.Message : null);
+    }
+
+    /// <summary>
+    /// Indexes the published content for search, as content events do once dispatched.
+    /// </summary>
+    public async Task IndexContentAsync(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(TenantId);
+
+        Result<int> indexed = await scope.ServiceProvider.GetRequiredService<IContentIndexer>().RebuildAsync(PropertyId, cancellationToken);
+        Assert.True(indexed.IsSuccess, indexed.IsFailure ? indexed.Error.Message : null);
     }
 
     private static ValueList<DayHours> Daily(TimeInterval interval) => ValueList.From(Enum.GetValues<DayOfWeek>().Select(day => new DayHours(day, [interval])));
