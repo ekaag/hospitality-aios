@@ -6,4 +6,8 @@ using HospitalityOS.SharedKernel.Ids;
 namespace HospitalityOS.Adapters.InMemory.Repositories;
 
 internal sealed class InMemoryOrganizationRepository(InMemoryStore store, InMemoryUnitOfWork unitOfWork, ICurrentTenant currentTenant)
-    : InMemoryRepository<Organization, OrganizationId>(store, unitOfWork, currentTenant), IOrganizationRepository;
+    : InMemoryRepository<Organization, OrganizationId>(store, unitOfWork, currentTenant), IOrganizationRepository
+{
+    public Task<IReadOnlyList<Organization>> ListAsync(CancellationToken cancellationToken) =>
+        QueryAsync(aggregates => aggregates, cancellationToken);
+}

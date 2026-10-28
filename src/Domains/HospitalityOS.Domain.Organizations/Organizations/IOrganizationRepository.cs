@@ -14,6 +14,11 @@ public interface IOrganizationRepository
     Task<Organization?> GetByIdAsync(OrganizationId id, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The current tenant's organizations, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Organization>> ListAsync(CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new organization, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(Organization organization, CancellationToken cancellationToken);

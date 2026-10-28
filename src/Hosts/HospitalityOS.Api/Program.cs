@@ -1,7 +1,10 @@
 using HospitalityOS.Adapters.Local;
+using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
 using HospitalityOS.Api.Execution;
+using HospitalityOS.Api.Organizations;
 using HospitalityOS.Api.Persistence;
+using HospitalityOS.Api.Properties;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
 using HospitalityOS.Capabilities;
@@ -29,7 +32,7 @@ builder.Services.AddLocalAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();
 builder.Services.AddConfiguredPersistence(builder.Configuration);
-// The tenant is set per scope: from claims once authentication arrives (F1), from the envelope when handling events.
+// The tenant is set per scope: from the caller's token for requests, from the envelope when handling events.
 builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredService<TenantContext>());
 builder.Services.AddEventing(builder.Configuration);
@@ -41,12 +44,18 @@ builder.Services.AddMockIntegrations();
 builder.Services.AddNativeIntegrations();
 builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
 builder.Services.AddHealthChecks().AddBindingHealthChecks();
+builder.Services.AddStaffAuthentication();
 
 WebApplication app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
+app.UseAuthentication();
+app.UseMiddleware<CallerContextMiddleware>();
+app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapCapabilityEndpoints();
+app.MapOrganizationEndpoints();
+app.MapPropertyEndpoints();
 
 app.Run();
 

@@ -6,4 +6,8 @@ using HospitalityOS.SharedKernel.Ids;
 namespace HospitalityOS.Adapters.EfCore.Repositories;
 
 internal sealed class EfOrganizationRepository(HospitalityDbContext context, EfUnitOfWork unitOfWork, ICurrentTenant currentTenant)
-    : EfRepository<Organization, OrganizationId>(context, unitOfWork, currentTenant), IOrganizationRepository;
+    : EfRepository<Organization, OrganizationId>(context, unitOfWork, currentTenant), IOrganizationRepository
+{
+    public Task<IReadOnlyList<Organization>> ListAsync(CancellationToken cancellationToken) =>
+        QueryAsync(aggregates => aggregates, cancellationToken);
+}

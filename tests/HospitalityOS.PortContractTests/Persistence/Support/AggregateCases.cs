@@ -37,7 +37,7 @@ public static class AggregateCases
             TestData.Organization, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Rename("Aurora Hotels Group", TestData.Now)),
         new AggregateCase<Property, PropertyId, IPropertyRepository>(
-            TestData.Property, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            (tenant, seed) => TestData.Property(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Update(a.Details with { ContactPhone = "+44 20 7946 0000" }, TestData.Now)),
         new AggregateCase<Space, SpaceId, ISpaceRepository>(
             (tenant, seed) => TestData.Space(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),

@@ -53,11 +53,11 @@ internal static class TestData
     public static Organization Organization(TenantId tenantId, int seed) =>
         Domain.Organizations.Organizations.Organization.Create(new OrganizationId(Id(1000 + seed)), tenantId, $"Aurora Hotels {seed}", Now).Value;
 
-    public static Property Property(TenantId tenantId, int seed) =>
+    public static Property Property(TenantId tenantId, int seed, OrganizationId? organizationId = null) =>
         Domain.Properties.Properties.Property.Create(
             new PropertyId(Id(2000 + seed)),
             tenantId,
-            OrganizationId,
+            organizationId ?? OrganizationId,
             new PropertyDetails("Aurora Grand", "Europe/London", new PostalAddress("1 Strand", null, "London", null, "WC2N 5HR", "GB")),
             Now).Value;
 

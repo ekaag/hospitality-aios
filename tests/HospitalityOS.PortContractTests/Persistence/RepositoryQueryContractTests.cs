@@ -9,11 +9,13 @@ using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
+using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Amenities;
 using HospitalityOS.Domain.Properties.ContentItems;
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Properties.Policies;
+using HospitalityOS.Domain.Properties.Properties;
 using HospitalityOS.Domain.Properties.Shared;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
@@ -252,6 +254,35 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-2", Cancellation));
         Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-3", Cancellation));
         Assert.Null(await invocations.FindSucceededAsync("GuestService.CreateRequest", "key-4", Cancellation));
+    }
+
+    [Fact]
+    public async Task ListOrganizations_ReturnsTheTenantsOrganizations()
+    {
+        Organization[] mine = [TestData.Organization(TestData.TenantA, 1), TestData.Organization(TestData.TenantA, 2)];
+        await SaveAsync([.. mine, TestData.Organization(TestData.TenantB, 3)]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Organization> found = await session.Get<IOrganizationRepository>().ListAsync(Cancellation);
+
+        AssertSameIds(mine.Select(o => o.Id), found.Select(o => o.Id));
+    }
+
+    [Fact]
+    public async Task ListProperties_AllOrOneOrganizations_InTheTenant()
+    {
+        OrganizationId otherOrganization = new(TestData.Id(1999));
+        Property grand = TestData.Property(TestData.TenantA, 1);
+        Property harbour = TestData.Property(TestData.TenantA, 2, otherOrganization);
+        await SaveAsync(grand, harbour, TestData.Property(TestData.TenantB, 3));
+        await using PersistenceSession session = OpenSession();
+        IPropertyRepository properties = session.Get<IPropertyRepository>();
+
+        IReadOnlyList<Property> all = await properties.ListAsync(null, Cancellation);
+        IReadOnlyList<Property> ofOrganization = await properties.ListAsync(otherOrganization, Cancellation);
+
+        AssertSameIds([grand.Id, harbour.Id], all.Select(p => p.Id));
+        AssertSameIds([harbour.Id], ofOrganization.Select(p => p.Id));
     }
 
     [Fact]

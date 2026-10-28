@@ -14,6 +14,11 @@ public interface IPropertyRepository
     Task<Property?> GetByIdAsync(PropertyId id, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The current tenant's properties, or one organization's, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Property>> ListAsync(OrganizationId? organizationId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new property, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(Property property, CancellationToken cancellationToken);

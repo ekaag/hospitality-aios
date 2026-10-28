@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />

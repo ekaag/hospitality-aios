@@ -1,4 +1,7 @@
+using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Auditing;
+using HospitalityOS.Application.Organizations;
+using HospitalityOS.Application.Properties;
 using HospitalityOS.Ports.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -12,13 +15,17 @@ namespace HospitalityOS.Application;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers <see cref="IAuditTrail"/> and the scope's <see cref="OperationContext"/>.
+    /// Registers <see cref="IAuditTrail"/>, the scope's <see cref="OperationContext"/>, and the administration
+    /// services (<see cref="IOrganizationAdministration"/>, <see cref="IPropertyAdministration"/>).
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddScoped<OperationContext>();
         services.TryAddScoped<IAuditTrail, AuditTrail>();
+        services.TryAddScoped<AuditedCommit>();
+        services.TryAddScoped<IOrganizationAdministration, OrganizationAdministration>();
+        services.TryAddScoped<IPropertyAdministration, PropertyAdministration>();
 
         return services;
     }
