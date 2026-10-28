@@ -1,0 +1,8 @@
+{
+  "aiTraceId": "01890a5d-ac96-774b-bcce-000000000029",
+  "propertyId": "01890a5d-ac96-774b-bcce-000000000001",
+  "agent": "concierge.answer",
+  "triggerType": "GuestMessage",
+  "triggerId": "01890a5d-ac96-774b-bcce-000000000017",
+  "outcome": "NoAuthoritativeSource"
+}

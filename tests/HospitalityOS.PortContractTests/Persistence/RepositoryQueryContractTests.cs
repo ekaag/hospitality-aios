@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.AITraces;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
@@ -522,6 +523,72 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
         IReadOnlyList<ExternalReference> found = await session.Get<IExternalReferenceRepository>().ListForCanonicalAsync(TestData.PropertyId, "StayContext", stay, Cancellation);
 
         AssertSameIds([mock.Id, opera.Id], found.Select(r => r.Id));
+    }
+
+    [Fact]
+    public async Task ListTraces_NewestFirst_ThenByIdAtTheSameTime_AndPagesFromTheLastOneSeen()
+    {
+        DateTimeOffset at = TestData.Now;
+        AITrace[] traces =
+        [
+            TestData.AITrace(TestData.TenantA, 1, at),
+            TestData.AITrace(TestData.TenantA, 2, at.AddSeconds(1)),
+            TestData.AITrace(TestData.TenantA, 3, at.AddSeconds(1)),
+            TestData.AITrace(TestData.TenantA, 4, at.AddSeconds(1)),
+            TestData.AITrace(TestData.TenantA, 5, at.AddSeconds(2)),
+        ];
+        await SaveAsync([.. traces, TestData.AITrace(TestData.TenantB, 6, at.AddSeconds(3))]);
+        await using PersistenceSession session = OpenSession();
+        IAITraceRepository repository = session.Get<IAITraceRepository>();
+        List<AITraceId> read = [];
+        AITraceCursor? after = null;
+
+        for (int page = 0; page < 4; page++)
+        {
+            IReadOnlyList<AITrace> found = await repository.ListAsync(new AITraceQuery(Limit: 2, After: after), Cancellation);
+            read.AddRange(found.Select(trace => trace.Id));
+            after = found.Count == 0 ? after : new AITraceCursor(found[^1].CompletedAt, found[^1].Id);
+        }
+
+        Assert.Equal([traces[4].Id, traces[3].Id, traces[2].Id, traces[1].Id, traces[0].Id], read);
+    }
+
+    [Fact]
+    public async Task ListTraces_FiltersByPropertyFlowOutcomeAndCompletionTime()
+    {
+        DateTimeOffset at = TestData.Now;
+        Guid flow = TestData.Id(24999);
+        AITrace match = TestData.AITrace(TestData.TenantA, 1, at, correlationId: flow, outcome: AITraceOutcome.NoAuthoritativeSource);
+        await SaveAsync(
+            match,
+            TestData.AITrace(TestData.TenantA, 2, at, TestData.OtherPropertyId, flow, AITraceOutcome.NoAuthoritativeSource),
+            TestData.AITrace(TestData.TenantA, 3, at, correlationId: flow),
+            TestData.AITrace(TestData.TenantA, 4, at, outcome: AITraceOutcome.NoAuthoritativeSource),
+            TestData.AITrace(TestData.TenantA, 5, at.AddMinutes(-1), correlationId: flow, outcome: AITraceOutcome.NoAuthoritativeSource),
+            TestData.AITrace(TestData.TenantA, 6, at.AddMinutes(1), correlationId: flow, outcome: AITraceOutcome.NoAuthoritativeSource),
+            TestData.AITrace(TestData.TenantB, 7, at, correlationId: flow, outcome: AITraceOutcome.NoAuthoritativeSource));
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<AITrace> found = await session.Get<IAITraceRepository>().ListAsync(
+            new AITraceQuery(
+                PropertyId: TestData.PropertyId,
+                CorrelationId: flow,
+                Outcome: AITraceOutcome.NoAuthoritativeSource,
+                CompletedFrom: at,
+                CompletedBefore: at.AddMinutes(1)),
+            Cancellation);
+
+        Assert.Equal([match.Id], found.Select(trace => trace.Id));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(AITraceQuery.MaxLimit + 1)]
+    public async Task ListTraces_ALimitOutOfRange_Throws(int limit)
+    {
+        await using PersistenceSession session = OpenSession();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => session.Get<IAITraceRepository>().ListAsync(new AITraceQuery(Limit: limit), Cancellation));
     }
 
     private static Policy Activated(Policy policy)

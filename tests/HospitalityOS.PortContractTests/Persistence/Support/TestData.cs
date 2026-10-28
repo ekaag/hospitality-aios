@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.AITraces;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
@@ -235,6 +236,31 @@ internal static class TestData
 
         return invocation;
     }
+
+    /// <summary>
+    /// A recorded AI turn about <see cref="PropertyId"/> (unless given), completed at <see cref="Now"/> (unless given).
+    /// </summary>
+    public static AITrace AITrace(
+        TenantId tenantId,
+        int seed,
+        DateTimeOffset? completedAt = null,
+        PropertyId? propertyId = null,
+        Guid? correlationId = null,
+        AITraceOutcome outcome = AITraceOutcome.Answered) =>
+        Domain.Capabilities.AITraces.AITrace.Record(
+            new AITraceId(Id(23000 + seed)),
+            tenantId,
+            propertyId ?? PropertyId,
+            Actor.Agent("concierge.answer"),
+            correlationId ?? Id(24000 + seed),
+            null,
+            "GuestMessage",
+            Id(25000 + seed),
+            "question",
+            outcome,
+            (completedAt ?? Now).AddSeconds(-2),
+            completedAt ?? Now,
+            $"{{\"triggerText\":\"Question {seed}\"}}");
 
     public static IntegrationConfiguration IntegrationConfiguration(TenantId tenantId, int seed, ConnectorKind kind = ConnectorKind.Pms, PropertyId? propertyId = null) =>
         Domain.Integrations.IntegrationConfigurations.IntegrationConfiguration.Create(

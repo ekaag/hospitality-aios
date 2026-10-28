@@ -1,6 +1,8 @@
 using System.Text.Json;
+using HospitalityOS.Ai.Tracing;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Execution;
+using HospitalityOS.Contracts.Api.Ai;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Inference;
@@ -14,7 +16,12 @@ namespace HospitalityOS.Ai.ToolLoops;
 /// Runs tool loops (see <see cref="IToolLoop"/>). Tool calls in one model message run one at a time, in order, so their
 /// effects and records are deterministic.
 /// </summary>
-internal sealed class ToolLoop(IInferenceRouter router, ICapabilityExecutor executor, OperationContext operation, ToolLoopCatalog catalog) : IToolLoop
+internal sealed class ToolLoop(
+    IInferenceRouter router,
+    ICapabilityExecutor executor,
+    OperationContext operation,
+    ToolLoopCatalog catalog,
+    AITraceRecorder recorder) : IToolLoop
 {
     public const string UnavailableToolCode = "tool.unavailable";
 
@@ -33,17 +40,28 @@ internal sealed class ToolLoop(IInferenceRouter router, ICapabilityExecutor exec
 
         for (int round = 0; ; round++)
         {
+            ValueList<ChatMessage> messages = [.. request.Messages, .. added];
+            string? systemPrompt = null;
             Result<InferenceOutcome<ChatCompletion>> outcome = await router.RunAsync<IChatModel, ChatCompletion>(
                 loop.Task,
-                (chat, model, prompt, token) => chat.CompleteAsync(new ChatRequest(SystemPrompt(loop, prompt, request), [.. request.Messages, .. added], loop.Tools, request.ResponseSchema), model, token),
+                (chat, model, prompt, token) =>
+                {
+                    systemPrompt = SystemPrompt(loop, prompt, request);
+
+                    return chat.CompleteAsync(new ChatRequest(systemPrompt, messages, loop.Tools, request.ResponseSchema), model, token);
+                },
                 cancellationToken).ConfigureAwait(false);
 
             if (outcome.IsFailure)
             {
+                IReadOnlyList<InferenceAttempt> tried = outcome.Error is InferenceUnavailableError unavailable ? unavailable.Attempts : [];
+                recorder.RecordChat(loop.Task, systemPrompt, messages, loop.Tools, request.ResponseSchema is not null, null, tried);
+
                 return outcome.Error;
             }
 
             ChatCompletion completion = outcome.Value.Value;
+            recorder.RecordChat(loop.Task, systemPrompt, messages, loop.Tools, request.ResponseSchema is not null, completion, outcome.Value.Attempts);
             attempts.AddRange(outcome.Value.Attempts);
             usage = new InferenceUsage(usage.InputTokens + completion.Usage.InputTokens, usage.OutputTokens + completion.Usage.OutputTokens);
             added.Add(completion.Message);
@@ -97,6 +115,8 @@ internal sealed class ToolLoop(IInferenceRouter router, ICapabilityExecutor exec
     {
         if (!loop.Capabilities.TryGetValue(call.Name, out CapabilityDefinition? capability))
         {
+            recorder.RecordCapabilityCall(CapabilityCallPurpose.Tool, call.Name, call.CallId, call.Arguments, null, null, UnavailableToolCode);
+
             return (
                 Failure(call, UnavailableToolCode, $"There is no tool named \"{call.Name}\". Use only the tools you were given."),
                 new ToolCallRecord(call.CallId, call.Name, null, call.Arguments, null, UnavailableToolCode));
@@ -106,6 +126,14 @@ internal sealed class ToolLoop(IInferenceRouter router, ICapabilityExecutor exec
         Result<CapabilityResponse> response = await executor
             .ExecuteAsync(new CapabilityRequest(capability.Name, call.Arguments, capability.Version), cancellationToken)
             .ConfigureAwait(false);
+        recorder.RecordCapabilityCall(
+            CapabilityCallPurpose.Tool,
+            ranAs,
+            call.CallId,
+            call.Arguments,
+            response.IsSuccess ? response.Value.InvocationId : null,
+            response.IsSuccess ? response.Value.Output : null,
+            response.IsFailure ? response.Error.Code : null);
 
         return response.IsSuccess
             ? (new ChatToolResult(call.CallId, response.Value.Output.GetRawText()), new ToolCallRecord(call.CallId, call.Name, ranAs, call.Arguments, response.Value.InvocationId, null, response.Value.Output))

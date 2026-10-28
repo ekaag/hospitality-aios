@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Activities.PropertyEvents;
+using HospitalityOS.Domain.Capabilities.AITraces;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
@@ -98,6 +99,9 @@ public static class AggregateCases
 
                 return Result.Success();
             }),
+        new AggregateCase<AITrace, AITraceId, IAITraceRepository>(
+            (tenant, seed) => TestData.AITrace(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            change: null),
         new AggregateCase<IntegrationConfiguration, IntegrationConfigurationId, IIntegrationConfigurationRepository>(
             (tenant, seed) => TestData.IntegrationConfiguration(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Reconfigure("OperaCloud", [new IntegrationSetting("hotelCode", "AG02")], TestData.Now)),

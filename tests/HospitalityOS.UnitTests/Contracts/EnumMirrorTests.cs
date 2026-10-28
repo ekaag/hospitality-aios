@@ -23,6 +23,7 @@ public sealed class EnumMirrorTests
         { typeof(Model.Properties.ContentItems.ContentStatus), typeof(Api.Content.ContentStatus) },
         { typeof(Model.Activities.PropertyEvents.PropertyEventStatus), typeof(Api.Events.PropertyEventStatus) },
         { typeof(Model.Services.Services.ServiceCategory), typeof(Api.Services.ServiceCategory) },
+        { typeof(Model.Capabilities.AITraces.AITraceOutcome), typeof(Api.Ai.AITraceOutcome) },
     };
 
     [Theory]

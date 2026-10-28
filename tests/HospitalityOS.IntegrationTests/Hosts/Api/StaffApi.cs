@@ -16,6 +16,7 @@ using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,7 +44,8 @@ internal sealed class StaffApi : IAsyncDisposable
     /// launch profile does.</param>
     /// <param name="dispatchEvents">Whether committed events are dispatched to handlers (polling every 50 ms), e.g. so
     /// content indexing runs; off by default, so tests see events stay in the outbox.</param>
-    public StaffApi(bool seedAuroraGrand = false, bool dispatchEvents = false)
+    /// <param name="configure">Further host settings and test services, applied last.</param>
+    public StaffApi(bool seedAuroraGrand = false, bool dispatchEvents = false, Action<IWebHostBuilder>? configure = null)
     {
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
@@ -66,6 +68,7 @@ internal sealed class StaffApi : IAsyncDisposable
                     options.TokenValidationParameters.IssuerSigningKey = SigningKey;
                 });
             });
+            configure?.Invoke(builder);
         });
     }
 

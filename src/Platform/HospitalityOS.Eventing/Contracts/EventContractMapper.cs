@@ -8,6 +8,7 @@ using HospitalityOS.Contracts.Events.Organizations;
 using HospitalityOS.Contracts.Events.Properties;
 using HospitalityOS.Contracts.Events.Services;
 using HospitalityOS.Domain.Activities.PropertyEvents.Events;
+using HospitalityOS.Domain.Capabilities.AITraces.Events;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations.Events;
 using HospitalityOS.Domain.Dining.Menus.Events;
 using HospitalityOS.Domain.Dining.Restaurants.Events;
@@ -94,6 +95,7 @@ internal static class EventContractMapper
             CapabilityInvocationRequested e => new(new CapabilityInvocationRequestedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
             CapabilityInvocationSucceeded e => new(new CapabilityInvocationSucceededV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
             CapabilityInvocationFailed e => new(new CapabilityInvocationFailedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion, e.ErrorCode)),
+            AITraceCreated e => new(new AITraceCreatedV1(e.AITraceId.Value, e.PropertyId, e.Agent, e.TriggerType, e.TriggerId, e.Outcome.ToString())),
             IntegrationConfigurationCreated e => new(new IntegrationConfigurationCreatedV1(e.IntegrationConfigurationId.Value, e.PropertyId, e.Kind.ToString(), e.ProviderName, e.Status.ToString())),
             IntegrationConfigurationUpdated e => new(new IntegrationConfigurationUpdatedV1(e.IntegrationConfigurationId.Value, e.Kind.ToString(), e.ProviderName, e.Status.ToString())),
             ExternalReferenceCreated e => new(new ExternalReferenceCreatedV1(e.ExternalReferenceId.Value, e.PropertyId, e.ProviderName, e.EntityType, e.ExternalId, e.CanonicalId)),

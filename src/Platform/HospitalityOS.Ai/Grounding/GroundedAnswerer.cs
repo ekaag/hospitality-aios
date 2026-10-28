@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using HospitalityOS.Ai.ToolLoops;
+using HospitalityOS.Ai.Tracing;
 using HospitalityOS.Capabilities.Execution;
+using HospitalityOS.Contracts.Api.Ai;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Ports.Execution;
@@ -19,6 +21,7 @@ internal sealed class GroundedAnswerer(
     IToolLoop loop,
     ICapabilityExecutor executor,
     OperationContext operation,
+    AITraceRecorder recorder,
     IEnumerable<GroundedAnsweringRegistration> registrations) : IGroundedAnswerer
 {
     public const string ContextVariable = "context";
@@ -103,6 +106,7 @@ internal sealed class GroundedAnswerer(
             retrieved.UnionWith(turn.ToolCalls.Where(call => call.Output is not null).SelectMany(call => SourceFinder.In(call.Output!.Value)));
 
             (GroundedReply? accepted, rejection) = Check(turn, retrieved);
+            recorder.RecordReply(accepted is not null, rejection);
 
             if (accepted is not null)
             {
@@ -174,10 +178,11 @@ internal sealed class GroundedAnswerer(
 
     private async Task<Result<CapabilityResponse>> ReadAsync(string capability, object input, List<ContextRead> reads, CancellationToken cancellationToken)
     {
-        Result<CapabilityResponse> response = await executor.ExecuteAsync(
-            new CapabilityRequest(capability, JsonSerializer.SerializeToElement(input, ContractJson.Options), ContextCapabilityVersion),
-            cancellationToken).ConfigureAwait(false);
-        reads.Add(new ContextRead($"{capability}@{ContextCapabilityVersion}", response.IsSuccess ? response.Value.InvocationId : null, response.IsFailure ? response.Error.Code : null));
+        JsonElement sent = JsonSerializer.SerializeToElement(input, ContractJson.Options);
+        Result<CapabilityResponse> response = await executor.ExecuteAsync(new CapabilityRequest(capability, sent, ContextCapabilityVersion), cancellationToken).ConfigureAwait(false);
+        ContextRead read = new($"{capability}@{ContextCapabilityVersion}", response.IsSuccess ? response.Value.InvocationId : null, response.IsFailure ? response.Error.Code : null);
+        reads.Add(read);
+        recorder.RecordCapabilityCall(CapabilityCallPurpose.Context, read.Capability, null, sent, read.InvocationId, response.IsSuccess ? response.Value.Output : null, read.ErrorCode);
 
         return response;
     }

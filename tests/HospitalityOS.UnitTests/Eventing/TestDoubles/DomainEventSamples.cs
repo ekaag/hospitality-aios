@@ -1,5 +1,7 @@
 using HospitalityOS.Domain.Activities.PropertyEvents;
 using HospitalityOS.Domain.Activities.PropertyEvents.Events;
+using HospitalityOS.Domain.Capabilities.AITraces;
+using HospitalityOS.Domain.Capabilities.AITraces.Events;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations.Events;
 using HospitalityOS.Domain.Dining.Menus;
@@ -160,6 +162,7 @@ public static class DomainEventSamples
         new CapabilityInvocationRequested(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationSucceeded(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationFailed(new CapabilityInvocationId(Id(26)), "HumanAction.Complete", 1, "humanaction.not_assigned", Now),
+        new AITraceCreated(new AITraceId(Id(29)), auroraGrand, "concierge.answer", "GuestMessage", towelMessage.Value, AITraceOutcome.NoAuthoritativeSource, Now),
         new IntegrationConfigurationCreated(new IntegrationConfigurationId(Id(27)), auroraGrand, ConnectorKind.Pms, "MockPms", IntegrationStatus.Active, Now),
         new IntegrationConfigurationUpdated(new IntegrationConfigurationId(Id(27)), ConnectorKind.Pms, "OperaCloud", IntegrationStatus.Disabled, Now),
         new ExternalReferenceCreated(new ExternalReferenceId(Id(28)), auroraGrand, "MockPms", "StayContext", "RES-0412", alexStay.Value, Now),

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using HospitalityOS.Ai.Tracing;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.SharedKernel.Collections;
@@ -9,7 +10,7 @@ namespace HospitalityOS.Ai.StructuredOutput;
 /// <summary>
 /// Runs typed extractions (see <see cref="ITypedExtractor"/>).
 /// </summary>
-internal sealed class TypedExtractor(IInferenceRouter router) : ITypedExtractor
+internal sealed class TypedExtractor(IInferenceRouter router, AITraceRecorder recorder) : ITypedExtractor
 {
     /// <summary>
     /// Calls per extraction: the first, and one corrective retry.
@@ -33,17 +34,26 @@ internal sealed class TypedExtractor(IInferenceRouter router) : ITypedExtractor
         for (int call = 0; call < MaxCalls; call++)
         {
             string? correction = problem;
+            string? instructions = null;
             Result<InferenceOutcome<Extraction>> outcome = await router.RunAsync<IStructuredExtractor, Extraction>(
                 task,
-                (extractor, model, prompt, token) => extractor.ExtractAsync(new ExtractionRequest(Instructions(task, prompt, promptValues, correction), input, typeof(T).Name, schema), model, token),
+                (extractor, model, prompt, token) =>
+                {
+                    instructions = Instructions(task, prompt, promptValues, correction);
+
+                    return extractor.ExtractAsync(new ExtractionRequest(instructions, input, typeof(T).Name, schema), model, token);
+                },
                 cancellationToken).ConfigureAwait(false);
 
             if (outcome.IsFailure)
             {
+                recorder.RecordExtraction(task, instructions, input, null, outcome.Error is InferenceUnavailableError unavailable ? unavailable.Attempts : []);
+
                 return outcome.Error;
             }
 
             Extraction extraction = outcome.Value.Value;
+            recorder.RecordExtraction(task, instructions, input, extraction, outcome.Value.Attempts);
             attempts.AddRange(outcome.Value.Attempts);
             usage = new InferenceUsage(usage.InputTokens + extraction.Usage.InputTokens, usage.OutputTokens + extraction.Usage.OutputTokens);
 

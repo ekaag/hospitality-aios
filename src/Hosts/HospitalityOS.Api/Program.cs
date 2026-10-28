@@ -1,6 +1,8 @@
 using HospitalityOS.Adapters.Anthropic;
 using HospitalityOS.Adapters.Local;
 using HospitalityOS.Ai;
+using HospitalityOS.Ai.Tracing;
+using HospitalityOS.Api.Ai;
 using HospitalityOS.Api.Amenities;
 using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
@@ -60,6 +62,14 @@ builder.Services.AddApplication();
 builder.Services.AddCapabilities().AddBuiltInCapabilities();
 builder.Services.Configure<ContentSearchOptions>(builder.Configuration.GetSection(ContentSearchOptions.SectionName));
 builder.Services.AddAi().AddContentIndexing();
+builder.Services.Configure<AITraceRedactionOptions>(builder.Configuration.GetSection(AITraceRedactionOptions.SectionName));
+// The concierge's grounded answers (Milestone H); Inference:Tasks:concierge.answer picks its model.
+builder.Services
+    .AddPrompts(typeof(Program).Assembly)
+    .AddGroundedAnswering(
+        Concierge.AnswerTask,
+        Concierge.AnswerTask,
+        ["Property.GetOperatingHours@1", "Property.GetPolicy@1", "Property.SearchContent@1", "Dining.SearchRestaurants@1", "Dining.GetMenu@1", "Events.SearchPropertyEvents@1"]);
 // Providers available to every property; each property's integration configuration selects one per connector.
 builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();
@@ -94,6 +104,7 @@ app.MapRestaurantEndpoints();
 app.MapMenuEndpoints();
 app.MapPropertyEventEndpoints();
 app.MapServiceEndpoints();
+app.MapAITraceEndpoints();
 
 app.Run();
 

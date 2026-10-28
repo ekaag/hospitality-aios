@@ -5,8 +5,11 @@ using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Execution;
 using HospitalityOS.Capabilities.Registry;
 using HospitalityOS.Contracts.Capabilities;
+using HospitalityOS.Domain.Capabilities.AITraces;
 using HospitalityOS.Ports.Bindings;
+using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Execution;
+using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Results;
@@ -28,6 +31,16 @@ internal static class AiTestHost
     public const string Concierge = "test.concierge";
     public const string Extract = "test.extract";
     public const string Grounded = "test.grounded";
+
+    /// <summary>
+    /// The ID every recorded trace gets.
+    /// </summary>
+    public static Guid TraceId { get; } = Guid.Parse("01890a5d-ac96-774b-bcce-0000000007ac");
+
+    /// <summary>
+    /// The host's clock, fixed until a test advances it.
+    /// </summary>
+    public static DateTimeOffset Now { get; } = new(2026, 10, 28, 18, 0, 0, TimeSpan.Zero);
 
     /// <summary>
     /// Hours v1 and v2 (read-only, agents allowed), a staff-only read, a write agents may call, and the two reads grounded
@@ -57,9 +70,15 @@ internal static class AiTestHost
         }).Build();
         ServiceCollection services = new();
 
-        services.AddSingleton<TimeProvider>(new FakeTimeProvider(new DateTimeOffset(2026, 10, 28, 18, 0, 0, TimeSpan.Zero)));
+        services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         services.AddScoped<TenantContext>();
+        services.AddScoped<ICurrentTenant>(provider => provider.GetRequiredService<TenantContext>());
         services.AddScoped(_ => new OperationContext(new FixedIdGenerator(Guid.Parse("01890a5d-ac96-774b-bcce-0000000000ff"))));
+        services.AddSingleton<IBindingResolver<IIdGenerator>>(new FixedIdGenerator(TraceId));
+        services.AddSingleton<TraceStore>();
+        services.AddScoped<IAITraceRepository, RecordingTraceRepository>();
+        services.AddSingleton<ListedEventStore>();
+        services.AddScoped<IEventStore>(provider => provider.GetRequiredService<ListedEventStore>());
         services.AddInference(configuration);
         services.AddPrompts(typeof(AiTestHost).Assembly);
         services.AddSingleton<IAdapterFactory<IChatModel>>(new ScriptedModelFactory<IChatModel>(model));

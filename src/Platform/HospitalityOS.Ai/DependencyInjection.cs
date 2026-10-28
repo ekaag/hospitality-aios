@@ -2,6 +2,7 @@ using HospitalityOS.Ai.Grounding;
 using HospitalityOS.Ai.Retrieval;
 using HospitalityOS.Ai.StructuredOutput;
 using HospitalityOS.Ai.ToolLoops;
+using HospitalityOS.Ai.Tracing;
 using HospitalityOS.Bindings;
 using HospitalityOS.Contracts.Events.Properties;
 using HospitalityOS.Eventing;
@@ -25,8 +26,9 @@ public static class DependencyInjection
     public const int DefaultMaxToolRounds = ToolLoopRegistration.DefaultMaxToolRounds;
 
     /// <summary>
-    /// Registers <see cref="IToolLoop"/>, <see cref="ITypedExtractor"/>, and <see cref="IGroundedAnswerer"/> (scoped), with
-    /// startup validation of the declared tool loops and grounded tasks.
+    /// Registers <see cref="IToolLoop"/>, <see cref="ITypedExtractor"/>, <see cref="IGroundedAnswerer"/>, and the AI trace
+    /// recorder and reader (<see cref="IAITraceRecorder"/>, <see cref="IAITraceReader"/>; scoped), with startup validation of
+    /// the declared tool loops, grounded tasks, and trace redaction. The host binds <see cref="AITraceRedactionOptions"/>.
     /// </summary>
     public static IServiceCollection AddAi(this IServiceCollection services)
     {
@@ -34,10 +36,16 @@ public static class DependencyInjection
         services.TryAddScoped<IToolLoop, ToolLoop>();
         services.TryAddScoped<ITypedExtractor, TypedExtractor>();
         services.TryAddScoped<IGroundedAnswerer, GroundedAnswerer>();
+        services.TryAddScoped<AITraceRecorder>();
+        services.TryAddScoped<IAITraceRecorder>(provider => provider.GetRequiredService<AITraceRecorder>());
+        services.TryAddScoped<IAITraceReader, AITraceReader>();
+        services.TryAddSingleton(TimeProvider.System);
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<ToolLoopStartupCheck>, ToolLoopStartupValidator>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<GroundingStartupCheck>, GroundingStartupValidator>());
         services.AddOptions<ToolLoopStartupCheck>().ValidateOnStart();
         services.AddOptions<GroundingStartupCheck>().ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<AITraceRedactionOptions>, AITraceRedactionValidator>());
+        services.AddOptions<AITraceRedactionOptions>();
 
         return services;
     }

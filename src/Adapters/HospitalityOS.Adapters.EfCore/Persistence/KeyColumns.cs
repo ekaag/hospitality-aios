@@ -1,3 +1,5 @@
+using System.Globalization;
+using HospitalityOS.Domain.Capabilities.AITraces;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Hours;
@@ -21,6 +23,12 @@ internal static class KeyColumns
     public const string HoursSubjectKey = "SubjectKey";
     public const string SourceMessageId = "SourceMessageId";
     public const string SucceededIdempotencyKey = "SucceededIdempotencyKey";
+    public const string RecencyKey = "RecencyKey";
+
+    /// <summary>
+    /// Length of <see cref="RecencyKey"/>: completion time in UTC ticks (19 digits), a colon, and the ID (32 hex digits).
+    /// </summary>
+    public const int RecencyKeyLength = 52;
 
     private static readonly Dictionary<Type, (string Column, Func<object, object?> Value)[]> byType = new()
     {
@@ -29,6 +37,7 @@ internal static class KeyColumns
         [typeof(OperatingHours)] = [(HoursSubjectKey, hours => Subject(((OperatingHours)hours).Subject))],
         [typeof(ServiceRequest)] = [(SourceMessageId, request => ((ServiceRequest)request).Origin.SourceMessageId?.Value)],
         [typeof(CapabilityInvocation)] = [(SucceededIdempotencyKey, invocation => SucceededIdempotency((CapabilityInvocation)invocation))],
+        [typeof(AITrace)] = [(RecencyKey, trace => Recency((AITrace)trace))],
     };
 
     public static string UnitNumber(string unitNumber) => unitNumber.Trim().ToUpperInvariant();
@@ -41,6 +50,14 @@ internal static class KeyColumns
     /// A capability name cannot contain a colon, so the pair is unambiguous.
     /// </summary>
     public static string SucceededIdempotency(string capabilityName, string idempotencyKey) => $"{capabilityName}:{idempotencyKey}";
+
+    /// <summary>
+    /// Orders traces by completion time, then ID, as one ordinal string, so newest-first paging is a single comparison.
+    /// </summary>
+    public static string Recency(DateTimeOffset completedAt, AITraceId id) =>
+        string.Create(CultureInfo.InvariantCulture, $"{completedAt.UtcTicks:D19}:{id.Value:N}");
+
+    private static string Recency(AITrace trace) => Recency(trace.CompletedAt, trace.Id);
 
     /// <summary>
     /// Set only on succeeded invocations with a key, so a failed attempt never blocks a retry with the same key.
