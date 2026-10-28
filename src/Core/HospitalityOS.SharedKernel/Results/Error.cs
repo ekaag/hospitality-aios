@@ -29,6 +29,11 @@ public record Error(string Code, string Message, ErrorKind Kind)
     public static Error Forbidden(string code, string message) => new(code, message, ErrorKind.Forbidden);
 
     /// <summary>
+    /// Creates an <see cref="ErrorKind.Unavailable"/> error.
+    /// </summary>
+    public static Error Unavailable(string code, string message) => new(code, message, ErrorKind.Unavailable);
+
+    /// <summary>
     /// Creates a <see cref="ErrorKind.Validation"/> error for a single field.
     /// </summary>
     public static ValidationError Validation(string field, string code, string message) =>

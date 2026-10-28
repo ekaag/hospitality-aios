@@ -42,6 +42,8 @@ builder.Services.AddBindings(builder.Configuration);
 builder.Services.AddLocalAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();
+// Inference tasks are declared by the modules that run them (from G4 on) and routed by the Inference section.
+builder.Services.AddInference(builder.Configuration);
 builder.Services.AddConfiguredPersistence(builder.Configuration);
 // The tenant is set per scope: from the caller's token for requests, from the envelope when handling events.
 builder.Services.AddScoped<TenantContext>();
@@ -60,7 +62,7 @@ builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(opti
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<MalformedRequestHandler>();
-builder.Services.AddHealthChecks().AddBindingHealthChecks();
+builder.Services.AddHealthChecks().AddBindingHealthChecks().AddInferenceHealthChecks();
 builder.Services.AddStaffAuthentication();
 
 WebApplication app = builder.Build();

@@ -32,6 +32,7 @@ internal static class ErrorResults
             ErrorKind.Conflict => StatusCodes.Status409Conflict,
             ErrorKind.InvalidState => StatusCodes.Status422UnprocessableEntity,
             ErrorKind.Forbidden => StatusCodes.Status403Forbidden,
+            ErrorKind.Unavailable => StatusCodes.Status503ServiceUnavailable,
             _ => StatusCodes.Status400BadRequest,
         };
 

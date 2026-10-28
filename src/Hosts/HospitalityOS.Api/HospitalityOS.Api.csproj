@@ -18,4 +18,8 @@
     <ProjectReference Include="../../Adapters/HospitalityOS.Integrations.Mock/HospitalityOS.Integrations.Mock.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="HospitalityOS.IntegrationTests" />
+  </ItemGroup>
+
 </Project>

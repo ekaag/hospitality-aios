@@ -29,4 +29,10 @@ public enum ErrorKind
     /// The caller is not allowed to do this (HTTP 403).
     /// </summary>
     Forbidden,
+
+    /// <summary>
+    /// A dependency the operation needs cannot serve it now, e.g. every model provider bound to an inference task
+    /// failed; retrying later may succeed (HTTP 503).
+    /// </summary>
+    Unavailable,
 }
