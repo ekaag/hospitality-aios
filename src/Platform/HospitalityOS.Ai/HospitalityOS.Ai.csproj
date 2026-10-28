@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/HospitalityOS.SharedKernel/HospitalityOS.SharedKernel.csproj" />
+    <ProjectReference Include="../../Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
+    <ProjectReference Include="../../Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
+    <ProjectReference Include="../HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
+    <ProjectReference Include="../HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HospitalityOS.UnitTests" />
+  </ItemGroup>
+
+</Project>

@@ -89,7 +89,7 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
         {
             foreach (JsonProperty property in properties.EnumerateObject())
             {
-                output[property.Name] = (property.Value.TryGetProperty("type", out JsonElement type) ? type.GetString() : null) switch
+                output[property.Name] = TypeOf(property.Value) switch
                 {
                     "integer" or "number" => FirstNumber(request.Input),
                     "boolean" => false,
@@ -214,6 +214,12 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
     }
 
     private static bool Contains(string text, string fragment) => text.Contains(fragment, StringComparison.OrdinalIgnoreCase);
+
+    // A schema's "type" is a name, or for a nullable member an array of names such as ["string", "null"].
+    private static string? TypeOf(JsonElement schema) =>
+        !schema.TryGetProperty("type", out JsonElement type) ? null
+        : type.ValueKind is JsonValueKind.Array ? type.EnumerateArray().Select(name => name.GetString()).FirstOrDefault(name => name != "null")
+        : type.GetString();
 
     private static HashSet<string> Words(string text) =>
         [.. text.ToLowerInvariant()

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using HospitalityOS.Contracts.Capabilities;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.SharedKernel.Collections;
 
 namespace HospitalityOS.Capabilities.Definitions;
@@ -138,8 +139,8 @@ public sealed partial class CapabilityDefinition
 
         Type inputType = signatures[0].GetGenericArguments()[0];
         Type outputType = signatures[0].GetGenericArguments()[1];
-        JsonElement inputSchema = CapabilitySchemas.For(inputType);
-        JsonElement outputSchema = CapabilitySchemas.For(outputType);
+        JsonElement inputSchema = ContractSchemas.For(inputType);
+        JsonElement outputSchema = ContractSchemas.For(outputType);
 
         List<string> problems = [.. Check(descriptor)];
         problems.AddRange(CheckIsObject("input", inputType, inputSchema));

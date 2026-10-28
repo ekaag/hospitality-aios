@@ -112,6 +112,17 @@ public sealed class FakeModelTests : IDisposable
             factory.ValidateSettings(Settings(("Script", "broken"))));
     }
 
+    [Fact]
+    public async Task Extract_ByDefault_FillsNullableMembers_WhoseSchemaTypeIsAList()
+    {
+        IStructuredExtractor model = Create<IStructuredExtractor>();
+        JsonElement schema = JsonDocument.Parse("""{"type":"object","properties":{"room":{"type":["string","null"]},"quantity":{"type":["integer","null"]}}}""").RootElement.Clone();
+
+        Extraction extraction = await model.ExtractAsync(new ExtractionRequest("Extract.", "Two pillows to room 412", "pillows", schema), fake, Cancellation);
+
+        Assert.Equal("""{"room":"Two pillows to room 412","quantity":2}""", extraction.Output.GetRawText());
+    }
+
     private TPort Create<TPort>(params (string Key, string Value)[] settings)
         where TPort : class => Factory<TPort>().Create(services, Settings(settings));
 

@@ -5,6 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../Platform/HospitalityOS.Ai/HospitalityOS.Ai.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />

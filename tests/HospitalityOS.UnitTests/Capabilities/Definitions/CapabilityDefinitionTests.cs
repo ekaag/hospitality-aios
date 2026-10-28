@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Contracts.Capabilities;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Pricing;
@@ -111,7 +112,7 @@ public sealed class CapabilityDefinitionTests
             new PropertyId(Guid.CreateVersion7()), "towel", 2, null, null, ValueList.From(["extra"]), RequestUrgency.Soon, null, new Money(5m, "USD"));
         CapabilityDefinition definition = CapabilityDefinition.For<RequestItemCapability>();
 
-        JsonElement written = JsonSerializer.SerializeToElement(input, CapabilityJson.Options);
+        JsonElement written = JsonSerializer.SerializeToElement(input, ContractJson.Strict);
 
         Assert.Equal(
             definition.InputSchema.GetProperty("properties").EnumerateObject().Select(property => property.Name),
@@ -124,7 +125,7 @@ public sealed class CapabilityDefinitionTests
     [InlineData("""{ "requestId": null, "route": [] }""")]
     public void WireFormat_RejectsWhatTheSchemaForbids(string json)
     {
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RequestItemOutput>(json, CapabilityJson.Options));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RequestItemOutput>(json, ContractJson.Strict));
     }
 
     [Fact]
@@ -135,7 +136,7 @@ public sealed class CapabilityDefinitionTests
               "tags": [], "urgency": "Now", "wantedBy": null, "budget": null }
             """;
 
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RequestItemInput>(json, CapabilityJson.Options));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<RequestItemInput>(json, ContractJson.Strict));
     }
 
     [Theory]

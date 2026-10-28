@@ -6,15 +6,15 @@ using System.Text.Json.Schema;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
 
-namespace HospitalityOS.Capabilities.Definitions;
+namespace HospitalityOS.Contracts.Serialization;
 
 /// <summary>
-/// Generates a type's JSON Schema from <see cref="CapabilityJson.Options"/>, so the schema always describes what the
-/// serializer reads and writes. The exporter cannot see inside custom converters, so typed IDs (UUID strings) and
-/// <see cref="ValueList{T}"/> (arrays) are described here; <see cref="DescriptionAttribute"/> on members and types
-/// becomes <c>description</c>, which agents read.
+/// Generates a type's JSON Schema from <see cref="ContractJson.Strict"/>, so the schema always describes what the
+/// serializer reads and writes: capability inputs and outputs, and the shapes models are asked to produce. The exporter
+/// cannot see inside custom converters, so typed IDs (UUID strings) and <see cref="ValueList{T}"/> (arrays) are
+/// described here; <see cref="DescriptionAttribute"/> on members and types becomes <c>description</c>, which models read.
 /// </summary>
-internal static class CapabilitySchemas
+public static class ContractSchemas
 {
     private static readonly JsonSchemaExporterOptions exporterOptions = new()
     {
@@ -22,9 +22,18 @@ internal static class CapabilitySchemas
         TransformSchemaNode = Transform,
     };
 
-    public static JsonElement For(Type type) => JsonSerializer.SerializeToElement(Node(type));
+    /// <summary>
+    /// The JSON Schema of <paramref name="type"/>: required and nullable members, enum names, IDs as UUID strings, and
+    /// (for objects) no members beyond those declared.
+    /// </summary>
+    public static JsonElement For(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
 
-    private static JsonNode Node(Type type) => CapabilityJson.Options.GetJsonSchemaAsNode(type, exporterOptions);
+        return JsonSerializer.SerializeToElement(Node(type));
+    }
+
+    private static JsonNode Node(Type type) => ContractJson.Strict.GetJsonSchemaAsNode(type, exporterOptions);
 
     private static JsonNode Transform(JsonSchemaExporterContext context, JsonNode schema)
     {

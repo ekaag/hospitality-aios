@@ -31,6 +31,7 @@
     <Project Path="src/Hosts/HospitalityOS.Api/HospitalityOS.Api.csproj" />
   </Folder>
   <Folder Name="/src/Platform/">
+    <Project Path="src/Platform/HospitalityOS.Ai/HospitalityOS.Ai.csproj" />
     <Project Path="src/Platform/HospitalityOS.Application/HospitalityOS.Application.csproj" />
     <Project Path="src/Platform/HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
     <Project Path="src/Platform/HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />

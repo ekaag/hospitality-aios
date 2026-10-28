@@ -6,6 +6,7 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Registry;
 using HospitalityOS.Contracts.Capabilities;
+using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Ports.Auditing;
 using HospitalityOS.Ports.Bindings;
@@ -86,8 +87,8 @@ internal sealed class CapabilityExecutor(
                 throw new JsonException("No input was given.");
             }
 
-            input = request.Input.Deserialize(definition.InputType, CapabilityJson.Options) ?? throw new JsonException("The input is null.");
-            canonicalInput = JsonSerializer.Serialize(input, definition.InputType, CapabilityJson.Options);
+            input = request.Input.Deserialize(definition.InputType, ContractJson.Strict) ?? throw new JsonException("The input is null.");
+            canonicalInput = JsonSerializer.Serialize(input, definition.InputType, ContractJson.Strict);
         }
         catch (JsonException exception)
         {
@@ -241,7 +242,7 @@ internal sealed class CapabilityExecutor(
 
             try
             {
-                output = JsonSerializer.Serialize(result.Value ?? throw new JsonException("The output is null."), definition.OutputType, CapabilityJson.Options);
+                output = JsonSerializer.Serialize(result.Value ?? throw new JsonException("The output is null."), definition.OutputType, ContractJson.Strict);
             }
             catch (JsonException exception)
             {

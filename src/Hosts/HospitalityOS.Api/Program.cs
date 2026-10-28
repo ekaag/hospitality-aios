@@ -1,5 +1,6 @@
 using HospitalityOS.Adapters.Anthropic;
 using HospitalityOS.Adapters.Local;
+using HospitalityOS.Ai;
 using HospitalityOS.Api.Amenities;
 using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
@@ -53,6 +54,7 @@ builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredServi
 builder.Services.AddEventing(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddCapabilities().AddBuiltInCapabilities();
+builder.Services.AddAi();
 // Providers available to every property; each property's integration configuration selects one per connector.
 builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();

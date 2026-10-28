@@ -20,6 +20,13 @@ public static class ContractJson
     public static JsonSerializerOptions Options { get; } = CreateReadOnly();
 
     /// <summary>
+    /// The wire format, also rejecting members a type does not declare: for capability inputs and outputs and for
+    /// structured model output, so a model's misspelled or invented member is refused rather than silently ignored.
+    /// Schemas from <see cref="ContractSchemas"/> follow from these options (<c>additionalProperties: false</c>).
+    /// </summary>
+    public static JsonSerializerOptions Strict { get; } = CreateStrict();
+
+    /// <summary>
     /// Applies the wire format to <paramref name="options"/>, e.g. a host's HTTP JSON options. Call before the options
     /// are first used.
     /// </summary>
@@ -41,6 +48,14 @@ public static class ContractJson
     {
         JsonSerializerOptions options = new(JsonSerializerDefaults.Web);
         Configure(options);
+        options.MakeReadOnly(populateMissingResolver: true);
+
+        return options;
+    }
+
+    private static JsonSerializerOptions CreateStrict()
+    {
+        JsonSerializerOptions options = new(Options) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         options.MakeReadOnly(populateMissingResolver: true);
 
         return options;
