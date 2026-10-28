@@ -536,8 +536,11 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
             TestData.AITrace(TestData.TenantA, 3, at.AddSeconds(1)),
             TestData.AITrace(TestData.TenantA, 4, at.AddSeconds(1)),
             TestData.AITrace(TestData.TenantA, 5, at.AddSeconds(2)),
+
+            // The highest ID but the earliest completion: time decides, not the ID.
+            TestData.AITrace(TestData.TenantA, 6, at.AddSeconds(-1)),
         ];
-        await SaveAsync([.. traces, TestData.AITrace(TestData.TenantB, 6, at.AddSeconds(3))]);
+        await SaveAsync([.. traces, TestData.AITrace(TestData.TenantB, 7, at.AddSeconds(3))]);
         await using PersistenceSession session = OpenSession();
         IAITraceRepository repository = session.Get<IAITraceRepository>();
         List<AITraceId> read = [];
@@ -550,7 +553,7 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
             after = found.Count == 0 ? after : new AITraceCursor(found[^1].CompletedAt, found[^1].Id);
         }
 
-        Assert.Equal([traces[4].Id, traces[3].Id, traces[2].Id, traces[1].Id, traces[0].Id], read);
+        Assert.Equal([traces[4].Id, traces[3].Id, traces[2].Id, traces[1].Id, traces[0].Id, traces[5].Id], read);
     }
 
     [Fact]
