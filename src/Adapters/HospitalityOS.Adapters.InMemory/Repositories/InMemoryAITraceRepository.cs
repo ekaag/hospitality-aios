@@ -22,7 +22,7 @@ internal sealed class InMemoryAITraceRepository(InMemoryStore store, InMemoryUni
                 .Where(trace => query.CompletedFrom is not { } from || trace.CompletedAt >= from)
                 .Where(trace => query.CompletedBefore is not { } before || trace.CompletedAt < before)
                 .OrderByDescending(trace => trace.CompletedAt)
-                .ThenByDescending(trace => trace.Id.Value.ToString("N"), StringComparer.Ordinal)
+                .ThenBy(trace => trace.Id.Value.ToString("N"), StringComparer.Ordinal)
                 .Take(query.Limit),
             cancellationToken);
     }
