@@ -19,4 +19,7 @@ internal sealed class EfServiceRepository(HospitalityDbContext context, EfUnitOf
             service => service.PropertyId == propertyId && EF.Property<string>(service, KeyColumns.ServiceCodeKey) == key,
             cancellationToken);
     }
+
+    public Task<IReadOnlyList<Service>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken) =>
+        QueryAsync(aggregates => aggregates.Where(service => service.PropertyId == propertyId), cancellationToken);
 }

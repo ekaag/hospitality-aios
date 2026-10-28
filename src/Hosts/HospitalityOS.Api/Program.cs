@@ -3,13 +3,17 @@ using HospitalityOS.Api.Amenities;
 using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
 using HospitalityOS.Api.Content;
+using HospitalityOS.Api.Events;
 using HospitalityOS.Api.Execution;
 using HospitalityOS.Api.Hours;
 using HospitalityOS.Api.Http;
+using HospitalityOS.Api.Menus;
 using HospitalityOS.Api.Organizations;
 using HospitalityOS.Api.Persistence;
 using HospitalityOS.Api.Policies;
 using HospitalityOS.Api.Properties;
+using HospitalityOS.Api.Restaurants;
+using HospitalityOS.Api.Services;
 using HospitalityOS.Api.Spaces;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
@@ -72,6 +76,10 @@ app.MapAmenityEndpoints();
 app.MapOperatingHoursEndpoints();
 app.MapPolicyEndpoints();
 app.MapContentEndpoints();
+app.MapRestaurantEndpoints();
+app.MapMenuEndpoints();
+app.MapPropertyEventEndpoints();
+app.MapServiceEndpoints();
 
 app.Run();
 

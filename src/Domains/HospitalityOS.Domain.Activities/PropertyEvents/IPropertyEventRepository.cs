@@ -21,6 +21,12 @@ public interface IPropertyEventRepository
     Task<IReadOnlyList<PropertyEvent>> ListScheduledEndingAfterAsync(PropertyId propertyId, DateTime localTime, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Every event of the property, past, cancelled, and upcoming, in no particular order. For administration;
+    /// guests are offered events through <see cref="ListScheduledEndingAfterAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<PropertyEvent>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new event, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(PropertyEvent propertyEvent, CancellationToken cancellationToken);

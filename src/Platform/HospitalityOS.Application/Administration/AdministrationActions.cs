@@ -24,4 +24,14 @@ public static class AdministrationActions
     public const string ContentItemUpdate = "ContentItem.Update";
     public const string ContentItemPublish = "ContentItem.Publish";
     public const string ContentItemArchive = "ContentItem.Archive";
+    public const string RestaurantCreate = "Restaurant.Create";
+    public const string RestaurantUpdate = "Restaurant.Update";
+    public const string MenuCreate = "Menu.Create";
+    public const string MenuUpdate = "Menu.Update";
+    public const string MenuSetItemAvailability = "Menu.SetItemAvailability";
+    public const string PropertyEventCreate = "PropertyEvent.Create";
+    public const string PropertyEventUpdate = "PropertyEvent.Update";
+    public const string PropertyEventCancel = "PropertyEvent.Cancel";
+    public const string ServiceCreate = "Service.Create";
+    public const string ServiceUpdate = "Service.Update";
 }

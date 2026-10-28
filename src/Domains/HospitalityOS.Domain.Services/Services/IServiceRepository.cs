@@ -20,6 +20,11 @@ public interface IServiceRepository
     Task<Service?> FindByCodeAsync(PropertyId propertyId, string code, CancellationToken cancellationToken);
 
     /// <summary>
+    /// The property's services, in no particular order.
+    /// </summary>
+    Task<IReadOnlyList<Service>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new service, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(Service service, CancellationToken cancellationToken);

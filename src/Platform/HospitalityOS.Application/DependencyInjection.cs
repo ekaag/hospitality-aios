@@ -2,10 +2,14 @@ using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Amenities;
 using HospitalityOS.Application.Auditing;
 using HospitalityOS.Application.Content;
+using HospitalityOS.Application.Events;
 using HospitalityOS.Application.Hours;
+using HospitalityOS.Application.Menus;
 using HospitalityOS.Application.Organizations;
 using HospitalityOS.Application.Policies;
 using HospitalityOS.Application.Properties;
+using HospitalityOS.Application.Restaurants;
+using HospitalityOS.Application.Services;
 using HospitalityOS.Application.Spaces;
 using HospitalityOS.Ports.Execution;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +27,8 @@ public static class DependencyInjection
     /// Registers <see cref="IAuditTrail"/>, the scope's <see cref="OperationContext"/>, and the administration
     /// services (<see cref="IOrganizationAdministration"/>, <see cref="IPropertyAdministration"/>,
     /// <see cref="ISpaceAdministration"/>, <see cref="IAmenityAdministration"/>, <see cref="IOperatingHoursAdministration"/>,
-    /// <see cref="IPolicyAdministration"/>, <see cref="IContentAdministration"/>).
+    /// <see cref="IPolicyAdministration"/>, <see cref="IContentAdministration"/>, <see cref="IRestaurantAdministration"/>,
+    /// <see cref="IMenuAdministration"/>, <see cref="IPropertyEventAdministration"/>, <see cref="IServiceAdministration"/>).
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -39,6 +44,10 @@ public static class DependencyInjection
         services.TryAddScoped<IOperatingHoursAdministration, OperatingHoursAdministration>();
         services.TryAddScoped<IPolicyAdministration, PolicyAdministration>();
         services.TryAddScoped<IContentAdministration, ContentAdministration>();
+        services.TryAddScoped<IRestaurantAdministration, RestaurantAdministration>();
+        services.TryAddScoped<IMenuAdministration, MenuAdministration>();
+        services.TryAddScoped<IPropertyEventAdministration, PropertyEventAdministration>();
+        services.TryAddScoped<IServiceAdministration, ServiceAdministration>();
 
         return services;
     }

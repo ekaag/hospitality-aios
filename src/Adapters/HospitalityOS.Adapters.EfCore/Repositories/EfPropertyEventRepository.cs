@@ -10,4 +10,7 @@ internal sealed class EfPropertyEventRepository(HospitalityDbContext context, Ef
 {
     public Task<IReadOnlyList<PropertyEvent>> ListScheduledEndingAfterAsync(PropertyId propertyId, DateTime localTime, CancellationToken cancellationToken) =>
         QueryAsync(aggregates => aggregates.Where(propertyEvent => propertyEvent.PropertyId == propertyId && propertyEvent.Status == PropertyEventStatus.Scheduled && propertyEvent.Details.LocalEnd > localTime), cancellationToken);
+
+    public Task<IReadOnlyList<PropertyEvent>> ListForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken) =>
+        QueryAsync(aggregates => aggregates.Where(propertyEvent => propertyEvent.PropertyId == propertyId), cancellationToken);
 }

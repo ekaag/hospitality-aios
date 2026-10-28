@@ -64,6 +64,27 @@ internal sealed class PropertyReferences(
     }
 
     /// <summary>
+    /// The location a request names for a record that holds only a space's ID (restaurants, events), so the domain cannot
+    /// check it: a space missing or in another property is recorded as <paramref name="code"/>.
+    /// </summary>
+    public async Task<SpaceId?> LocationAsync(PropertyId propertyId, SpaceId? id, string field, string code, RequestFields fields, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+
+        if (id is not { } spaceId)
+        {
+            return null;
+        }
+
+        if (!InProperty(await spaces.GetByIdAsync(spaceId, cancellationToken).ConfigureAwait(false), propertyId))
+        {
+            fields.Add(field, code, "There is no such space in this property.");
+        }
+
+        return spaceId;
+    }
+
+    /// <summary>
     /// The subject a request names, or <c>null</c> when it names none. A missing kind is recorded as
     /// <c>{codePrefix}_kind_required</c> and a subject that is not in the property as <c>{codePrefix}_not_found</c>; a
     /// missing ID is left for the domain to report.

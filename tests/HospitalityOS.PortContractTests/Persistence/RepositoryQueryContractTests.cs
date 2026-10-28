@@ -335,6 +335,33 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
     }
 
     [Fact]
+    public async Task ListPropertyEventsForProperty_ReturnsPastAndCancelledEventsOfThatPropertyInTheTenant()
+    {
+        PropertyEvent past = TestData.PropertyEvent(TestData.TenantA, 1, localStart: new DateTime(2020, 1, 1, 19, 0, 0));
+        PropertyEvent cancelled = TestData.PropertyEvent(TestData.TenantA, 2);
+        Assert.True(cancelled.Cancel(TestData.Now).IsSuccess);
+        PropertyEvent[] mine = [past, cancelled, TestData.PropertyEvent(TestData.TenantA, 3)];
+        await SaveAsync([.. mine, TestData.PropertyEvent(TestData.TenantA, 4, TestData.OtherPropertyId), TestData.PropertyEvent(TestData.TenantB, 5)]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<PropertyEvent> found = await session.Get<IPropertyEventRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds(mine.Select(e => e.Id), found.Select(e => e.Id));
+    }
+
+    [Fact]
+    public async Task ListServicesForProperty_ReturnsThatPropertysServicesInTheTenant()
+    {
+        Service[] mine = [TestData.Service(TestData.TenantA, 1, "a.one"), TestData.Service(TestData.TenantA, 2, "a.two")];
+        await SaveAsync([.. mine, TestData.Service(TestData.TenantA, 3, "a.three", TestData.OtherPropertyId), TestData.Service(TestData.TenantB, 4, "b.four")]);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<Service> found = await session.Get<IServiceRepository>().ListForPropertyAsync(TestData.PropertyId, Cancellation);
+
+        AssertSameIds(mine.Select(s => s.Id), found.Select(s => s.Id));
+    }
+
+    [Fact]
     public async Task ListMenus_ByRestaurantAndByProperty_ReturnOnlyMatchingMenusInTheTenant()
     {
         Restaurant saffron = TestData.Restaurant(TestData.TenantA, 1);

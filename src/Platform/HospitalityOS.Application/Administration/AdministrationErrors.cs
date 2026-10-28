@@ -54,6 +54,26 @@ public static class AdministrationErrors
     public static Error ContentItemNotFound { get; } = Error.NotFound("content.not_found", "There is no such content item.");
 
     /// <summary>
+    /// The restaurant does not exist in the caller's tenant.
+    /// </summary>
+    public static Error RestaurantNotFound { get; } = Error.NotFound("restaurant.not_found", "There is no such restaurant.");
+
+    /// <summary>
+    /// The menu does not exist in the caller's tenant.
+    /// </summary>
+    public static Error MenuNotFound { get; } = Error.NotFound("menu.not_found", "There is no such menu.");
+
+    /// <summary>
+    /// The event does not exist in the caller's tenant.
+    /// </summary>
+    public static Error PropertyEventNotFound { get; } = Error.NotFound("property_event.not_found", "There is no such event.");
+
+    /// <summary>
+    /// The service does not exist in the caller's tenant.
+    /// </summary>
+    public static Error ServiceNotFound { get; } = Error.NotFound("service.not_found", "There is no such service.");
+
+    /// <summary>
     /// The caller changed a version it no longer has: someone else changed the record since it was read.
     /// </summary>
     public static Error VersionMismatch(long expected, long actual) =>
