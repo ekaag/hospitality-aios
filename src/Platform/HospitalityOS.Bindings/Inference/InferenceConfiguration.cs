@@ -6,7 +6,8 @@ namespace HospitalityOS.Bindings.Inference;
 
 /// <summary>
 /// The <c>Inference</c> configuration section (implementation plan §2.2): named providers (an adapter and its settings),
-/// each task's route (provider, model, parameters, fallbacks), and per-tenant task overrides. Read once; problems are
+/// each task's route (provider, model, parameters, fallbacks, and optionally a pinned prompt version), and per-tenant
+/// task overrides. Read once; problems are
 /// collected in <see cref="Errors"/> for startup validation instead of thrown.
 /// </summary>
 /// <example>
@@ -14,7 +15,8 @@ namespace HospitalityOS.Bindings.Inference;
 /// "Inference": {
 ///   "Providers": { "anthropic": { "Adapter": "Anthropic", "Settings": { "ApiKeySecret": "anthropic-api-key" } } },
 ///   "Tasks": { "concierge.answer": { "Provider": "anthropic", "Model": "claude-sonnet-5-5",
-///                                    "Parameters": { "Effort": "Medium" }, "Fallback": [ "fake:scripted" ] } },
+///                                    "Parameters": { "Effort": "Medium" }, "Fallback": [ "fake:scripted" ],
+///                                    "PromptVersion": 2 } },
 ///   "Tenants": { "&lt;tenant id&gt;": { "Tasks": { "concierge.answer": { "Provider": "...", "Model": "..." } } } }
 /// }
 /// </code>
@@ -31,6 +33,7 @@ internal sealed class InferenceConfiguration
     public const string ModelKey = "Model";
     public const string ParametersKey = "Parameters";
     public const string FallbackKey = "Fallback";
+    public const string PromptVersionKey = "PromptVersion";
 
     private readonly List<string> errors = [];
 
@@ -124,7 +127,30 @@ internal sealed class InferenceConfiguration
             fallbacks.Add(new RouteTarget(parts[0], parts[1]));
         }
 
-        return new TaskRoute(task.Key, task.Path, new RouteTarget(provider.Trim(), model.Trim()), ReadParameters(task.GetSection(ParametersKey)), fallbacks);
+        return new TaskRoute(
+            task.Key,
+            task.Path,
+            new RouteTarget(provider.Trim(), model.Trim()),
+            ReadParameters(task.GetSection(ParametersKey)),
+            fallbacks,
+            ReadPromptVersion(task.GetSection(PromptVersionKey)));
+    }
+
+    private int? ReadPromptVersion(IConfigurationSection section)
+    {
+        if (section.Value is null)
+        {
+            return null;
+        }
+
+        if (int.TryParse(section.Value, NumberStyles.None, CultureInfo.InvariantCulture, out int version) && version >= 1)
+        {
+            return version;
+        }
+
+        errors.Add($"'{section.Path}' must be a prompt version number of at least 1, not '{section.Value}'.");
+
+        return null;
     }
 
     private InferenceParameters ReadParameters(IConfigurationSection section)

@@ -19,15 +19,22 @@ internal sealed record InferenceProvider(string Name, string Path, string Adapte
 internal sealed record RouteTarget(string Provider, string Model);
 
 /// <summary>
-/// Where a task runs: the primary target, then each fallback in order, all with the task's parameters.
+/// Where a task runs: the primary target, then each fallback in order, all with the task's parameters and prompt version
+/// (<paramref name="PromptVersion"/>, or the prompt's latest when <c>null</c>).
 /// </summary>
-internal sealed record TaskRoute(string Task, string Path, RouteTarget Primary, InferenceParameters Parameters, IReadOnlyList<RouteTarget> Fallbacks)
+internal sealed record TaskRoute(
+    string Task,
+    string Path,
+    RouteTarget Primary,
+    InferenceParameters Parameters,
+    IReadOnlyList<RouteTarget> Fallbacks,
+    int? PromptVersion = null)
 {
     public IEnumerable<RouteTarget> Targets => [Primary, .. Fallbacks];
 }
 
 /// <summary>
 /// A task the code uses, declared with <c>AddInferenceTask&lt;TPort&gt;</c>, so startup can check it is bound to providers
-/// that serve <paramref name="Port"/>.
+/// that serve <paramref name="Port"/> and that its <paramref name="Prompt"/> exists.
 /// </summary>
-internal sealed record InferenceTaskRegistration(string Name, Type Port);
+internal sealed record InferenceTaskRegistration(string Name, Type Port, string? Prompt = null);

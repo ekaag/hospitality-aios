@@ -1,3 +1,4 @@
+using HospitalityOS.Bindings;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Results;
@@ -16,6 +17,7 @@ public sealed class InferenceRouterTests
     private static readonly ChatRequest question = new("You are a concierge.", [ChatMessage.User("When does the pool close?")]);
     private static readonly string[] toSecondary = ["secondary:backup-model"];
     private static readonly string[] toSecondaryThenTertiary = ["secondary:backup-model", "tertiary:last-resort"];
+    private static readonly Dictionary<string, string> auroraGrandValues = new() { ["property"] = "Aurora Grand" };
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
@@ -65,9 +67,9 @@ public sealed class InferenceRouterTests
         Assert.Equal("tertiary:last-resort", outcome.Value.Message.Text);
         Assert.Equal(
             [
-                new InferenceAttempt(Answer, "primary", "big-model", TimeSpan.FromSeconds(2), "primary is overloaded"),
-                new InferenceAttempt(Answer, "secondary", "backup-model", TimeSpan.Zero, "secondary is overloaded"),
-                new InferenceAttempt(Answer, "tertiary", "last-resort", TimeSpan.FromMilliseconds(300)),
+                new InferenceAttempt(Answer, "primary", "big-model", null, TimeSpan.FromSeconds(2), "primary is overloaded"),
+                new InferenceAttempt(Answer, "secondary", "backup-model", null, TimeSpan.Zero, "secondary is overloaded"),
+                new InferenceAttempt(Answer, "tertiary", "last-resort", null, TimeSpan.FromMilliseconds(300)),
             ],
             outcome.Attempts);
     }
@@ -111,7 +113,7 @@ public sealed class InferenceRouterTests
         await using AsyncServiceScope scope = services.CreateAsyncScope();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => scope.ServiceProvider.GetRequiredService<IInferenceRouter>()
-            .RunAsync<IChatModel, ChatCompletion>(Answer, (chat, model, token) => chat.CompleteAsync(question, model, token), cancelled.Token));
+            .RunAsync<IChatModel, ChatCompletion>(Answer, (chat, model, _, token) => chat.CompleteAsync(question, model, token), cancelled.Token));
 
         Assert.Empty(services.GetRequiredService<ModelCalls>().Calls);
     }
@@ -124,9 +126,9 @@ public sealed class InferenceRouterTests
         IInferenceRouter router = scope.ServiceProvider.GetRequiredService<IInferenceRouter>();
 
         InvalidOperationException undeclared = await Assert.ThrowsAsync<InvalidOperationException>(() => router.RunAsync<IChatModel, ChatCompletion>(
-            "concierge.improvise", (chat, model, token) => chat.CompleteAsync(question, model, token), Cancellation));
+            "concierge.improvise", (chat, model, _, token) => chat.CompleteAsync(question, model, token), Cancellation));
         InvalidOperationException wrongPort = await Assert.ThrowsAsync<InvalidOperationException>(() => router.RunAsync<IChatModel, ChatCompletion>(
-            Classify, (chat, model, token) => chat.CompleteAsync(question, model, token), Cancellation));
+            Classify, (chat, model, _, token) => chat.CompleteAsync(question, model, token), Cancellation));
 
         Assert.Contains("is not declared", undeclared.Message, StringComparison.Ordinal);
         Assert.Contains("is declared for IClassifier, not IChatModel", wrongPort.Message, StringComparison.Ordinal);
@@ -142,11 +144,77 @@ public sealed class InferenceRouterTests
         await using (AsyncServiceScope scope = services.CreateAsyncScope())
         {
             Result<InferenceOutcome<Classification>> classified = await scope.ServiceProvider.GetRequiredService<IInferenceRouter>().RunAsync<IClassifier, Classification>(
-                Classify, (classifier, model, token) => classifier.ClassifyAsync(new ClassificationRequest("Route it.", "Towels please", ["request", "question"]), model, token), Cancellation);
+                Classify, (classifier, model, _, token) => classifier.ClassifyAsync(new ClassificationRequest("Route it.", "Towels please", ["request", "question"]), model, token), Cancellation);
             Assert.Equal("request", classified.Value.Value.Label);
         }
 
         Assert.Equal(["primary/IChatModel", "primary/IClassifier"], services.GetRequiredService<ModelCalls>().Created.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task Run_GivesEveryAttemptTheTasksLatestPrompt_AndRecordsItsVersionOnEach()
+    {
+        using ServiceProvider services = Build(
+            Settings(Provider("primary", "Test", ("Behavior", "unavailable")), Provider("secondary"), Route(Answer, "primary", "big-model", toSecondary)),
+            WithPrompt);
+
+        (InferenceOutcome<ChatCompletion> outcome, List<string> given) = await AnswerWithPromptAsync(services, null);
+
+        Assert.Equal(["You are the concierge at Aurora Grand.\nAnswer the guest briefly, using only what the tools return, and name your source.\n", given[0]], given);
+        Assert.Equal(["test.concierge@2", "test.concierge@2"], outcome.Attempts.Select(attempt => attempt.Prompt?.ToString()));
+        Assert.Equal(services.GetRequiredService<IPromptRegistry>().Find("test.concierge", 2)!.Version, outcome.ServedBy.Prompt);
+    }
+
+    [Theory]
+    [InlineData(null, "test.concierge@1")]
+    [InlineData("bb000000-0000-4000-8000-000000000001", "test.concierge@1")]
+    [InlineData("aa000000-0000-4000-8000-000000000001", "test.concierge@2")]
+    public async Task Run_UsesThePromptVersionTheRoutePins_ElseTheLatest(string? tenant, string expected)
+    {
+        using ServiceProvider services = Build(
+            Settings(
+                Provider("primary"),
+                Route(Answer, "primary", "big-model"),
+                [new("Inference:Tasks:concierge.answer:PromptVersion", "1")],
+                Route(Answer, "primary", "tenant-model", tenant: auroraGrand.Value.ToString())),
+            WithPrompt);
+
+        (InferenceOutcome<ChatCompletion> outcome, List<string> given) = await AnswerWithPromptAsync(services, tenant is null ? null : new TenantId(Guid.Parse(tenant)));
+
+        Assert.Equal(expected, outcome.ServedBy.Prompt?.ToString());
+        Assert.Equal(services.GetRequiredService<IPromptRegistry>().Find("test.concierge", outcome.ServedBy.Prompt!.Number)!.Render(auroraGrandValues), Assert.Single(given));
+    }
+
+    // concierge.answer declared with the test assembly's prompt test.concierge (v1 and v2).
+    private static void WithPrompt(IServiceCollection services)
+    {
+        services.AddPrompts(typeof(InferenceRouterTests).Assembly);
+        services.AddInferenceTask<IChatModel>(Answer, "test.concierge");
+    }
+
+    private static async Task<(InferenceOutcome<ChatCompletion> Outcome, List<string> Given)> AnswerWithPromptAsync(ServiceProvider services, TenantId? tenant)
+    {
+        List<string> given = [];
+        await using AsyncServiceScope scope = services.CreateAsyncScope();
+
+        if (tenant is { } id)
+        {
+            scope.ServiceProvider.GetRequiredService<TenantContext>().Set(id);
+        }
+
+        Result<InferenceOutcome<ChatCompletion>> result = await scope.ServiceProvider.GetRequiredService<IInferenceRouter>().RunAsync<IChatModel, ChatCompletion>(
+            Answer,
+            (chat, model, prompt, token) =>
+            {
+                string system = prompt!.Render(auroraGrandValues);
+                given.Add(system);
+
+                return chat.CompleteAsync(question with { SystemPrompt = system }, model, token);
+            },
+            Cancellation);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+
+        return (result.Value, given);
     }
 
     private static async Task<InferenceOutcome<ChatCompletion>> AnswerAsync(ServiceProvider services, TenantId? tenant = null)
@@ -167,6 +235,6 @@ public sealed class InferenceRouterTests
         }
 
         return await scope.ServiceProvider.GetRequiredService<IInferenceRouter>()
-            .RunAsync<IChatModel, ChatCompletion>(Answer, (chat, model, token) => chat.CompleteAsync(question, model, token), Cancellation);
+            .RunAsync<IChatModel, ChatCompletion>(Answer, (chat, model, _, token) => chat.CompleteAsync(question, model, token), Cancellation);
     }
 }

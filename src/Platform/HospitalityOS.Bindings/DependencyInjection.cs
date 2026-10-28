@@ -1,3 +1,4 @@
+using System.Reflection;
 using HospitalityOS.Bindings.Inference;
 using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Inference;
@@ -65,12 +66,14 @@ public static class DependencyInjection
     /// <see cref="IStructuredExtractor"/>, <see cref="IClassifier"/>, <see cref="IEmbeddingModel"/>, <see cref="IReranker"/>,
     /// <see cref="IEvaluationJudge"/>), with startup validation. Declare each task with
     /// <see cref="AddInferenceTask{TPort}"/>; adapter projects register <see cref="IAdapterFactory{TPort}"/> singletons for
-    /// the ports they serve. The host must register <c>TenantContext</c>.
+    /// the ports they serve. Projects owning tasks with prompts register their assembly with <see cref="AddPrompts"/>.
+    /// The host must register <c>TenantContext</c>.
     /// </summary>
     public static IServiceCollection AddInference(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        AddPromptRegistry(services);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(new InferenceRoot(configuration.GetSection(InferenceConfiguration.SectionName)));
         services.TryAddSingleton<InferenceCatalog>();
@@ -89,15 +92,40 @@ public static class DependencyInjection
 
     /// <summary>
     /// Declares an inference task the code runs through <typeparamref name="TPort"/>, e.g.
-    /// <c>AddInferenceTask&lt;IChatModel&gt;("concierge.answer")</c>. Startup then requires a route for it under
-    /// <c>Inference:Tasks</c> to providers whose adapters serve <typeparamref name="TPort"/>.
+    /// <c>AddInferenceTask&lt;IChatModel&gt;("concierge.answer", prompt: "concierge.answer")</c>. Startup then requires a
+    /// route for it under <c>Inference:Tasks</c> to providers whose adapters serve <typeparamref name="TPort"/>, and that
+    /// <paramref name="prompt"/>, if given, is embedded in an assembly registered with <see cref="AddPrompts"/>.
     /// </summary>
-    public static IServiceCollection AddInferenceTask<TPort>(this IServiceCollection services, string task)
+    /// <param name="services">The service collection.</param>
+    /// <param name="task">The task's name.</param>
+    /// <param name="prompt">The prompt each call is given (its latest version unless a route pins one), or <c>null</c>
+    /// for a task without one, e.g. embeddings.</param>
+    public static IServiceCollection AddInferenceTask<TPort>(this IServiceCollection services, string task, string? prompt = null)
         where TPort : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(task);
 
-        services.AddSingleton(new InferenceTaskRegistration(task, typeof(TPort)));
+        if (prompt is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
+        }
+
+        services.AddSingleton(new InferenceTaskRegistration(task, typeof(TPort), prompt));
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the prompts <paramref name="assembly"/> embeds (<c>Prompts/{name}/v{number}.md</c>, with each version's
+    /// hash in <c>Prompts/prompts.lock.json</c>) in <see cref="IPromptRegistry"/>. Startup fails if a version is unlocked or
+    /// has changed since it was locked; the message gives the line to add for a new version.
+    /// </summary>
+    public static IServiceCollection AddPrompts(this IServiceCollection services, Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+
+        AddPromptRegistry(services);
+        services.AddSingleton(PromptSource.FromAssembly(assembly));
 
         return services;
     }
@@ -108,6 +136,14 @@ public static class DependencyInjection
     public static IHealthChecksBuilder AddInferenceHealthChecks(this IHealthChecksBuilder builder)
     {
         return builder.AddCheck<InferenceHealthCheck>(InferenceHealthCheckName);
+    }
+
+    private static void AddPromptRegistry(IServiceCollection services)
+    {
+        services.TryAddSingleton<PromptRegistry>();
+        services.TryAddSingleton<IPromptRegistry>(provider => provider.GetRequiredService<PromptRegistry>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<PromptStartupCheck>, PromptStartupValidator>());
+        services.AddOptions<PromptStartupCheck>().ValidateOnStart();
     }
 
     private static void AddInferencePort<TPort>(IServiceCollection services)

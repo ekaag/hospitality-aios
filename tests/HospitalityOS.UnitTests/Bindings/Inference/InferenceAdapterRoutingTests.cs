@@ -58,7 +58,7 @@ public sealed class InferenceAdapterRoutingTests
         await using AsyncServiceScope scope = services.CreateAsyncScope();
 
         Result<InferenceOutcome<ChatCompletion>> answered = await scope.ServiceProvider.GetRequiredService<IInferenceRouter>().RunAsync<IChatModel, ChatCompletion>(
-            "concierge.answer", (chat, model, token) => chat.CompleteAsync(new ChatRequest(null, [ChatMessage.User("Hello")]), model, token), Cancellation);
+            "concierge.answer", (chat, model, _, token) => chat.CompleteAsync(new ChatRequest(null, [ChatMessage.User("Hello")]), model, token), Cancellation);
 
         Assert.Equal(["primary", "backup"], answered.Value.Attempts.Select(attempt => attempt.Provider));
         Assert.Equal(("fake-small", "Hello! You said: Hello"), (answered.Value.Value.Model, answered.Value.Value.Message.Text));

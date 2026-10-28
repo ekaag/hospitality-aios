@@ -7,13 +7,14 @@ namespace HospitalityOS.Bindings.Inference;
 
 /// <summary>
 /// Routes inference tasks to providers (P6), falling back in order when a provider is unavailable. The tenant comes from
-/// the scope; with none (e.g. an evaluation run) the task's default route applies.
+/// the scope; with none (e.g. an evaluation run) the task's default route applies. Every attempt gets, and records, the
+/// task's prompt at the route's pinned version or else its latest.
 /// </summary>
-internal sealed class InferenceRouter(InferenceCatalog catalog, TenantContext tenant, TimeProvider timeProvider) : IInferenceRouter
+internal sealed class InferenceRouter(InferenceCatalog catalog, IPromptRegistry prompts, TenantContext tenant, TimeProvider timeProvider) : IInferenceRouter
 {
     public async Task<Result<InferenceOutcome<TResult>>> RunAsync<TPort, TResult>(
         string task,
-        Func<TPort, ModelSelection, CancellationToken, Task<TResult>> call,
+        Func<TPort, ModelSelection, Prompt?, CancellationToken, Task<TResult>> call,
         CancellationToken cancellationToken)
         where TPort : class
     {
@@ -30,6 +31,10 @@ internal sealed class InferenceRouter(InferenceCatalog catalog, TenantContext te
 
         TaskRoute route = catalog.Configuration.Select(registration.Name, tenant.IsSet ? tenant.TenantId.Value.ToString() : null)
             ?? throw new BindingException($"Inference task '{task}' has no route; add '{InferenceConfiguration.SectionName}:{InferenceConfiguration.TasksKey}:{task}'.");
+        Prompt? prompt = registration.Prompt is { } name
+            ? prompts.Find(name, route.PromptVersion)
+                ?? throw new BindingException($"Inference task '{task}' uses prompt '{name}{(route.PromptVersion is { } version ? $"@{version}" : "")}', which does not exist.")
+            : null;
         List<InferenceAttempt> attempts = [];
 
         foreach (RouteTarget target in route.Targets)
@@ -39,14 +44,14 @@ internal sealed class InferenceRouter(InferenceCatalog catalog, TenantContext te
 
             try
             {
-                TResult value = await call(port, new ModelSelection(target.Model, route.Parameters), cancellationToken).ConfigureAwait(false);
-                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, timeProvider.GetElapsedTime(started)));
+                TResult value = await call(port, new ModelSelection(target.Model, route.Parameters), prompt, cancellationToken).ConfigureAwait(false);
+                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, prompt?.Version, timeProvider.GetElapsedTime(started)));
 
                 return new InferenceOutcome<TResult>(value, ValueList.From(attempts));
             }
             catch (InferenceUnavailableException exception)
             {
-                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, timeProvider.GetElapsedTime(started), exception.Message));
+                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, prompt?.Version, timeProvider.GetElapsedTime(started), exception.Message));
             }
         }
 

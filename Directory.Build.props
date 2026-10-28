@@ -14,4 +14,10 @@
     <NoWarn Condition="'$(RequireXmlDocs)' != 'true'">$(NoWarn);CS1591</NoWarn>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
+  <!-- Versioned prompts (P6, slice G3): Prompts/{name}/v{number}.md and the lock file Prompts/prompts.lock.json are
+       embedded under fixed names that HospitalityOS.Bindings' prompt registry reads (AddPrompts). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Prompts/**/*.md" LogicalName="HospitalityOS.Prompts/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Prompts/prompts.lock.json" LogicalName="HospitalityOS.Prompts/prompts.lock.json" Condition="Exists('$(MSBuildProjectDirectory)/Prompts/prompts.lock.json')" />
+  </ItemGroup>
 </Project>

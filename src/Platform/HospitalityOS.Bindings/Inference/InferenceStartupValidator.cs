@@ -1,3 +1,4 @@
+using HospitalityOS.Ports.Inference;
 using Microsoft.Extensions.Options;
 
 namespace HospitalityOS.Bindings.Inference;
@@ -12,9 +13,10 @@ internal sealed class InferenceStartupCheck
 /// <summary>
 /// Fails startup when the <c>Inference</c> section cannot be read; a declared task has no default route, or a route
 /// names an unknown provider or one whose adapter does not serve the task's port; a provider's adapter is unknown or its
-/// settings are invalid; or a route is configured for a task the code does not declare (usually a typo).
+/// settings are invalid; a route is configured for a task the code does not declare (usually a typo); or a task's prompt
+/// does not exist, or a route pins a version of it that does not exist.
 /// </summary>
-internal sealed class InferenceStartupValidator(InferenceCatalog catalog) : IValidateOptions<InferenceStartupCheck>
+internal sealed class InferenceStartupValidator(InferenceCatalog catalog, IPromptRegistry prompts) : IValidateOptions<InferenceStartupCheck>
 {
     public ValidateOptionsResult Validate(string? name, InferenceStartupCheck options)
     {
@@ -32,6 +34,17 @@ internal sealed class InferenceStartupValidator(InferenceCatalog catalog) : IVal
             if (ports.Length > 1)
             {
                 yield return $"Inference task '{declared.Key}' is declared for more than one port: {string.Join(", ", ports.Select(port => port.Name))}.";
+            }
+
+            string?[] declaredPrompts = [.. declared.Select(task => task.Prompt).Distinct(StringComparer.OrdinalIgnoreCase)];
+
+            if (declaredPrompts.Length > 1)
+            {
+                yield return $"Inference task '{declared.Key}' is declared with more than one prompt: {string.Join(", ", declaredPrompts.Select(prompt => prompt ?? "(none)"))}.";
+            }
+            else if (declaredPrompts[0] is { } prompt && prompts.Find(prompt) is null)
+            {
+                yield return $"Inference task '{declared.Key}' uses prompt '{prompt}', which is not embedded in any assembly registered with AddPrompts.";
             }
 
             if (catalog.AdaptersFor(ports[0]) is null)
@@ -54,6 +67,18 @@ internal sealed class InferenceStartupValidator(InferenceCatalog catalog) : IVal
             {
                 yield return $"'{route.Path}' routes inference task '{route.Task}', which the code does not declare.";
                 continue;
+            }
+
+            if (route.PromptVersion is { } version)
+            {
+                if (task.Prompt is null)
+                {
+                    yield return $"'{route.Path}:{InferenceConfiguration.PromptVersionKey}' pins a prompt version, but inference task '{route.Task}' declares no prompt.";
+                }
+                else if (prompts.Find(task.Prompt) is { } latest && prompts.Find(task.Prompt, version) is null)
+                {
+                    yield return $"'{route.Path}:{InferenceConfiguration.PromptVersionKey}' pins prompt '{task.Prompt}@{version}', which does not exist (the latest is {latest.Version}).";
+                }
             }
 
             foreach (RouteTarget target in route.Targets)
