@@ -36,6 +36,7 @@
     <Project Path="src/Platform/HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
     <Project Path="src/Platform/HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
     <Project Path="src/Platform/HospitalityOS.Integrations.Native/HospitalityOS.Integrations.Native.csproj" />
+    <Project Path="src/Platform/HospitalityOS.Seeding/HospitalityOS.Seeding.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HospitalityOS.ArchitectureTests/HospitalityOS.ArchitectureTests.csproj" />

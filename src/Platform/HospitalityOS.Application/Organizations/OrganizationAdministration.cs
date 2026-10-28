@@ -2,8 +2,6 @@ using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts.Api.Organizations;
 using HospitalityOS.Domain.Organizations.Organizations;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -14,14 +12,14 @@ internal sealed class OrganizationAdministration(
     IOrganizationRepository organizations,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IOrganizationAdministration
 {
     public async Task<Result<OrganizationResponse>> CreateAsync(CreateOrganizationRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        OrganizationId id = new(idGenerators.Resolve().NewId());
+        OrganizationId id = new(ids.Next());
         Result<Organization> created = Organization.Create(id, currentTenant.TenantId, request.Name!, timeProvider.GetUtcNow());
 
         return await commit.CreateAsync(

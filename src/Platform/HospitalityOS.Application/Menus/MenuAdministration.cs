@@ -4,8 +4,6 @@ using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Menus;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -18,7 +16,7 @@ internal sealed class MenuAdministration(
     IMenuRepository menus,
     IRestaurantRepository restaurants,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IMenuAdministration
 {
     private static readonly Error itemNotFound = Error.NotFound("menu.item_not_found", "The item is not on this menu.");
@@ -34,9 +32,10 @@ internal sealed class MenuAdministration(
             return await commit.RejectAsync(AdministrationActions.MenuCreate, restaurant.Error, null, cancellationToken).ConfigureAwait(false);
         }
 
+        // The menu takes its ID before its items do (see RecordIds).
+        MenuId id = new(ids.Next());
         RequestFields fields = new();
         MenuDetails details = Details(request.Name, request.Description, request.Items, [], fields);
-        MenuId id = new(idGenerators.Resolve().NewId());
         Result<Menu> created = fields.Merge(Menu.Create(id, restaurant.Value, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(
@@ -167,7 +166,7 @@ internal sealed class MenuAdministration(
                 fields.Add(path + ".id", "menu.item_not_found", "The item is not on this menu; omit the ID for a new item.");
             }
 
-            id = new MenuItemId(idGenerators.Resolve().NewId());
+            id = new MenuItemId(ids.Next());
         }
 
         return new MenuItem(

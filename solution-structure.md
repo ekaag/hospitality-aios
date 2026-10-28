@@ -20,7 +20,7 @@ These rules define where code lives and how projects are named and wired. Phase 
   tests/                      # .NET test projects
   apps/                       # frontend applications
   deploy/                     # infrastructure as code
-  dev/                        # seed data, local environment scripts
+  dev/                        # local environment scripts (reference data seed: src/Platform/HospitalityOS.Seeding)
   .github/                    # workflows and reusable actions
   *.md                        # principles, standards, phase specs and plans
 ```

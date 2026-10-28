@@ -4,8 +4,6 @@ using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Amenities;
 using HospitalityOS.Domain.Properties.Amenities;
 using HospitalityOS.Domain.Properties.Spaces;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -19,7 +17,7 @@ internal sealed class AmenityAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IAmenityAdministration
 {
     private const string LocationField = "locationSpaceId";
@@ -39,7 +37,7 @@ internal sealed class AmenityAdministration(
         RequestFields fields = new();
         Space? location = await references.SpaceAsync(request.LocationSpaceId, LocationField, LocationNotFound, fields, cancellationToken).ConfigureAwait(false);
         AmenityDetails details = Details(request.Name, request.Category, request.Description, fields);
-        AmenityId id = new(idGenerators.Resolve().NewId());
+        AmenityId id = new(ids.Next());
         Result<Amenity> created = fields.Merge(Amenity.Create(id, currentTenant.TenantId, property.Value, details, location, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

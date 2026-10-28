@@ -39,11 +39,20 @@ internal sealed class StaffApi : IAsyncDisposable
 
     public static SymmetricSecurityKey SigningKey { get; } = new(SHA256.HashData(Encoding.UTF8.GetBytes("hospitalityos-integration-tests")));
 
-    public StaffApi()
+    /// <param name="seedAuroraGrand">Whether the host seeds the Aurora Grand reference property at startup, as the local
+    /// launch profile does.</param>
+    public StaffApi(bool seedAuroraGrand = false)
     {
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Eventing:Dispatcher:Enabled", "false");
+
+            // Left unset otherwise, so other hosts run on the host's own default (off).
+            if (seedAuroraGrand)
+            {
+                builder.UseSetting("Seed:AuroraGrand:Enabled", "true");
+            }
+
             builder.ConfigureTestServices(services =>
             {
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));

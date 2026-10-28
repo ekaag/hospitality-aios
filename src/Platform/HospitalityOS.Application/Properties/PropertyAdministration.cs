@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts.Api.Properties;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.Properties;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -17,7 +15,7 @@ internal sealed class PropertyAdministration(
     IOrganizationRepository organizations,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IPropertyAdministration
 {
     public async Task<Result<PropertyResponse>> CreateAsync(CreatePropertyRequest request, CancellationToken cancellationToken)
@@ -37,7 +35,7 @@ internal sealed class PropertyAdministration(
             return await commit.RejectAsync(AdministrationActions.PropertyCreate, missing, null, cancellationToken).ConfigureAwait(false);
         }
 
-        PropertyId id = new(idGenerators.Resolve().NewId());
+        PropertyId id = new(ids.Next());
         Result<Property> created = Property.Create(id, currentTenant.TenantId, organization.Id, Details(request.Name, request.TimeZone, request.Address, request.ContactPhone, request.ContactEmail), timeProvider.GetUtcNow());
 
         return await commit.CreateAsync(

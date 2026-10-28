@@ -55,6 +55,11 @@ internal sealed class RequestFields
         return errors.Count == 0 ? change() : ValidationError.From(errors);
     }
 
+    /// <summary>
+    /// The request's errors, when the domain cannot run at all (a required record is missing).
+    /// </summary>
+    public ValidationError ToError() => ValidationError.From(errors);
+
     private static IReadOnlyList<FieldError> DomainFields(Result validated) =>
         validated is { IsFailure: true, Error: ValidationError validation } ? validation.Fields : [];
 }

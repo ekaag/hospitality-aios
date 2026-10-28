@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Policies;
 using HospitalityOS.Domain.Properties.Policies;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -20,7 +18,7 @@ internal sealed class PolicyAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IPolicyAdministration
 {
     public async Task<Result<PolicyResponse>> CreateAsync(CreatePolicyRequest request, CancellationToken cancellationToken)
@@ -37,7 +35,7 @@ internal sealed class PolicyAdministration(
         RequestFields fields = new();
         PolicyDetails details = await DetailsAsync(
             property.Value, request.Type, request.Title, request.Content, request.EffectiveFrom, request.EffectiveTo, request.AppliesTo, fields, cancellationToken).ConfigureAwait(false);
-        PolicyId id = new(idGenerators.Resolve().NewId());
+        PolicyId id = new(ids.Next());
         Result<Policy> created = fields.Merge(Policy.Create(id, currentTenant.TenantId, property.Value, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

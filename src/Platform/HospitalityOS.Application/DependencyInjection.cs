@@ -1,3 +1,4 @@
+using HospitalityOS.Application.Accommodations;
 using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Amenities;
 using HospitalityOS.Application.Auditing;
@@ -28,7 +29,8 @@ public static class DependencyInjection
     /// services (<see cref="IOrganizationAdministration"/>, <see cref="IPropertyAdministration"/>,
     /// <see cref="ISpaceAdministration"/>, <see cref="IAmenityAdministration"/>, <see cref="IOperatingHoursAdministration"/>,
     /// <see cref="IPolicyAdministration"/>, <see cref="IContentAdministration"/>, <see cref="IRestaurantAdministration"/>,
-    /// <see cref="IMenuAdministration"/>, <see cref="IPropertyEventAdministration"/>, <see cref="IServiceAdministration"/>).
+    /// <see cref="IMenuAdministration"/>, <see cref="IPropertyEventAdministration"/>, <see cref="IServiceAdministration"/>,
+    /// <see cref="IAccommodationAdministration"/>).
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -36,6 +38,7 @@ public static class DependencyInjection
         services.TryAddScoped<OperationContext>();
         services.TryAddScoped<IAuditTrail, AuditTrail>();
         services.TryAddScoped<AuditedCommit>();
+        services.TryAddScoped<RecordIds>();
         services.TryAddScoped<IOrganizationAdministration, OrganizationAdministration>();
         services.TryAddScoped<PropertyReferences>();
         services.TryAddScoped<IPropertyAdministration, PropertyAdministration>();
@@ -48,6 +51,7 @@ public static class DependencyInjection
         services.TryAddScoped<IMenuAdministration, MenuAdministration>();
         services.TryAddScoped<IPropertyEventAdministration, PropertyEventAdministration>();
         services.TryAddScoped<IServiceAdministration, ServiceAdministration>();
+        services.TryAddScoped<IAccommodationAdministration, AccommodationAdministration>();
 
         return services;
     }

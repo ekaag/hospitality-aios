@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Content;
 using HospitalityOS.Domain.Properties.ContentItems;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
@@ -21,7 +19,7 @@ internal sealed class ContentAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IContentAdministration
 {
     public async Task<Result<ContentItemResponse>> CreateAsync(CreateContentItemRequest request, CancellationToken cancellationToken)
@@ -37,7 +35,7 @@ internal sealed class ContentAdministration(
 
         RequestFields fields = new();
         ContentItemDetails details = await DetailsAsync(property.Value, request.Type, request.Title, request.Body, request.About, request.Tags, fields, cancellationToken).ConfigureAwait(false);
-        ContentItemId id = new(idGenerators.Resolve().NewId());
+        ContentItemId id = new(ids.Next());
         Result<ContentItem> created = fields.Merge(ContentItem.Create(id, currentTenant.TenantId, property.Value, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

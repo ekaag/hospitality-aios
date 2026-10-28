@@ -13,6 +13,7 @@ using HospitalityOS.Api.Persistence;
 using HospitalityOS.Api.Policies;
 using HospitalityOS.Api.Properties;
 using HospitalityOS.Api.Restaurants;
+using HospitalityOS.Api.Seeding;
 using HospitalityOS.Api.Services;
 using HospitalityOS.Api.Spaces;
 using HospitalityOS.Application;
@@ -52,6 +53,8 @@ builder.Services.AddCapabilities().AddBuiltInCapabilities();
 builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();
 builder.Services.AddNativeIntegrations();
+// The Aurora Grand reference property, when Seed:AuroraGrand:Enabled (the local launch profile sets it).
+builder.Services.AddConfiguredSeeding(builder.Configuration);
 builder.Services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
 // Requests that cannot be read are thrown to the exception handler, which answers with a coded problem.
 builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);

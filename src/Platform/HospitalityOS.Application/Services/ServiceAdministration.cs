@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Services;
 using HospitalityOS.Domain.Services.Services;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
@@ -19,7 +17,7 @@ internal sealed class ServiceAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IServiceAdministration
 {
     public async Task<Result<ServiceResponse>> CreateAsync(CreateServiceRequest request, CancellationToken cancellationToken)
@@ -36,7 +34,7 @@ internal sealed class ServiceAdministration(
         RequestFields fields = new();
         await CheckCodeAsync(property.Value, request.Code, null, fields, cancellationToken).ConfigureAwait(false);
         ServiceDetails details = Details(request.Code, request.Name, request.Category, request.Description, request.IsGuestRequestable, request.Items, request.TargetCompletion, fields);
-        ServiceId id = new(idGenerators.Resolve().NewId());
+        ServiceId id = new(ids.Next());
         Result<Service> created = fields.Merge(Service.Create(id, currentTenant.TenantId, property.Value, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

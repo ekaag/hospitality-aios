@@ -2,8 +2,6 @@ using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts.Api.Restaurants;
 using HospitalityOS.Domain.Dining.Restaurants;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -15,7 +13,7 @@ internal sealed class RestaurantAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IRestaurantAdministration
 {
     private const string LocationField = "locationSpaceId";
@@ -35,7 +33,7 @@ internal sealed class RestaurantAdministration(
         RequestFields fields = new();
         SpaceId? location = await references.LocationAsync(property.Value, request.LocationSpaceId, LocationField, LocationNotFound, fields, cancellationToken).ConfigureAwait(false);
         RestaurantDetails details = new(request.Name!, request.Cuisine, request.Description, location);
-        RestaurantId id = new(idGenerators.Resolve().NewId());
+        RestaurantId id = new(ids.Next());
         Result<Restaurant> created = fields.Merge(Restaurant.Create(id, currentTenant.TenantId, property.Value, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

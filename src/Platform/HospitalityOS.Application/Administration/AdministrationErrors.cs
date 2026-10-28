@@ -74,6 +74,16 @@ public static class AdministrationErrors
     public static Error ServiceNotFound { get; } = Error.NotFound("service.not_found", "There is no such service.");
 
     /// <summary>
+    /// The room type does not exist in the caller's tenant.
+    /// </summary>
+    public static Error AccommodationTypeNotFound { get; } = Error.NotFound("accommodation_type.not_found", "There is no such room type.");
+
+    /// <summary>
+    /// The room does not exist in the caller's tenant.
+    /// </summary>
+    public static Error AccommodationUnitNotFound { get; } = Error.NotFound("accommodation_unit.not_found", "There is no such room.");
+
+    /// <summary>
     /// The caller changed a version it no longer has: someone else changed the record since it was read.
     /// </summary>
     public static Error VersionMismatch(long expected, long actual) =>

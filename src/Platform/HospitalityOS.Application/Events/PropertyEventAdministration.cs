@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Events;
 using HospitalityOS.Domain.Activities.PropertyEvents;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Pricing;
@@ -22,7 +20,7 @@ internal sealed class PropertyEventAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IPropertyEventAdministration
 {
     public async Task<Result<PropertyEventResponse>> CreateAsync(CreatePropertyEventRequest request, CancellationToken cancellationToken)
@@ -42,7 +40,7 @@ internal sealed class PropertyEventAdministration(
             new EventFields(request.Title, request.Category, request.Audience, request.LocalStart, request.LocalEnd, request.Description, request.LocationSpaceId, request.Price, request.BookingRequired),
             fields,
             cancellationToken).ConfigureAwait(false);
-        PropertyEventId id = new(idGenerators.Resolve().NewId());
+        PropertyEventId id = new(ids.Next());
         Result<PropertyEvent> created = fields.Merge(PropertyEvent.Create(id, currentTenant.TenantId, property.Value, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

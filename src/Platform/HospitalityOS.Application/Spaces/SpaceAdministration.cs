@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Spaces;
 using HospitalityOS.Domain.Properties.Spaces;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
@@ -18,7 +16,7 @@ internal sealed class SpaceAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : ISpaceAdministration
 {
     public async Task<Result<SpaceResponse>> CreateAsync(CreateSpaceRequest request, CancellationToken cancellationToken)
@@ -35,7 +33,7 @@ internal sealed class SpaceAdministration(
         RequestFields fields = new();
         Space? parent = await references.SpaceAsync(request.ParentSpaceId, "parentSpaceId", "space.parent_not_found", fields, cancellationToken).ConfigureAwait(false);
         SpaceDetails details = Details(request.Name, request.Kind, request.Code, request.Description, request.Directions, fields);
-        SpaceId id = new(idGenerators.Resolve().NewId());
+        SpaceId id = new(ids.Next());
         Result<Space> created = fields.Merge(Space.Create(id, currentTenant.TenantId, property.Value, parent, details, timeProvider.GetUtcNow()));
 
         return await commit.CreateAsync(

@@ -3,8 +3,6 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Contracts.Api.Hours;
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Properties.Shared;
-using HospitalityOS.Ports.Bindings;
-using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
@@ -17,7 +15,7 @@ internal sealed class OperatingHoursAdministration(
     PropertyReferences references,
     ICurrentTenant currentTenant,
     AuditedCommit commit,
-    IBindingResolver<IIdGenerator> idGenerators,
+    RecordIds ids,
     TimeProvider timeProvider) : IOperatingHoursAdministration
 {
     public async Task<Result<OperatingHoursResponse>> CreateAsync(CreateOperatingHoursRequest request, CancellationToken cancellationToken)
@@ -43,7 +41,7 @@ internal sealed class OperatingHoursAdministration(
             return await commit.RejectAsync(AdministrationActions.OperatingHoursCreate, AdministrationErrors.OperatingHoursAlreadySet, null, cancellationToken).ConfigureAwait(false);
         }
 
-        OperatingHoursId id = new(idGenerators.Resolve().NewId());
+        OperatingHoursId id = new(ids.Next());
 
         // Without a subject the domain cannot validate the rest, so a placeholder stands in: the request is rejected anyway.
         Result<OperatingHours> created = fields.Merge(OperatingHours.Create(

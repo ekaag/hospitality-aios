@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="HospitalityOS.UnitTests" />
+    <!-- The reference data seeder gives records known IDs through RecordIds. -->
+    <InternalsVisibleTo Include="HospitalityOS.Seeding" />
   </ItemGroup>
 
 </Project>
