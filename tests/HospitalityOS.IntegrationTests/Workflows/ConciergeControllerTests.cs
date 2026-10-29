@@ -99,7 +99,10 @@ public sealed class ConciergeControllerTests : IAsyncLifetime
             Assert.True(await scope.ServiceProvider.GetRequiredService<IEventReplayer>().ReplayAsync(new EventReplayRequest(TenantId: aurora.TenantId), Cancellation) > 0);
         }
 
-        // A later question is answered after the replayed deliveries, which by then were skipped as already processed.
+        // A later question is answered after the replayed deliveries, which by then were skipped as already processed. The
+        // guest asks it a moment after the first answer: on the fixed clock both would otherwise be recorded at the same
+        // instant, and messages at the same instant have no defined order.
+        api.Clock.Advance(TimeSpan.FromSeconds(5));
         await PostAsync(guest, conversation, "Do you offer free helicopter transfers?");
         IReadOnlyList<GuestMessageResponse> messages = await MessagesUntilAsync(api, guest, conversation, 4);
 
