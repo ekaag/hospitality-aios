@@ -73,7 +73,7 @@ jobs:
       - name: Verify formatting
         run: dotnet format --no-restore --verify-no-changes
 
-      - name: Test (architecture, unit, port contract, integration)
+      - name: Test (architecture, unit, port contract, integration, AI evals on the Fake model)
         run: dotnet test --no-build --configuration Release --report-xunit-trx --results-directory TestResults
 
       - name: Upload test results

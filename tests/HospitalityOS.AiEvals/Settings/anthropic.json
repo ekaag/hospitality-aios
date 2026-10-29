@@ -1,0 +1,11 @@
+{
+  "Inference": {
+    "Providers": {
+      "anthropic": { "Adapter": "Anthropic", "Settings": { "ApiKeyVariable": "ANTHROPIC_API_KEY" } }
+    },
+    "Tasks": {
+      "concierge.answer": { "Provider": "anthropic", "Model": "claude-sonnet-5-5" },
+      "eval.judge": { "Provider": "anthropic", "Model": "claude-opus-5-5" }
+    }
+  }
+}

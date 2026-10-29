@@ -42,6 +42,7 @@
     <Project Path="src/Platform/HospitalityOS.Workflows/HospitalityOS.Workflows.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/HospitalityOS.AiEvals/HospitalityOS.AiEvals.csproj" />
     <Project Path="tests/HospitalityOS.ArchitectureTests/HospitalityOS.ArchitectureTests.csproj" />
     <Project Path="tests/HospitalityOS.IntegrationTests/HospitalityOS.IntegrationTests.csproj" />
     <Project Path="tests/HospitalityOS.PortContractTests/HospitalityOS.PortContractTests.csproj" />
