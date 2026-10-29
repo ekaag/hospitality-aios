@@ -7,6 +7,7 @@ using HospitalityOS.Api.Amenities;
 using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
 using HospitalityOS.Api.Content;
+using HospitalityOS.Api.Conversations;
 using HospitalityOS.Api.Events;
 using HospitalityOS.Api.Execution;
 using HospitalityOS.Api.Hours;
@@ -33,6 +34,7 @@ using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Search;
 using HospitalityOS.Ports.Tenancy;
+using HospitalityOS.Workflows;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -63,13 +65,8 @@ builder.Services.AddCapabilities().AddBuiltInCapabilities();
 builder.Services.Configure<ContentSearchOptions>(builder.Configuration.GetSection(ContentSearchOptions.SectionName));
 builder.Services.AddAi().AddContentIndexing();
 builder.Services.Configure<AITraceRedactionOptions>(builder.Configuration.GetSection(AITraceRedactionOptions.SectionName));
-// The concierge's grounded answers (Milestone H); Inference:Tasks:concierge.answer picks its model.
-builder.Services
-    .AddPrompts(typeof(Program).Assembly)
-    .AddGroundedAnswering(
-        Concierge.AnswerTask,
-        Concierge.AnswerTask,
-        ["Property.GetOperatingHours@1", "Property.GetPolicy@1", "Property.SearchContent@1", "Dining.SearchRestaurants@1", "Dining.GetMenu@1", "Events.SearchPropertyEvents@1"]);
+// The autonomous controllers: the concierge answers guest messages (Inference:Tasks:concierge.answer picks its model).
+builder.Services.AddWorkflows();
 // Providers available to every property; each property's integration configuration selects one per connector.
 builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();
@@ -82,7 +79,7 @@ builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadReq
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<MalformedRequestHandler>();
 builder.Services.AddHealthChecks().AddBindingHealthChecks().AddInferenceHealthChecks();
-builder.Services.AddStaffAuthentication();
+builder.Services.AddCallerAuthentication();
 
 WebApplication app = builder.Build();
 
@@ -105,6 +102,7 @@ app.MapMenuEndpoints();
 app.MapPropertyEventEndpoints();
 app.MapServiceEndpoints();
 app.MapAITraceEndpoints();
+app.MapConversationEndpoints();
 
 app.Run();
 

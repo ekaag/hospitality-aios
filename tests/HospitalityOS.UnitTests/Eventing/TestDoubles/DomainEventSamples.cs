@@ -159,6 +159,7 @@ public static class DomainEventSamples
         new ConversationUpdated(alexChat, alex, alexStay, ConversationStatus.Open, Now),
         new GuestMessageReceived(towelMessage, alexChat, auroraGrand, alex, alexStay, Now),
         new GuestMessageSent(new GuestMessageId(Id(24)), alexChat, auroraGrand, MessageSender.Concierge, Now),
+        new GuestQuestionAnswered(towelMessage, new GuestMessageId(Id(24)), alexChat, auroraGrand, AnswerOutcome.Answered, Now),
         new CapabilityInvocationRequested(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationSucceeded(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationFailed(new CapabilityInvocationId(Id(26)), "HumanAction.Complete", 1, "humanaction.not_assigned", Now),

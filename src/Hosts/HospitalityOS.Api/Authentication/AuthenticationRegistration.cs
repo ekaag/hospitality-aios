@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Authorization;
 namespace HospitalityOS.Api.Authentication;
 
 /// <summary>
-/// Staff authentication: JWT bearer tokens, configured under <c>Authentication:Schemes:Bearer</c> (issuer, audiences, and
-/// signing keys or an authority such as Microsoft Entra ID), so the identity provider is a configuration choice. Locally,
-/// <c>dotnet user-jwts create --role Admin --claim tenant_id=&lt;guid&gt;</c> issues tokens. Without configuration every
-/// token is refused.
+/// Caller authentication: JWT bearer tokens, configured under <c>Authentication:Schemes:Bearer</c> (issuer, audiences, and
+/// signing keys or an authority such as Microsoft Entra ID), so the identity provider is a configuration choice. A token
+/// is either a staff token (<see cref="StaffClaims"/>) or a guest's stay token (<see cref="GuestClaims"/>); anything else
+/// is refused. Locally, <c>dotnet user-jwts create --role Admin --claim tenant_id=&lt;guid&gt;</c> issues staff tokens.
+/// Without configuration every token is refused.
 /// </summary>
 internal static class AuthenticationRegistration
 {
-    public static IServiceCollection AddStaffAuthentication(this IServiceCollection services)
+    public static IServiceCollection AddCallerAuthentication(this IServiceCollection services)
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
@@ -24,7 +25,12 @@ internal static class AuthenticationRegistration
             options.Events ??= new JwtBearerEvents();
             options.Events.OnTokenValidated = context =>
             {
-                if (!StaffClaims.TryRead(context.Principal!, out _, out _, out string? problem))
+                string? problem;
+                bool complete = GuestClaims.IsGuest(context.Principal!)
+                    ? GuestClaims.TryRead(context.Principal!, out _, out _, out problem)
+                    : StaffClaims.TryRead(context.Principal!, out _, out _, out problem);
+
+                if (!complete)
                 {
                     context.Fail(problem!);
                 }
@@ -32,7 +38,11 @@ internal static class AuthenticationRegistration
                 return Task.CompletedTask;
             };
         });
-        services.AddAuthorization(StaffPolicies.Add);
+        services.AddAuthorization(options =>
+        {
+            StaffPolicies.Add(options);
+            GuestPolicies.Add(options);
+        });
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, AuditedAuthorizationResultHandler>();
 
         return services;

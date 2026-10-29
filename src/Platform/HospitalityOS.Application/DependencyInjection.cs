@@ -3,6 +3,7 @@ using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Amenities;
 using HospitalityOS.Application.Auditing;
 using HospitalityOS.Application.Content;
+using HospitalityOS.Application.Conversations;
 using HospitalityOS.Application.Events;
 using HospitalityOS.Application.Hours;
 using HospitalityOS.Application.Menus;
@@ -30,7 +31,7 @@ public static class DependencyInjection
     /// <see cref="ISpaceAdministration"/>, <see cref="IAmenityAdministration"/>, <see cref="IOperatingHoursAdministration"/>,
     /// <see cref="IPolicyAdministration"/>, <see cref="IContentAdministration"/>, <see cref="IRestaurantAdministration"/>,
     /// <see cref="IMenuAdministration"/>, <see cref="IPropertyEventAdministration"/>, <see cref="IServiceAdministration"/>,
-    /// <see cref="IAccommodationAdministration"/>).
+    /// <see cref="IAccommodationAdministration"/>), and the guest-facing <see cref="IGuestConversations"/>.
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -52,6 +53,7 @@ public static class DependencyInjection
         services.TryAddScoped<IPropertyEventAdministration, PropertyEventAdministration>();
         services.TryAddScoped<IServiceAdministration, ServiceAdministration>();
         services.TryAddScoped<IAccommodationAdministration, AccommodationAdministration>();
+        services.TryAddScoped<IGuestConversations, GuestConversations>();
 
         return services;
     }

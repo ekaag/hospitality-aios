@@ -24,7 +24,7 @@ internal sealed class EfAITraceRepository(HospitalityDbContext context, EfUnitOf
                 if (after is not null)
                 {
 #pragma warning disable CA1309 // Translated to SQL "<", which compares the ASCII key ordinally; EF Core cannot translate a StringComparison.
-                    matching = matching.Where(trace => string.Compare(EF.Property<string>(trace, KeyColumns.RecencyKey), after) <= 0);
+                    matching = matching.Where(trace => string.Compare(EF.Property<string>(trace, KeyColumns.RecencyKey), after) < 0);
 #pragma warning restore CA1309
                 }
 

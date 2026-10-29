@@ -109,6 +109,21 @@ internal sealed class StaffApi : IAsyncDisposable
 
     public HttpClient Staff(TenantId tenant, string role = "Admin", string subject = "maria") => Client(StaffToken(tenant, role, subject));
 
+    /// <summary>
+    /// A guest's stay token from the trusted issuer.
+    /// </summary>
+    public static string GuestToken(TenantId tenant, GuestStay stay) =>
+        Token(new Dictionary<string, object>
+        {
+            ["sub"] = stay.GuestId.Value.ToString(),
+            ["tenant_id"] = tenant.Value.ToString(),
+            ["property_id"] = stay.PropertyId.Value.ToString(),
+            ["stay_id"] = stay.StayContextId.Value.ToString(),
+            ["role"] = "Guest",
+        });
+
+    public HttpClient Guest(TenantId tenant, GuestStay stay) => Client(GuestToken(tenant, stay));
+
     public async Task<IReadOnlyList<AuditRecord>> AuditAsync(TenantId tenant, CancellationToken cancellationToken)
     {
         await using AsyncServiceScope scope = Factory.Services.CreateAsyncScope();
