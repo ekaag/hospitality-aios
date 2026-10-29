@@ -45,8 +45,10 @@ internal sealed class StaffApi : IAsyncDisposable
     /// <param name="dispatchEvents">Whether committed events are dispatched to handlers (polling every 50 ms), e.g. so
     /// content indexing runs; off by default, so tests see events stay in the outbox.</param>
     /// <param name="configure">Further host settings and test services, applied last.</param>
-    public StaffApi(bool seedAuroraGrand = false, bool dispatchEvents = false, Action<IWebHostBuilder>? configure = null)
+    /// <param name="now">Where the host's clock starts; <see cref="Now"/> by default.</param>
+    public StaffApi(bool seedAuroraGrand = false, bool dispatchEvents = false, Action<IWebHostBuilder>? configure = null, DateTimeOffset? now = null)
     {
+        Clock = new FakeTimeProvider(now ?? Now);
         Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Eventing:Dispatcher:Enabled", dispatchEvents ? "true" : "false");
@@ -75,9 +77,9 @@ internal sealed class StaffApi : IAsyncDisposable
     public WebApplicationFactory<Program> Factory { get; }
 
     /// <summary>
-    /// The host's clock, fixed at <see cref="Now"/> until a test advances it (the event dispatcher waits on it between polls).
+    /// The host's clock, fixed where it started until a test advances it (the event dispatcher waits on it between polls).
     /// </summary>
-    public FakeTimeProvider Clock { get; } = new(Now);
+    public FakeTimeProvider Clock { get; }
 
     /// <summary>
     /// A token from the trusted issuer with exactly <paramref name="claims"/> (an array value becomes several claims).

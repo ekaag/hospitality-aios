@@ -19,4 +19,9 @@ public enum AITraceOutcome
     /// The turn could not be completed, e.g. no model was available.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// The agent answered from relevant sources that do not clearly settle the question, and said so.
+    /// </summary>
+    Uncertain,
 }

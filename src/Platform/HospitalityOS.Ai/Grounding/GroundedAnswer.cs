@@ -20,6 +20,12 @@ public enum GroundedOutcome
     /// worth recording for content improvement.
     /// </summary>
     NoAuthoritativeSource,
+
+    /// <summary>
+    /// The sources are relevant but do not clearly settle the question, e.g. an ambiguous policy (Journey 6): the guest is
+    /// told what they say and that it is not confirmed, citing them. Also worth recording for content improvement.
+    /// </summary>
+    Uncertain,
 }
 
 /// <summary>

@@ -1,5 +1,3 @@
-using System.Net.Http.Json;
-using System.Text.Json;
 using HospitalityOS.Adapters.Local.Inference;
 using HospitalityOS.Contracts.Api.Ai;
 using HospitalityOS.Contracts.Api.Conversations;
@@ -11,7 +9,6 @@ using HospitalityOS.Ports.Eventing;
 using HospitalityOS.SharedKernel.Tenancy;
 using HospitalityOS.Workflows.Concierge;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -26,8 +23,6 @@ namespace HospitalityOS.IntegrationTests.Workflows;
 /// </summary>
 public sealed class ConciergeControllerTests : IAsyncLifetime
 {
-    private const string Route = "/api/v1/conversations";
-
     private static readonly Guid invented = Guid.Parse("01890a5d-ac96-774b-bcce-0000000dead1");
 
     private readonly AuroraGrand aurora = new(new TenantId(Guid.CreateVersion7()));
@@ -155,15 +150,7 @@ public sealed class ConciergeControllerTests : IAsyncLifetime
             WhenUserSays: "helicopter",
             Reply: $$"""{"status":"Answered","answer":"Yes, helicopter transfers are free.","citations":[{"type":"Policy","id":"{{invented}}","version":1}]}"""));
 
-        return new StaffApi(dispatchEvents: true, configure: builder =>
-        {
-            builder.UseSetting("Inference:Providers:scripted:Adapter", "Fake");
-            builder.UseSetting("Inference:Providers:scripted:Settings:Script", "concierge");
-            builder.UseSetting($"Inference:Tasks:{Concierge.AnswerTask}:Provider", "scripted");
-            builder.UseSetting($"Inference:Tasks:{Concierge.AnswerTask}:Model", "fake-concierge");
-            builder.ConfigureTestServices(services => services.Configure<FakeInferenceOptions>(options => options.Scripts["concierge"] = concierge));
-            configure(builder);
-        });
+        return GuestChat.Host(concierge, configure);
     }
 
     private async Task<GuestStay> PrepareAsync(StaffApi host)
@@ -174,48 +161,15 @@ public sealed class ConciergeControllerTests : IAsyncLifetime
         return await GuestStay.SaveAsync(host.Factory.Services, aurora.TenantId, aurora.PropertyId, host.Clock.GetUtcNow(), Cancellation);
     }
 
-    private static async Task<ConversationResponse> StartAsync(HttpClient guest) =>
-        await StaffApi.CreatedAsync<ConversationResponse>(await guest.PostAsync(Route, null, Cancellation), Cancellation);
+    private static Task<ConversationResponse> StartAsync(HttpClient guest) => GuestChat.StartAsync(guest, Cancellation);
 
-    private static async Task<GuestMessageResponse> PostAsync(HttpClient guest, ConversationResponse conversation, string text) =>
-        await StaffApi.CreatedAsync<GuestMessageResponse>(
-            await guest.PostAsJsonAsync($"{Route}/{conversation.Id}/messages", new { text, clientMessageId = Guid.NewGuid().ToString() }, Cancellation),
-            Cancellation);
+    private static Task<GuestMessageResponse> PostAsync(HttpClient guest, ConversationResponse conversation, string text) =>
+        GuestChat.PostAsync(guest, conversation, text, Cancellation);
 
-    // The concierge answers asynchronously: read again until the conversation has the messages, for at most ten seconds.
-    private static async Task<IReadOnlyList<GuestMessageResponse>> MessagesUntilAsync(StaffApi host, HttpClient guest, ConversationResponse conversation, int count)
-    {
-        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+    private static Task<IReadOnlyList<GuestMessageResponse>> MessagesUntilAsync(StaffApi host, HttpClient guest, ConversationResponse conversation, int count) =>
+        GuestChat.MessagesUntilAsync(host, guest, conversation, count, Cancellation);
 
-        while (true)
-        {
-            IReadOnlyList<GuestMessageResponse> messages = await StaffApi.OkAsync<IReadOnlyList<GuestMessageResponse>>(
-                await guest.GetAsync($"{Route}/{conversation.Id}/messages", timeout.Token), timeout.Token);
+    private Task<AITraceResponse> TraceAsync(StaffApi host, Guid correlationId) => GuestChat.TraceAsync(host, aurora.TenantId, correlationId, Cancellation);
 
-            if (messages.Count >= count)
-            {
-                return messages;
-            }
-
-            host.Clock.Advance(TimeSpan.FromMilliseconds(50));
-            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
-        }
-    }
-
-    private async Task<AITraceResponse> TraceAsync(StaffApi host, Guid correlationId)
-    {
-        using HttpClient manager = host.Staff(aurora.TenantId, "Manager");
-        AITracePage page = await StaffApi.OkAsync<AITracePage>(await manager.GetAsync($"/api/v1/ai/traces?correlationId={correlationId}", Cancellation), Cancellation);
-
-        return await StaffApi.OkAsync<AITraceResponse>(await manager.GetAsync($"/api/v1/ai/traces/{Assert.Single(page.Traces).Id}", Cancellation), Cancellation);
-    }
-
-    private static (Guid Question, Guid Answer, string? Outcome) Payload(EventMessage answered)
-    {
-        using JsonDocument envelope = JsonDocument.Parse(answered.Envelope);
-        JsonElement payload = envelope.RootElement.GetProperty("payload");
-
-        return (payload.GetProperty("questionMessageId").GetGuid(), payload.GetProperty("answerMessageId").GetGuid(), payload.GetProperty("outcome").GetString());
-    }
+    private static (Guid Question, Guid Answer, string? Outcome) Payload(EventMessage answered) => GuestChat.Payload(answered);
 }

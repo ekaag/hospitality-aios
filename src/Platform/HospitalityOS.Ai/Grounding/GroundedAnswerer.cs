@@ -110,9 +110,12 @@ internal sealed class GroundedAnswerer(
 
             if (accepted is not null)
             {
-                return accepted.Status is GroundedReplyStatus.Answered
-                    ? Answer(GroundedOutcome.Answered, accepted.Answer, accepted.Citations, null)
-                    : Answer(GroundedOutcome.NoAuthoritativeSource, question.NoSourceAnswer, [], null);
+                return accepted.Status switch
+                {
+                    GroundedReplyStatus.Answered => Answer(GroundedOutcome.Answered, accepted.Answer, accepted.Citations, null),
+                    GroundedReplyStatus.Uncertain => Answer(GroundedOutcome.Uncertain, accepted.Answer, accepted.Citations, null),
+                    _ => Answer(GroundedOutcome.NoAuthoritativeSource, question.NoSourceAnswer, [], null),
+                };
             }
 
             if (turn.StopReason is ChatStopReason.ContentFiltered)
@@ -122,7 +125,7 @@ internal sealed class GroundedAnswerer(
 
             ChatMessage correction = ChatMessage.User(
                 $"Your reply was not accepted: {rejection} Reply again as JSON matching the schema. Cite only sources from the context "
-                + "or from tool results in this conversation, or reply with status Unknown if they do not answer the question.");
+                + "or from tool results in this conversation, Uncertain if they do not clearly settle the question, or Unknown if they do not answer it.");
             conversation.AddRange([.. turn.Added, correction]);
             added.Add(correction);
         }
@@ -134,7 +137,8 @@ internal sealed class GroundedAnswerer(
     }
 
     /// <summary>
-    /// The reply if it is complete, well formed, and grounded; otherwise why not.
+    /// The reply if it is complete, well formed, and grounded (an answered or uncertain reply cites only sources retrieved in
+    /// this turn); otherwise why not.
     /// </summary>
     private static (GroundedReply? Reply, string? Rejection) Check(ToolLoopResult turn, HashSet<SourceReference> retrieved)
     {

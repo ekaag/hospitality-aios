@@ -10,8 +10,8 @@ namespace HospitalityOS.Contracts.Events.Guests;
 /// <param name="AnswerMessageId">The concierge's answer.</param>
 /// <param name="ConversationId">The conversation.</param>
 /// <param name="PropertyId">The property.</param>
-/// <param name="Outcome">Whether an authoritative source answered it (domain enum name): <c>Answered</c> or
-/// <c>NoAuthoritativeSource</c>.</param>
+/// <param name="Outcome">Whether an authoritative source answered it (domain enum name): <c>Answered</c>,
+/// <c>NoAuthoritativeSource</c>, or <c>Uncertain</c>.</param>
 public sealed record GuestQuestionAnsweredV1(
     GuestMessageId QuestionMessageId,
     GuestMessageId AnswerMessageId,

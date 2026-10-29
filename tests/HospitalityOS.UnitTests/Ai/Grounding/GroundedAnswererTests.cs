@@ -120,6 +120,36 @@ public sealed class GroundedAnswererTests
     }
 
     [Fact]
+    public async Task Answer_TheSourcesDoNotClearlySettleIt_IsUncertain_AndTheGuestGetsTheCitedHedgedAnswer()
+    {
+        ScriptedModel model = new ScriptedModel().Then(ScriptedModel.Answer(Reply("Uncertain", "Our wifi note does not say whether it reaches the garden.", wifiSource)));
+        using ServiceProvider services = Build(model, Context(), _ => { });
+
+        GroundedAnswer answer = await AnswerAsync(services, "Does the wifi reach the garden?");
+
+        Assert.Equal(
+            (GroundedOutcome.Uncertain, "Our wifi note does not say whether it reaches the garden.", null),
+            (answer.Outcome, answer.Text, answer.Rejection));
+        Assert.Equal([wifiSource], answer.Citations);
+        Assert.Single(model.ChatRequests);
+    }
+
+    [Theory]
+    [InlineData("uncited", "An answer must cite at least one source it relies on.")]
+    [InlineData("invented", "It cites OperatingHours")]
+    public async Task Answer_AnUncertainReplyIsGroundedLikeAnAnswer(string kind, string reason)
+    {
+        string reply = kind == "uncited" ? Reply("Uncertain", "It may reach the garden.") : Reply("Uncertain", "It may reach the garden.", invented);
+        ScriptedModel model = new ScriptedModel().Then(ScriptedModel.Answer(reply)).Then(ScriptedModel.Answer(reply));
+        using ServiceProvider services = Build(model, Context(), _ => { });
+
+        GroundedAnswer answer = await AnswerAsync(services, "Does the wifi reach the garden?");
+
+        Assert.Equal((GroundedOutcome.NoAuthoritativeSource, NoSource), (answer.Outcome, answer.Text));
+        Assert.StartsWith(reason, answer.Rejection, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Answer_TheModelSaysTheSourcesDoNotAnswer_HasNoAuthoritativeSource_WithoutARetry()
     {
         ScriptedModel model = new ScriptedModel().Then(ScriptedModel.Answer(Reply("Unknown", "Free helicopter transfers, I believe.")));

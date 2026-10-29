@@ -7,7 +7,8 @@ namespace HospitalityOS.Ai.Grounding;
 /// first, structured before searched: the property profile (<c>Property.GetProperty</c>: name, local time, amenities and
 /// restaurants with their IDs), then the published content that best matches the question (<c>Property.SearchContent</c>),
 /// each read through the capability executor as the agent and each carrying its source. It then runs the task's tool
-/// loop for precise reads, asking for a structured reply: answered with citations, or unknown. Every citation must be a
+/// loop for precise reads, asking for a structured reply: answered with citations, uncertain with citations (the sources
+/// are relevant but do not clearly settle it; the guest is told so), or unknown. Every citation must be a
 /// source the context or a tool returned in this turn. An answer that is not grounded is sent back once with the reason;
 /// if it is still not grounded, or the model says the sources do not answer the question, the outcome is
 /// <see cref="GroundedOutcome.NoAuthoritativeSource"/> and the guest gets the caller's honest answer, never the model's

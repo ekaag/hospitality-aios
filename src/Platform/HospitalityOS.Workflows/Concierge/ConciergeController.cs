@@ -73,7 +73,12 @@ internal sealed partial class ConciergeController(
 
         if (answer.IsSuccess)
         {
-            AnswerOutcome outcome = answer.Value.Outcome is GroundedOutcome.Answered ? AnswerOutcome.Answered : AnswerOutcome.NoAuthoritativeSource;
+            AnswerOutcome outcome = answer.Value.Outcome switch
+            {
+                GroundedOutcome.Answered => AnswerOutcome.Answered,
+                GroundedOutcome.Uncertain => AnswerOutcome.Uncertain,
+                _ => AnswerOutcome.NoAuthoritativeSource,
+            };
             reply = GuestMessage.RecordAnswer(replyId, conversation, question, answer.Value.Text, outcome, now);
             await traces.CompleteAsync(AITraceCompletion.For(trigger, question.PropertyId, answer.Value, Concierge.QuestionIntent), cancellationToken).ConfigureAwait(false);
         }

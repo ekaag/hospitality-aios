@@ -11,6 +11,7 @@ internal enum GroundedReplyStatus
 {
     Answered,
     Unknown,
+    Uncertain,
 }
 
 /// <summary>
@@ -18,9 +19,9 @@ internal enum GroundedReplyStatus
 /// </summary>
 [Description("Your final reply to the guest.")]
 internal sealed record GroundedReply(
-    [property: Description("Answered when the sources you were given or retrieved answer the question; Unknown when they do not.")]
+    [property: Description("Answered when the sources you were given or retrieved answer the question; Uncertain when they are relevant but do not clearly settle it (say what they do say, and that it is not confirmed); Unknown when they do not answer it.")]
     GroundedReplyStatus Status,
     [property: Description("Your reply to the guest, using only what the sources say.")]
     string Answer,
-    [property: Description("The sources your answer relies on, copied exactly (type, id, version) from the context or tool results; empty when Unknown.")]
+    [property: Description("The sources your answer relies on, copied exactly (type, id, version) from the context or tool results; at least one when Answered or Uncertain, empty when Unknown.")]
     ValueList<SourceReference> Citations);

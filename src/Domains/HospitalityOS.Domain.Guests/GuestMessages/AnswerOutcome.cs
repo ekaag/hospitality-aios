@@ -14,4 +14,9 @@ public enum AnswerOutcome
     /// No authoritative source answers it, and the guest was told so (Journey 17).
     /// </summary>
     NoAuthoritativeSource,
+
+    /// <summary>
+    /// From relevant sources that do not clearly settle it, and the guest was told so (Journey 6).
+    /// </summary>
+    Uncertain,
 }

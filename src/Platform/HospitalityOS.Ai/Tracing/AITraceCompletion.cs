@@ -35,7 +35,12 @@ public sealed record AITraceCompletion(
     {
         ArgumentNullException.ThrowIfNull(answer);
 
-        AITraceOutcome outcome = answer.Outcome is GroundedOutcome.Answered ? AITraceOutcome.Answered : AITraceOutcome.NoAuthoritativeSource;
+        AITraceOutcome outcome = answer.Outcome switch
+        {
+            GroundedOutcome.Answered => AITraceOutcome.Answered,
+            GroundedOutcome.Uncertain => AITraceOutcome.Uncertain,
+            _ => AITraceOutcome.NoAuthoritativeSource,
+        };
 
         return new AITraceCompletion(trigger, outcome, answer.Text, answer.Citations, propertyId, intent);
     }
