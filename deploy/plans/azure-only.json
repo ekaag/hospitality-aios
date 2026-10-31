@@ -1,0 +1,13 @@
+{
+  "$comment": "The default deployment plan: every resource on Azure, in UK South (near the Aurora Grand). Resources still planned in the catalog are added here as their modules arrive.",
+  "name": "azure-only",
+  "description": "Everything on Azure, UK South.",
+  "resources": {
+    "logs": { "cloud": "azure", "region": "uksouth" },
+    "identity-api": { "cloud": "azure", "region": "uksouth" },
+    "images": { "cloud": "azure", "region": "uksouth" },
+    "secrets": { "cloud": "azure", "region": "uksouth" },
+    "apps": { "cloud": "azure", "region": "uksouth" },
+    "api": { "cloud": "azure", "region": "uksouth" }
+  }
+}

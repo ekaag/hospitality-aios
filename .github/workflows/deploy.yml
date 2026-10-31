@@ -1,0 +1,65 @@
+# Deploys one environment from a deployment plan (implementation plan §5.1, K0), reused by deploy-dev.yml and later by
+# promote.yml. The orchestrator deploys the plan's resources in dependency order, builds and pushes the API image tagged by
+# the commit SHA into the registry the plan chose (skipped when that tag is already there), and checks /health. Running it
+# again on the same SHA changes nothing.
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: The environment, e.g. dev.
+        required: true
+        type: string
+      plan:
+        description: The deployment plan (deploy/plans).
+        required: false
+        type: string
+        default: azure-only
+      sha:
+        description: The commit to deploy.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.environment }} (${{ inputs.plan }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+
+      - name: Set up .NET (version from global.json), to build the image
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Sign in to Azure (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy the plan
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PLAN: ${{ inputs.plan }}
+          SHA: ${{ inputs.sha }}
+        run: python3 deploy/tooling/deploy.py up --env "${ENVIRONMENT}" --plan "${PLAN}" --sha "${SHA}"

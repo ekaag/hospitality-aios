@@ -124,12 +124,29 @@ HospitalityOS.Adapters.<Technology>/
 ## 8. Infrastructure (`deploy/`)
 
 ```text
-deploy/terraform/
-  modules/<cloud>/<port-module>/   # one module per infrastructure port, per cloud
-  environments/<env>/              # composes modules; tfvars choose provider per binding
+deploy/catalog.json               # each resource the product needs, its dependencies, and each cloud's service
+deploy/plans/<plan>.json           # saved deployment plans: a cloud and region per resource (default azure-only)
+deploy/<cloud>/modules/<purpose>   # one module per resource, in the cloud's native IaC (Azure: Bicep)
+deploy/<cloud>/bootstrap/          # that cloud's deployment identity and its GitHub OIDC trust
+deploy/tooling/                    # the orchestrator (validate, bootstrap, up, drift, down) and its tests
 deploy/migrations/                 # generated idempotent migration bundles (build output)
 ```
-- Module and resource names: kebab-case folders, snake_case Terraform identifiers (Terraform convention).
+- Each cloud uses its native IaC (Azure: Bicep compiled to ARM; AWS: CloudFormation; GCP: to be agreed). No Terraform.
+  Module files are named by purpose (`api.bicep`); Bicep symbols camelCase.
+- Names are derived from parameters, never typed, all lowercase:
+
+  | Kind | Pattern | Example |
+  |---|---|---|
+  | Resource | `<purpose>-<env>-<region>-<type>` | `api-dev-uksouth-ca`, `secrets-dev-uksouth-kv` |
+  | Azure resource group | `rg-hospitalityos-<purpose>-<env>` | `rg-hospitalityos-platform-dev` |
+  | No delimiters allowed (Azure container registry, storage) | segments run together | `imagesdevuksouthacr` |
+
+  The purpose is the resource's job in the product (`api`, `web-guest`, `apps`, `images`, `logs`, `secrets`,
+  `identity-api`, `deploy`, `data`, `events`, `search-content`, `realtime`, `inference-chat`, `inference-embed`); Azure
+  types use the Cloud Adoption Framework abbreviations (`ca`, `cae`, `acr`, `log`, `kv`, `id`, `sql`, `sb`, `srch`,
+  `sigr`, `oai`, `swa`, `st`). Azure resource groups follow lifecycle (`platform`, `api`, `web` per environment;
+  `rg-hospitalityos-deploy` shared by all). Every resource is tagged `name` (the delimited form), `purpose`, `env`, and
+  `product = hospitalityos`.
 
 ## 9. Enforcement
 

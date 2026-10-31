@@ -1,0 +1,30 @@
+# Deploys dev with the default plan after CI passes on main (implementation plan §5.1, K0), or on demand with any plan.
+# Until the Azure bootstrap has set the sign-in variables, there is nothing to deploy to and the job is skipped.
+name: deploy-dev
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: The deployment plan (deploy/plans).
+        required: false
+        default: azure-only
+
+permissions:
+  contents: read
+
+jobs:
+  dev:
+    if: vars.AZURE_CLIENT_ID != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: dev
+      plan: ${{ inputs.plan || 'azure-only' }}
+      sha: ${{ github.event.workflow_run.head_sha || github.sha }}

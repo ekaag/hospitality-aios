@@ -1,0 +1,228 @@
+{
+  "$comment": "Every resource the product needs, by its job (the purpose), and the service each cloud offers for it. A deployment plan (plans/) chooses a cloud and region per resource; the orchestrator (tooling/) deploys a cloud's service through its module. A service without a module is known but not yet deployable; a resource marked planned is not yet needed by the app, so plans may leave it out.",
+  "product": "hospitalityos",
+  "$environments": "Staging and production arrive with K6; their names must still fit each type's limit (secrets-staging-uksouth-kv is 26 characters, over Key Vault's 24).",
+  "environments": ["dev"],
+  "clouds": {
+    "azure": { "tool": "bicep", "status": "available" },
+    "aws": { "tool": "cloudformation", "status": "planned" },
+    "gcp": { "tool": null, "status": "undecided", "note": "Deployment Manager is retired and Infrastructure Manager runs Terraform; to be agreed when a plan first uses GCP." }
+  },
+  "resources": {
+    "logs": {
+      "job": "Logs and metrics from every resource.",
+      "group": "platform",
+      "dependsOn": [],
+      "services": {
+        "azure": { "service": "Log Analytics workspace", "type": "log", "module": "azure/modules/logs.bicep" },
+        "aws": { "service": "CloudWatch Logs" },
+        "gcp": { "service": "Cloud Logging" }
+      }
+    },
+    "identity-api": {
+      "job": "The API's own identity, which the resources it uses trust; no stored credentials.",
+      "group": "platform",
+      "dependsOn": [],
+      "services": {
+        "azure": { "service": "User-assigned managed identity", "type": "id", "module": "azure/modules/identity-api.bicep" },
+        "aws": { "service": "IAM role" },
+        "gcp": { "service": "Service account" }
+      }
+    },
+    "images": {
+      "job": "The registry the app's container images are pushed to and pulled from.",
+      "group": "platform",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": {
+          "service": "Container registry",
+          "type": "acr",
+          "compact": true,
+          "maxLength": 50,
+          "module": "azure/modules/images.bicep",
+          "inputs": { "pullPrincipalId": "identity-api.principalId" }
+        },
+        "aws": { "service": "ECR" },
+        "gcp": { "service": "Artifact Registry" }
+      }
+    },
+    "secrets": {
+      "job": "Secrets the app reads at run time, by reference.",
+      "group": "platform",
+      "dependsOn": ["identity-api"],
+      "stateful": true,
+      "services": {
+        "azure": {
+          "service": "Key Vault",
+          "type": "kv",
+          "maxLength": 24,
+          "module": "azure/modules/secrets.bicep",
+          "inputs": { "readerPrincipalId": "identity-api.principalId" }
+        },
+        "aws": { "service": "Secrets Manager" },
+        "gcp": { "service": "Secret Manager" }
+      }
+    },
+    "apps": {
+      "job": "Where the app's containers run, shared by its hosts.",
+      "group": "platform",
+      "dependsOn": ["logs"],
+      "services": {
+        "azure": {
+          "service": "Container Apps environment",
+          "type": "cae",
+          "module": "azure/modules/apps.bicep",
+          "inputs": { "logsWorkspaceId": "logs.workspaceId" }
+        },
+        "aws": { "service": "ECS cluster" },
+        "gcp": { "service": "Cloud Run (regional; no environment resource)" }
+      }
+    },
+    "api": {
+      "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
+      "group": "api",
+      "dependsOn": ["apps", "images", "identity-api", "secrets"],
+      "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
+      "services": {
+        "azure": {
+          "service": "Container app",
+          "type": "ca",
+          "maxLength": 32,
+          "module": "azure/modules/api.bicep",
+          "inputs": {
+            "environmentId": "apps.environmentId",
+            "registryServer": "images.loginServer",
+            "identityId": "identity-api.identityId",
+            "identityClientId": "identity-api.clientId",
+            "vaultUri": "secrets.vaultUri"
+          }
+        },
+        "aws": { "service": "ECS Fargate service" },
+        "gcp": { "service": "Cloud Run service" }
+      }
+    },
+    "data": {
+      "job": "The relational database: records, outbox and inbox, audit (IUnitOfWork and repositories).",
+      "group": "api",
+      "planned": "K1",
+      "stateful": true,
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Azure SQL Database" },
+        "aws": { "service": "RDS for PostgreSQL" },
+        "gcp": { "service": "Cloud SQL for PostgreSQL" }
+      }
+    },
+    "events": {
+      "job": "Events between parts of the app and scheduled deliveries (IEventTransport, IScheduler).",
+      "group": "platform",
+      "planned": "K2",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Service Bus" },
+        "aws": { "service": "SQS + SNS + EventBridge Scheduler" },
+        "gcp": { "service": "Pub/Sub + Cloud Tasks" }
+      }
+    },
+    "blobs": {
+      "job": "Files the app stores.",
+      "group": "platform",
+      "planned": "K3",
+      "stateful": true,
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Blob Storage" },
+        "aws": { "service": "S3" },
+        "gcp": { "service": "Cloud Storage" }
+      }
+    },
+    "config": {
+      "job": "Configuration the app reads at run time.",
+      "group": "platform",
+      "planned": "K3",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "App Configuration" },
+        "aws": { "service": "AppConfig" },
+        "gcp": { "service": "Parameter Manager" }
+      }
+    },
+    "search-content": {
+      "job": "Search over the property's content and its vectors (ISearchIndex, IVectorStore).",
+      "group": "platform",
+      "planned": "K4",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Azure AI Search" },
+        "aws": { "service": "OpenSearch Service" },
+        "gcp": { "service": "Vertex AI Search" }
+      }
+    },
+    "realtime": {
+      "job": "Live updates to browsers (IRealtimeNotifier).",
+      "group": "platform",
+      "planned": "K4",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Azure SignalR Service" },
+        "aws": { "service": "API Gateway WebSockets" },
+        "gcp": { "service": "None managed; the in-process adapter on Cloud Run" }
+      }
+    },
+    "inference-chat": {
+      "job": "Chat, classification, extraction, and judging models (IChatModel, IClassifier, IStructuredExtractor, IEvaluationJudge).",
+      "group": "platform",
+      "planned": "K5",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Azure OpenAI / Foundry" },
+        "aws": { "service": "Bedrock" },
+        "gcp": { "service": "Vertex AI" }
+      }
+    },
+    "inference-embed": {
+      "job": "Embedding models for content search (IEmbeddingModel).",
+      "group": "platform",
+      "planned": "K5",
+      "dependsOn": ["identity-api"],
+      "services": {
+        "azure": { "service": "Azure OpenAI / Foundry" },
+        "aws": { "service": "Bedrock" },
+        "gcp": { "service": "Vertex AI" }
+      }
+    },
+    "web-guest": {
+      "job": "The guest web app (apps/guest-web).",
+      "group": "web",
+      "planned": "later",
+      "dependsOn": ["api"],
+      "services": {
+        "azure": { "service": "Static Web Apps" },
+        "aws": { "service": "S3 + CloudFront" },
+        "gcp": { "service": "Cloud Storage + Cloud CDN" }
+      }
+    },
+    "web-staff": {
+      "job": "The staff web app (apps/staff-web).",
+      "group": "web",
+      "planned": "later",
+      "dependsOn": ["api"],
+      "services": {
+        "azure": { "service": "Static Web Apps" },
+        "aws": { "service": "S3 + CloudFront" },
+        "gcp": { "service": "Cloud Storage + Cloud CDN" }
+      }
+    },
+    "web-admin": {
+      "job": "The admin web app (apps/admin-web).",
+      "group": "web",
+      "planned": "later",
+      "dependsOn": ["api"],
+      "services": {
+        "azure": { "service": "Static Web Apps" },
+        "aws": { "service": "S3 + CloudFront" },
+        "gcp": { "service": "Cloud Storage + Cloud CDN" }
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+# Infrastructure checks (implementation plan §5.1, K0): every deployment plan against the catalog, every Bicep module
+# built and linted (lint rules at error level fail the job), and the orchestrator's tests. Once the Azure bootstrap has
+# set the sign-in variables, pull requests also get a what-if of the default plan in dev as a comment.
+name: iac-validate
+
+on:
+  pull_request:
+    paths:
+      - "deploy/**"
+      - ".github/workflows/iac-validate.yml"
+      - ".github/workflows/deploy*.yml"
+      - ".github/workflows/drift-detection.yml"
+      - ".github/workflows/teardown.yml"
+  push:
+    branches: [main]
+    paths:
+      - "deploy/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: iac-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Plans, modules, and orchestrator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Orchestrator tests
+        working-directory: deploy/tooling
+        run: python3 -m unittest discover -s tests -t . -v
+
+      - name: Validate every plan
+        run: python3 deploy/tooling/deploy.py validate
+
+      - name: Build and lint every Bicep module
+        run: |
+          az bicep install
+          status=0
+          while IFS= read -r file; do
+            echo "::group::${file}"
+            az bicep lint --file "${file}" || status=1
+            az bicep build --file "${file}" --stdout > /dev/null || status=1
+            echo "::endgroup::"
+          done < <(find deploy/azure -name '*.bicep' | sort)
+          exit "${status}"
+
+  what-if:
+    name: What-if (dev, default plan)
+    needs: validate
+    if: github.event_name == 'pull_request' && vars.AZURE_CLIENT_ID != '' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sign in to Azure (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # A preview: changes are expected on a pull request, so they do not fail the job.
+      - name: What-if
+        run: python3 deploy/tooling/deploy.py drift --env dev --plan azure-only --report "${RUNNER_TEMP}/what-if.md" || true
+
+      - name: Comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "${PR}" --repo "${GITHUB_REPOSITORY}" --body-file "${RUNNER_TEMP}/what-if.md"
