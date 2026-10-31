@@ -31,4 +31,12 @@ public interface IAITraceRecorder
     /// <param name="request">What was run.</param>
     /// <param name="response">How it went.</param>
     void RecordAction(CapabilityRequest request, Result<CapabilityResponse> response);
+
+    /// <summary>
+    /// Records a capability the agent's own code ran to read context for the model, e.g. the guest's open requests, with
+    /// its input and what it returned; the sources in its output may be cited.
+    /// </summary>
+    /// <param name="request">What was run.</param>
+    /// <param name="response">How it went.</param>
+    void RecordContext(CapabilityRequest request, Result<CapabilityResponse> response);
 }

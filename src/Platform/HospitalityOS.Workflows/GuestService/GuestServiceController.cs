@@ -12,6 +12,7 @@ using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Domain.Capabilities.AITraces;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
+using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.Eventing.Handling;
 using HospitalityOS.Ports.Bindings;
@@ -27,7 +28,9 @@ namespace HospitalityOS.Workflows.GuestService;
 /// request into a canonical <c>ServiceRequest</c>. The model reads the message against the property's guest-requestable
 /// services (<c>guestservice.extract</c>) for the service, item, quantity, or problem; the controller then creates the
 /// request through <c>GuestService.CreateRequest</c> for the message's stay, with the message as its idempotency key (P7,
-/// P8), and acknowledges it to the guest in its own words, never the model's, without promising when it will be done. A
+/// P8), and acknowledges it to the guest in its own words, never the model's, without promising when it will be done. The
+/// model also sees the stay's open requests (<c>GuestService.GetRequestStatus</c>), so a guest asking again for one still
+/// open is told it is in hand instead of being sent it twice, unless the model reads that they want more (spec §36, 10). A
 /// message it cannot understand gets a request for more detail; one from a guest who is not in house, or that the
 /// capability refuses, is passed to the front desk. Everything but the request itself commits with the inbox record.
 /// </summary>
@@ -35,6 +38,7 @@ internal sealed partial class GuestServiceController(
     IGuestMessageRepository messages,
     IConversationRepository conversations,
     IServiceRepository services,
+    IServiceRequestRepository requests,
     ITypedExtractor extractor,
     ICapabilityExecutor executor,
     IAITraceRecorder traces,
@@ -48,7 +52,13 @@ internal sealed partial class GuestServiceController(
     public const string Task = "guestservice.extract";
 
     public const string CreateRequestCapability = "GuestService.CreateRequest";
+    public const string RequestStatusCapability = "GuestService.GetRequestStatus";
     public const string Intent = "service_request";
+
+    /// <summary>
+    /// The intent of a message asking again for a request that is still open.
+    /// </summary>
+    public const string RepeatIntent = "service_request_repeat";
 
     public const string ClarifyAnswer =
         "I'm not sure what you'd like us to bring or fix. Could you tell me a little more, or ask the front desk?";
@@ -93,8 +103,12 @@ internal sealed partial class GuestServiceController(
         AITraceTrigger trigger = new(AITraceTrigger.GuestMessage, request.Id.Value, request.Text);
         IReadOnlyList<Service> offered = [.. (await services.ListForPropertyAsync(request.PropertyId, cancellationToken).ConfigureAwait(false))
             .Where(service => service.Details.IsGuestRequestable)];
+        IReadOnlyList<ServiceRequestEntry> open = await OpenRequestsAsync(request, stay, cancellationToken).ConfigureAwait(false);
         Result<TypedExtraction<ServiceRequestExtraction>> extracted = await extractor.ExtractAsync<ServiceRequestExtraction>(
-            Task, request.Text, new Dictionary<string, string> { ["services"] = Describe(offered) }, cancellationToken).ConfigureAwait(false);
+            Task,
+            request.Text,
+            new Dictionary<string, string> { ["services"] = Describe(offered), ["requests"] = Describe(open) },
+            cancellationToken).ConfigureAwait(false);
 
         if (extracted.IsFailure)
         {
@@ -109,6 +123,19 @@ internal sealed partial class GuestServiceController(
         if (!understood.Understood || string.IsNullOrWhiteSpace(understood.ServiceCode))
         {
             await FinishAsync(trigger, request, AITraceOutcome.Uncertain, ClarifyAnswer, null, conversation, cancellationToken).ConfigureAwait(false);
+
+            return;
+        }
+
+        // Asked again while it is still open. A request this very message made (it was redelivered) is no repeat: creating
+        // returns it again.
+        if (!understood.More
+            && open.FirstOrDefault(entry => IsSame(entry, understood)) is { } pending
+            && await requests.FindBySourceMessageAsync(request.Id, cancellationToken).ConfigureAwait(false) is null)
+        {
+            LogRepeated(request.Id.Value, pending.Source.Id);
+            await FinishAsync(trigger, request, AITraceOutcome.Answered, AlreadyRequested(pending), pending.Source, conversation, cancellationToken, RepeatIntent)
+                .ConfigureAwait(false);
 
             return;
         }
@@ -148,6 +175,18 @@ internal sealed partial class GuestServiceController(
     }
 
     /// <summary>
+    /// What the guest is told when they ask again for a request that is still open: that it is in hand, never when.
+    /// </summary>
+    public static string AlreadyRequested(ServiceRequestEntry request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return request.ItemName is { } item
+            ? $"Your request for {Items(item, request.Quantity, article: true)} for {request.Location} is already with our team."
+            : $"Our team already has your report about {request.Location} and will take care of it.";
+    }
+
+    /// <summary>
     /// How many of an item, as a guest reads it: "2 bath towels", or for one "a pillow" (or just "pillow" without the
     /// article).
     /// </summary>
@@ -160,6 +199,56 @@ internal sealed partial class GuestServiceController(
         return quantity != 1 ? $"{quantity} {(name.EndsWith('s') ? name : name + "s")}"
             : article ? $"{("aeiou".Contains(name[0], StringComparison.Ordinal) ? "an" : "a")} {name}"
             : name;
+    }
+
+    /// <summary>
+    /// The stay's open requests, read through the capability like any agent's context (P7) and traced; without them nothing
+    /// counts as a repeat.
+    /// </summary>
+    private async Task<IReadOnlyList<ServiceRequestEntry>> OpenRequestsAsync(GuestMessage message, StayContextId stay, CancellationToken cancellationToken)
+    {
+        CapabilityRequest read = new(RequestStatusCapability, JsonSerializer.SerializeToElement(new GetRequestStatusInput(stay), ContractJson.Options), 1);
+        Result<CapabilityResponse> status = await executor.ExecuteAsync(read, cancellationToken).ConfigureAwait(false);
+        traces.RecordContext(read, status);
+
+        if (status.IsFailure)
+        {
+            LogNoOpenRequests(message.Id.Value, status.Error.Code);
+
+            return [];
+        }
+
+        return status.Value.Output.Deserialize<GetRequestStatusOutput>(ContractJson.Options)!.Requests;
+    }
+
+    /// <summary>
+    /// Whether an open request is for what the model read: the same service and item (in any quantity), or the same
+    /// service without items.
+    /// </summary>
+    private static bool IsSame(ServiceRequestEntry open, ServiceRequestExtraction understood) =>
+        string.Equals(open.ServiceCode, understood.ServiceCode?.Trim(), StringComparison.OrdinalIgnoreCase)
+        && string.Equals(open.ItemCode ?? "", understood.ItemCode?.Trim() ?? "", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The guest's open requests as the model reads them, one per line.
+    /// </summary>
+    private static string Describe(IReadOnlyList<ServiceRequestEntry> open)
+    {
+        if (open.Count == 0)
+        {
+            return "(none)";
+        }
+
+        StringBuilder lines = new();
+
+        foreach (ServiceRequestEntry entry in open)
+        {
+            lines.Append(CultureInfo.InvariantCulture, $"- {entry.Source.Id}: {entry.ServiceCode}, ");
+            lines.Append(entry.ItemCode is { } item ? $"{item} × {entry.Quantity.ToString(CultureInfo.InvariantCulture)}" : $"\"{entry.Description}\"");
+            lines.Append(CultureInfo.InvariantCulture, $"; {entry.WorkStatus?.ToString() ?? entry.Status.ToString()}\n");
+        }
+
+        return lines.ToString();
     }
 
     /// <summary>
@@ -198,10 +287,11 @@ internal sealed partial class GuestServiceController(
         string reply,
         SourceReference? cited,
         Conversation conversation,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string intent = Intent)
     {
         await traces.CompleteAsync(
-            new AITraceCompletion(trigger, outcome, reply, cited is null ? [] : [cited], request.PropertyId, Intent),
+            new AITraceCompletion(trigger, outcome, reply, cited is null ? [] : [cited], request.PropertyId, intent),
             cancellationToken).ConfigureAwait(false);
         await ReplyAsync(conversation, reply, cancellationToken).ConfigureAwait(false);
     }
@@ -220,6 +310,12 @@ internal sealed partial class GuestServiceController(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The service request in guest message {MessageId} could not be read ({ErrorCode}); the guest was told to try again")]
     private partial void LogUnavailable(Guid messageId, string errorCode);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Guest message {MessageId} asks again for service request {ServiceRequestId}, which is still open; nothing was created")]
+    private partial void LogRepeated(Guid messageId, Guid serviceRequestId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The open requests could not be read for guest message {MessageId} ({ErrorCode}); none counts as a repeat")]
+    private partial void LogNoOpenRequests(Guid messageId, string errorCode);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The service request in guest message {MessageId} was refused ({ErrorCode}); the guest was sent to the front desk")]
     private partial void LogRefused(Guid messageId, string errorCode);

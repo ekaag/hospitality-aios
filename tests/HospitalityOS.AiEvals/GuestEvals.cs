@@ -5,20 +5,19 @@ using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.SharedKernel.Results;
-using HospitalityOS.Workflows.Concierge;
 using Xunit;
 
 namespace HospitalityOS.AiEvals;
 
 /// <summary>
-/// Runs each concierge evaluation end to end (spec §36): Alex asks over HTTP, the Concierge Controller answers through
-/// whatever model <c>concierge.answer</c> is bound to, and the turn is checked deterministically (outcome, capability calls,
-/// citations, events in the question's flow) and graded by the model bound to <c>eval.judge</c>. Without settings both are
-/// the Fake model, so CI checks the harness and the platform's side of every scenario; with
-/// <see cref="EvalHost.SettingsVariable"/> it evaluates real models, and <see cref="ReportVariable"/> collects the results
-/// for comparing them.
+/// Runs each evaluation end to end (spec §36): Alex messages the hotel over HTTP; triage, then the Concierge Controller or
+/// the Guest Service Controller, reply through whatever models their tasks are bound to; and the turn is checked
+/// deterministically (outcome, capability calls, citations, events in the message's flow, and the scenario's own checks)
+/// and graded by the model bound to <c>eval.judge</c>. Without settings all are the Fake model, so CI checks the harness and
+/// the platform's side of every scenario; with <see cref="EvalHost.SettingsVariable"/> it evaluates real models, and
+/// <see cref="ReportVariable"/> collects the results for comparing them.
 /// </summary>
-public sealed class ConciergeEvals
+public sealed class GuestEvals
 {
     /// <summary>
     /// The environment variable naming a file each result is appended to, as one JSON line.
@@ -33,7 +32,7 @@ public sealed class ConciergeEvals
 
     [Theory]
     [MemberData(nameof(Scenarios))]
-    public async Task Concierge_MeetsTheScenario(int number)
+    public async Task TheReply_MeetsTheScenario(int number)
     {
         EvalScenario scenario = Phase1Scenarios.All.Single(candidate => candidate.Number == number);
         await using EvalHost host = new(scenario);
@@ -46,10 +45,14 @@ public sealed class ConciergeEvals
         (GuestMessageResponse question, GuestMessageResponse answer) = await host.AskAsync(scenario.Input, Cancellation);
         IReadOnlyList<EventMessage> events = await host.EventsAsync(Cancellation);
         Guid correlation = events.Single(message => message.EventType == "GuestMessageReceived" && message.AggregateId == question.Id.Value).CorrelationId;
-        AITraceResponse? trace = await host.TraceAsync(correlation, Concierge.AnswerTask, Cancellation);
+        IReadOnlyList<EventMessage> flow = scenario.SettledBy is { } settled
+            ? await host.FlowUntilAsync(correlation, settled, Cancellation)
+            : [.. events.Where(message => message.CorrelationId == correlation)];
+        AITraceResponse? trace = await host.TraceAsync(correlation, scenario.Agent, Cancellation);
         Result<Judgement> judgement = await host.JudgeAsync(new JudgeRequest(scenario.Criteria, scenario.Input, answer.Text, scenario.Reference), Cancellation);
+        IReadOnlyList<string> verified = scenario.Verify is null ? [] : await scenario.Verify(host, new EvalTurn(question, answer, trace, flow), Cancellation);
 
-        EvalResult result = EvalResult.Of(scenario, answer, trace, [.. events.Where(message => message.CorrelationId == correlation)], judgement, host.Live);
+        EvalResult result = EvalResult.Of(scenario, answer, trace, flow, judgement, verified, host.Live);
         TestContext.Current.SendDiagnosticMessage(result.Summary);
         await ReportAsync(result);
 
@@ -79,7 +82,7 @@ public sealed class ConciergeEvals
 }
 
 /// <summary>
-/// How a scenario went: what the concierge said and did, the judge's verdict, and every check that failed.
+/// How a scenario went: what the agent said and did, the judge's verdict, and every check that failed.
 /// </summary>
 public sealed record EvalResult(
     int Scenario,
@@ -88,14 +91,14 @@ public sealed record EvalResult(
     string? Models,
     string Answer,
     AITraceOutcome? Outcome,
-    IReadOnlyList<string> ToolCalls,
+    IReadOnlyList<string> CapabilityCalls,
     IReadOnlyList<SourceReference> Citations,
     double? JudgeScore,
     string? JudgeReasoning,
     IReadOnlyList<string> Failures)
 {
     public string Summary =>
-        $"{Scenario}. {Name} [{Models}]: {(Failures.Count == 0 ? "PASS" : "FAIL")}\n  answer: {Answer}\n  outcome: {Outcome}; tools: {string.Join(", ", ToolCalls)}"
+        $"{Scenario}. {Name} [{Models}]: {(Failures.Count == 0 ? "PASS" : "FAIL")}\n  answer: {Answer}\n  outcome: {Outcome}; capabilities: {string.Join(", ", CapabilityCalls)}"
         + $"\n  judge: {JudgeScore?.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)} {JudgeReasoning}";
 
     public static EvalResult Of(
@@ -104,16 +107,18 @@ public sealed record EvalResult(
         AITraceResponse? trace,
         IReadOnlyList<EventMessage> flow,
         Result<Judgement> judgement,
+        IReadOnlyList<string> verified,
         bool live)
     {
         ArgumentNullException.ThrowIfNull(scenario);
         ArgumentNullException.ThrowIfNull(answer);
         ArgumentNullException.ThrowIfNull(flow);
+        ArgumentNullException.ThrowIfNull(verified);
 
         List<string> failures = [];
-        string[] tools = trace is null
+        string[] calls = trace is null
             ? []
-            : [.. trace.Body.CapabilityCalls.Where(call => call.Purpose == CapabilityCallPurpose.Tool).Select(call => call.ErrorCode is null ? call.Capability : $"{call.Capability} ({call.ErrorCode})")];
+            : [.. trace.Body.CapabilityCalls.Select(call => call.ErrorCode is null ? call.Capability : $"{call.Capability} ({call.ErrorCode})")];
         IReadOnlyList<SourceReference> citations = trace?.Body.Response?.Citations ?? [];
 
         if (answer.Sender != MessageSender.Concierge)
@@ -130,9 +135,11 @@ public sealed record EvalResult(
             failures.Add($"The outcome is {trace.Outcome}, not {string.Join(" or ", scenario.AllowedOutcomes)}.");
         }
 
-        failures.AddRange(scenario.ExpectedCapabilities.Where(capability => !tools.Contains(capability)).Select(capability => $"The model did not call {capability}."));
+        failures.AddRange(scenario.ExpectedCapabilities.Where(capability => !calls.Contains(capability)).Select(capability => $"The turn did not call {capability}."));
         failures.AddRange(scenario.ExpectedCitations.Where(source => !citations.Contains(source)).Select(source => $"The answer does not cite {source.Type} {source.Id} version {source.Version}."));
-        failures.AddRange(scenario.ExpectedEvents.Where(type => flow.All(message => message.EventType != type)).Select(type => $"The question's flow has no {type}."));
+        failures.AddRange(scenario.ExpectedEvents.Where(type => flow.All(message => message.EventType != type)).Select(type => $"The message's flow has no {type}."));
+        failures.AddRange((scenario.UnexpectedEvents ?? []).Where(type => flow.Any(message => message.EventType == type)).Select(type => $"The message's flow has a {type}."));
+        failures.AddRange(verified);
 
         if (judgement.IsFailure)
         {
@@ -159,7 +166,7 @@ public sealed record EvalResult(
             models,
             answer.Text,
             trace?.Outcome,
-            tools,
+            calls,
             citations,
             judgement.IsSuccess ? judgement.Value.Score : null,
             judgement.IsSuccess ? judgement.Value.Reasoning : null,

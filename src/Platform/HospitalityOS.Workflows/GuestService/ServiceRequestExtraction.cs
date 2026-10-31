@@ -16,4 +16,6 @@ internal sealed record ServiceRequestExtraction(
     [property: Description("How many items; 1 unless the guest said otherwise.")]
     int? Quantity,
     [property: Description("For a service without items, the problem in the guest's words, e.g. \"The air conditioning is not working\"; otherwise empty.")]
-    string? Description);
+    string? Description,
+    [property: Description("Whether the guest wants this on top of one of their open requests listed (e.g. \"two more towels\"), or reports a different problem from those listed; false when they ask again for, or chase, one listed, or none is listed.")]
+    bool More);

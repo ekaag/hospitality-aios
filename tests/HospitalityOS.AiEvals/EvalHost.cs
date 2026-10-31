@@ -12,6 +12,8 @@ using HospitalityOS.Ports.Inference;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.Workflows.Concierge;
+using HospitalityOS.Workflows.GuestService;
+using HospitalityOS.Workflows.Triage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -27,9 +29,10 @@ namespace HospitalityOS.AiEvals;
 
 /// <summary>
 /// The real API host with the Aurora Grand seeded at <see cref="Now"/> (a Monday, 18:00 in London) and events dispatched,
-/// where Alex, in house in room 412, asks the concierge over HTTP. Its models are the Fake model playing the scenario's
-/// scripted answer and the Fake judge, unless <see cref="SettingsVariable"/> names a settings file binding
-/// <c>concierge.answer</c> and <c>eval.judge</c> to real models (see <c>Settings/anthropic.json</c>).
+/// where Alex, in house in room 412, messages the hotel over HTTP. Its models are the Fake model playing the scenario's
+/// scripted triage, request reading, and answer, and the Fake judge, unless <see cref="SettingsVariable"/> names a settings
+/// file binding <c>intent.classify</c>, <c>guestservice.extract</c>, <c>concierge.answer</c>, and <c>eval.judge</c> to
+/// real models (see <c>Settings/anthropic.json</c>).
 /// </summary>
 public sealed class EvalHost : IAsyncDisposable
 {
@@ -56,11 +59,20 @@ public sealed class EvalHost : IAsyncDisposable
 
         string? settings = Environment.GetEnvironmentVariable(SettingsVariable);
         Live = !string.IsNullOrWhiteSpace(settings);
-        FakeScriptOptions script = new();
 
         foreach (FakeChatRuleOptions rule in scenario.Scripted)
         {
-            script.Chat.Add(rule);
+            Script.Chat.Add(rule);
+        }
+
+        foreach (FakeClassificationRuleOptions rule in scenario.Triaged ?? [])
+        {
+            Script.Classification.Add(rule);
+        }
+
+        foreach (FakeExtractionRuleOptions rule in scenario.Read ?? [])
+        {
+            Script.Extraction.Add(rule);
         }
 
         factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -77,8 +89,12 @@ public sealed class EvalHost : IAsyncDisposable
             {
                 builder.UseSetting("Inference:Providers:scripted:Adapter", "Fake");
                 builder.UseSetting("Inference:Providers:scripted:Settings:Script", "concierge");
-                builder.UseSetting($"Inference:Tasks:{Concierge.AnswerTask}:Provider", "scripted");
-                builder.UseSetting($"Inference:Tasks:{Concierge.AnswerTask}:Model", "fake-concierge");
+                foreach (string task in new[] { GuestTriage.Task, GuestServiceController.Task, Concierge.AnswerTask })
+                {
+                    builder.UseSetting($"Inference:Tasks:{task}:Provider", "scripted");
+                    builder.UseSetting($"Inference:Tasks:{task}:Model", "fake-scripted");
+                }
+
                 builder.UseSetting($"Inference:Tasks:{JudgeTask}:Provider", "fake");
                 builder.UseSetting($"Inference:Tasks:{JudgeTask}:Model", "fake-judge");
             }
@@ -87,7 +103,7 @@ public sealed class EvalHost : IAsyncDisposable
             {
                 services.AddSingleton<TimeProvider>(Clock);
                 services.AddInferenceTask<IEvaluationJudge>(JudgeTask);
-                services.Configure<FakeInferenceOptions>(options => options.Scripts["concierge"] = script);
+                services.Configure<FakeInferenceOptions>(options => options.Scripts["concierge"] = Script);
                 services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     options.TokenValidationParameters.ValidIssuer = Issuer;
@@ -114,13 +130,19 @@ public sealed class EvalHost : IAsyncDisposable
     public FakeTimeProvider Clock { get; } = new(Now);
 
     /// <summary>
+    /// What the Fake models play: the scenario's rules, to which an arrangement may add rules that depend on records it made
+    /// (they take effect from the next model call). Real models ignore it.
+    /// </summary>
+    public FakeScriptOptions Script { get; } = new();
+
+    /// <summary>
     /// A client acting as the property's administrator.
     /// </summary>
     public HttpClient Admin() => Client(new Dictionary<string, object> { ["sub"] = "eval-admin", ["tenant_id"] = Seed.TenantId.Value.ToString(), ["role"] = "Admin" });
 
     /// <summary>
-    /// Asks the concierge as Alex in a new conversation and waits for the answer: about ten seconds with the Fake model,
-    /// two minutes with real ones.
+    /// Messages the hotel as Alex in a new conversation and waits for the reply: about ten seconds with the Fake model, two
+    /// minutes with real ones.
     /// </summary>
     public async Task<(GuestMessageResponse Question, GuestMessageResponse Answer)> AskAsync(string text, CancellationToken cancellationToken)
     {
@@ -179,6 +201,42 @@ public sealed class EvalHost : IAsyncDisposable
         IReadOnlyList<StoredEvent> stored = await scope.ServiceProvider.GetRequiredService<IEventStore>().ReadAsync(new EventStoreQuery(TenantId: Seed.TenantId), cancellationToken);
 
         return [.. stored.Select(entry => entry.Message)];
+    }
+
+    /// <summary>
+    /// The events of a flow once it holds an event of <paramref name="type"/>, as work that follows the reply is done: about
+    /// ten seconds with the Fake model, two minutes with real ones.
+    /// </summary>
+    public async Task<IReadOnlyList<EventMessage>> FlowUntilAsync(Guid correlationId, string type, CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(Live ? TimeSpan.FromMinutes(2) : TimeSpan.FromSeconds(10));
+
+        while (true)
+        {
+            EventMessage[] flow = [.. (await EventsAsync(timeout.Token)).Where(message => message.CorrelationId == correlationId)];
+
+            if (flow.Any(message => message.EventType == type))
+            {
+                return flow;
+            }
+
+            Clock.Advance(TimeSpan.FromMilliseconds(50));
+            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
+        }
+    }
+
+    /// <summary>
+    /// Reads the property's records in its tenant, e.g. through a repository.
+    /// </summary>
+    public async Task<T> ReadInTenantAsync<T>(Func<IServiceProvider, Task<T>> read)
+    {
+        ArgumentNullException.ThrowIfNull(read);
+
+        await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(Seed.TenantId);
+
+        return await read(scope.ServiceProvider);
     }
 
     /// <summary>

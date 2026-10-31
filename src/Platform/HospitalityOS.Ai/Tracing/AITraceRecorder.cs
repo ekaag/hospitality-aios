@@ -206,13 +206,19 @@ internal sealed class AITraceRecorder(
         }
     }
 
-    public void RecordAction(CapabilityRequest request, Result<CapabilityResponse> response)
+    public void RecordAction(CapabilityRequest request, Result<CapabilityResponse> response) =>
+        RecordRun(CapabilityCallPurpose.Action, request, response);
+
+    public void RecordContext(CapabilityRequest request, Result<CapabilityResponse> response) =>
+        RecordRun(CapabilityCallPurpose.Context, request, response);
+
+    private void RecordRun(CapabilityCallPurpose purpose, CapabilityRequest request, Result<CapabilityResponse> response)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(response);
 
         RecordCapabilityCall(
-            CapabilityCallPurpose.Action,
+            purpose,
             response.IsSuccess ? $"{response.Value.Name}@{response.Value.Version}" : request.Version is { } version ? $"{request.Name}@{version}" : request.Name,
             null,
             request.Input,

@@ -94,7 +94,8 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
         AITraceResponse trace = await TraceAsync(api, Seed.TenantId, flow[0].CorrelationId, Cancellation, GuestServiceController.Task);
         Assert.Equal((AITraceOutcome.Answered, GuestServiceController.Intent), (trace.Outcome, trace.Intent));
-        CapabilityCall created = Assert.Single(trace.Body.CapabilityCalls);
+        Assert.Equal(["GuestService.GetRequestStatus@1", "GuestService.CreateRequest@1"], trace.Body.CapabilityCalls.Select(call => call.Capability));
+        CapabilityCall created = trace.Body.CapabilityCalls[1];
         Assert.Equal((CapabilityCallPurpose.Action, "GuestService.CreateRequest@1", (string?)null), (created.Purpose, created.Capability, created.ErrorCode));
         Assert.Equal([new SourceReference("ServiceRequest", request.Id.Value, 1)], trace.Body.Response!.Citations);
     }
@@ -196,6 +197,59 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AskingAgainWhileTheRequestIsOpen_CreatesNothing_AndTellsTheGuestItIsInHand()
+    {
+        (GuestMessageResponse first, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+        ServiceRequest request = await RequestForAsync(first);
+        await WorkForAsync(request, assigned: true);
+
+        (GuestMessageResponse again, GuestMessageResponse answer) = await AskAsGuestAsync("Can you send two towels to my room?");
+
+        Assert.Equal("Your request for 2 bath towels for Room 412 is already with our team.", answer.Text);
+        Assert.Null(await FindRequestAsync(again));
+        IReadOnlyList<EventMessage> events = await api.EventsAsync(Seed.TenantId, Cancellation);
+        Assert.Single(events, message => message.EventType == "ServiceRequestCreated");
+        Assert.Single(events, message => message.EventType == "HumanActionRequested");
+
+        AITraceResponse trace = await TraceAsync(api, Seed.TenantId, (await FlowAsync(again))[0].CorrelationId, Cancellation, GuestServiceController.Task);
+        Assert.Equal((AITraceOutcome.Answered, GuestServiceController.RepeatIntent), (trace.Outcome, trace.Intent));
+        CapabilityCall read = Assert.Single(trace.Body.CapabilityCalls);
+        Assert.Equal((CapabilityCallPurpose.Context, "GuestService.GetRequestStatus@1"), (read.Purpose, read.Capability));
+        Assert.Equal([new SourceReference("ServiceRequest", request.Id.Value, 1)], trace.Body.Response!.Citations);
+        Assert.Contains(request.Id.Value.ToString(), Assert.Single(trace.Body.ModelCalls).SystemPrompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AskingForMoreWhileTheRequestIsOpen_CreatesASecondRequest()
+    {
+        (GuestMessageResponse first, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+        await WorkForAsync(await RequestForAsync(first));
+
+        (GuestMessageResponse more, GuestMessageResponse answer) = await AskAsGuestAsync("Could we have two more towels, please?");
+
+        Assert.Equal("Of course. I've asked our team to bring 2 bath towels to Room 412.", answer.Text);
+        Assert.NotEqual((await RequestForAsync(first)).Id, (await RequestForAsync(more)).Id);
+    }
+
+    [Fact]
+    public async Task AskingAgainOnceTheRequestIsDone_CreatesANewRequest()
+    {
+        (GuestMessageResponse first, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+        HumanAction work = await WorkForAsync(await RequestForAsync(first), assigned: true);
+        Actor assignee = Actor.Staff(work.AssignedTo!.Value.ToString(), StaffRole.Worker);
+        await ActOnAsync(assignee, "HumanAction.UpdateStatus", new UpdateActionStatusInput(work.Id.Value, ActionStatus.Accepted), work);
+        await ActOnAsync(assignee, "HumanAction.UpdateStatus", new UpdateActionStatusInput(work.Id.Value, ActionStatus.InProgress), work);
+        await RequestUntilAsync(first, ServiceRequestStatus.InProgress);
+        await ActOnAsync(assignee, "HumanAction.Complete", new CompleteActionInput(work.Id.Value, null), work);
+        await RequestUntilAsync(first, ServiceRequestStatus.Completed);
+
+        (GuestMessageResponse again, GuestMessageResponse answer) = await AskAsGuestAsync("Can you send two towels to my room?");
+
+        Assert.Equal("Of course. I've asked our team to bring 2 bath towels to Room 412.", answer.Text);
+        Assert.NotNull(await FindRequestAsync(again));
+    }
+
+    [Fact]
     public async Task ARequestTheModelCannotRead_GetsARequestForDetail_AndCreatesNothing()
     {
         (GuestMessageResponse question, GuestMessageResponse answer) = await AskAsGuestAsync("Can you send a unicorn up?");
@@ -216,7 +270,7 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         Assert.Null(await FindRequestAsync(question));
         AITraceResponse trace = await TraceAsync(api, Seed.TenantId, (await FlowAsync(question))[0].CorrelationId, Cancellation, GuestServiceController.Task);
         Assert.Equal(AITraceOutcome.Failed, trace.Outcome);
-        Assert.NotNull(Assert.Single(trace.Body.CapabilityCalls).ErrorCode);
+        Assert.NotNull(Assert.Single(trace.Body.CapabilityCalls, call => call.Purpose == CapabilityCallPurpose.Action).ErrorCode);
     }
 
     [Fact]
@@ -246,10 +300,11 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         script.Classification.Add(new FakeClassificationRuleOptions("AC", GuestTriage.ServiceRequestLabel));
         script.Classification.Add(new FakeClassificationRuleOptions("unicorn", GuestTriage.ServiceRequestLabel));
         script.Extraction.Add(Read("nine towels", "housekeeping.amenities", "bath_towel", 9));
+        script.Extraction.Add(Read("two more towels", "housekeeping.amenities", "bath_towel", 2, more: true));
         script.Extraction.Add(Read("two towels", "housekeeping.amenities", "bath_towel", 2));
         script.Extraction.Add(Read("pillow", "housekeeping.amenities", "pillow", null));
-        script.Extraction.Add(new FakeExtractionRuleOptions("AC", """{"understood":true,"serviceCode":"maintenance.repair","itemCode":null,"quantity":null,"description":"The air conditioning is not working"}"""));
-        script.Extraction.Add(new FakeExtractionRuleOptions("unicorn", """{"understood":false,"serviceCode":null,"itemCode":null,"quantity":null,"description":null}"""));
+        script.Extraction.Add(new FakeExtractionRuleOptions("AC", """{"understood":true,"serviceCode":"maintenance.repair","itemCode":null,"quantity":null,"description":"The air conditioning is not working","more":false}"""));
+        script.Extraction.Add(new FakeExtractionRuleOptions("unicorn", """{"understood":false,"serviceCode":null,"itemCode":null,"quantity":null,"description":null,"more":false}"""));
         script.Chat.Add(new FakeChatRuleOptions(Reply: """{"status":"Unknown","answer":"","citations":[]}"""));
 
         builder.UseSetting("Inference:Providers:scripted:Adapter", "Fake");
@@ -263,8 +318,8 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
         builder.ConfigureTestServices(services => services.Configure<FakeInferenceOptions>(options => options.Scripts["guests"] = script));
 
-        static FakeExtractionRuleOptions Read(string says, string service, string item, int? quantity) =>
-            new(says, JsonSerializer.Serialize(new { understood = true, serviceCode = service, itemCode = item, quantity, description = (string?)null }));
+        static FakeExtractionRuleOptions Read(string says, string service, string item, int? quantity, bool more = false) =>
+            new(says, JsonSerializer.Serialize(new { understood = true, serviceCode = service, itemCode = item, quantity, description = (string?)null, more }));
     }
 
     private async Task<(GuestMessageResponse Question, GuestMessageResponse Answer)> AskAsGuestAsync(string text)
