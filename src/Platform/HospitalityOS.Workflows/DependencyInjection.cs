@@ -26,7 +26,8 @@ public static class DependencyInjection
     /// answers (<see cref="Concierge.Concierge.AnswerTask"/>); and the Guest Service Controller, which turns service requests
     /// into canonical requests (<see cref="GuestServiceController.Task"/>) and asks staff to do the work each request needs
     /// (<see cref="WorkRequester.Name"/>) and moves each request on as that work starts, completes, or fails
-    /// (<see cref="RequestContinuation"/>); and the HumanAction Router, which assigns new work, reroutes it when duty
+    /// (<see cref="RequestContinuation"/>), telling the guest once it is done (<see cref="CompletionNotifier.Name"/>); and the
+    /// HumanAction Router, which assigns new work, reroutes it when duty
     /// changes, and hands on work not accepted within <see cref="HumanActionRoutingOptions.AcceptanceTimeout"/>. Each that
     /// uses a model declares its task with its prompt. The host must also bind <c>IScheduler</c>.
     /// </summary>
@@ -47,6 +48,7 @@ public static class DependencyInjection
             .AddEventHandler<HumanActionFailedV1, RequestContinuation>(RequestContinuation.OnFailed)
             .AddEventHandler<HumanActionCancelledV1, RequestContinuation>(RequestContinuation.OnCancelled)
             .AddEventHandler<HumanActionExpiredV1, RequestContinuation>(RequestContinuation.OnExpired)
+            .AddEventHandler<ServiceRequestCompletedV1, CompletionNotifier>(CompletionNotifier.Name)
             .AddEventHandler<HumanActionRequestedV1, NewWorkRouting>(NewWorkRouting.Name)
             .AddEventHandler<StaffMemberDutyChangedV1, DutyRerouting>(DutyRerouting.Name)
             .AddEventHandler<StaffMemberCreatedV1, DutyRerouting>(DutyRerouting.JoinedName)

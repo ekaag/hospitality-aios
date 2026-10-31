@@ -142,17 +142,24 @@ internal sealed partial class GuestServiceController(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.ItemName is { } item)
-        {
-            string name = item.ToLower(CultureInfo.CurrentCulture);
-            string what = request.Quantity == 1
-                ? $"{("aeiou".Contains(name[0], StringComparison.Ordinal) ? "an" : "a")} {name}"
-                : $"{request.Quantity} {(name.EndsWith('s') ? name : name + "s")}";
+        return request.ItemName is { } item
+            ? $"Of course. I've asked our team to bring {Items(item, request.Quantity, article: true)} to {request.Location}."
+            : $"Thanks for letting us know. I've asked our team to take care of it in {request.Location}.";
+    }
 
-            return $"Of course. I've asked our team to bring {what} to {request.Location}.";
-        }
+    /// <summary>
+    /// How many of an item, as a guest reads it: "2 bath towels", or for one "a pillow" (or just "pillow" without the
+    /// article).
+    /// </summary>
+    public static string Items(string itemName, int quantity, bool article)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemName);
 
-        return $"Thanks for letting us know. I've asked our team to take care of it in {request.Location}.";
+        string name = itemName.ToLower(CultureInfo.CurrentCulture);
+
+        return quantity != 1 ? $"{quantity} {(name.EndsWith('s') ? name : name + "s")}"
+            : article ? $"{("aeiou".Contains(name[0], StringComparison.Ordinal) ? "an" : "a")} {name}"
+            : name;
     }
 
     /// <summary>

@@ -18,6 +18,8 @@
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
     <ProjectReference Include="../HospitalityOS.Application/HospitalityOS.Application.csproj" />
     <ProjectReference Include="../HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
+    <ProjectReference Include="../../Core/HospitalityOS.IntegrationContracts/HospitalityOS.IntegrationContracts.csproj" />
+    <ProjectReference Include="../HospitalityOS.IntegrationRuntime/HospitalityOS.IntegrationRuntime.csproj" />
   </ItemGroup>
 
   <ItemGroup>

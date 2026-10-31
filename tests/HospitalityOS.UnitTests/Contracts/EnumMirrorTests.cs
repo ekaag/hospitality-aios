@@ -30,7 +30,7 @@ public sealed class EnumMirrorTests
         { typeof(Model.Operations.HumanActions.HumanActionType), typeof(Contract.HumanActions.ActionType) },
         { typeof(Model.Operations.HumanActions.HumanActionPriority), typeof(Contract.HumanActions.ActionPriority) },
         { typeof(Model.Operations.HumanActions.HumanActionStatus), typeof(Contract.HumanActions.ActionStatus) },
-    };
+        { typeof(Model.Guests.Notifications.GuestNotificationStatus), typeof(Contract.Messaging.NotificationStatus) },    };
 
     [Theory]
     [MemberData(nameof(Mirrors))]

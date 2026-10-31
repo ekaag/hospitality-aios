@@ -1,5 +1,6 @@
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Guests.GuestMessages;
+using HospitalityOS.Domain.Guests.Notifications;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
@@ -23,6 +24,7 @@ internal static class UniqueKeys
         Key<OperatingHours>("subject", hours => (hours.PropertyId, hours.Subject)),
         Key<GuestMessage>("clientMessageId", message => message.ClientMessageId is { } clientId ? (message.ConversationId, clientId) : null),
         Key<ServiceRequest>("sourceMessageId", request => request.Origin.SourceMessageId),
+        Key<GuestNotification>("key", notification => notification.Key),
         Key<IntegrationConfiguration>("kind", configuration => (configuration.PropertyId, configuration.Kind)),
         Key<ExternalReference>("externalId", reference => (reference.PropertyId, reference.ProviderName, reference.EntityType, reference.ExternalId)),
 

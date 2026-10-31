@@ -10,6 +10,7 @@ using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
+using HospitalityOS.Domain.Guests.Notifications;
 using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
@@ -70,6 +71,7 @@ public static class DependencyInjection
         services.TryAddScoped<IServiceRequestRepository, EfServiceRequestRepository>();
         services.TryAddScoped<IHumanActionRepository, EfHumanActionRepository>();
         services.TryAddScoped<IStaffMemberRepository, EfStaffMemberRepository>();
+        services.TryAddScoped<IGuestNotificationRepository, EfGuestNotificationRepository>();
         services.TryAddScoped<IGuestRepository, EfGuestRepository>();
         services.TryAddScoped<IStayContextRepository, EfStayContextRepository>();
         services.TryAddScoped<IConversationRepository, EfConversationRepository>();

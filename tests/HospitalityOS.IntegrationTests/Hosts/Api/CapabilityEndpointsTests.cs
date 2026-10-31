@@ -103,7 +103,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
         Assert.Equal(
             [
                 "Dining.GetMenu", "Dining.SearchRestaurants", "Events.SearchPropertyEvents", "GuestService.CreateRequest", "GuestService.GetRequestStatus",
-                "HumanAction.Assign", "HumanAction.Complete", "HumanAction.Create", "HumanAction.UpdateStatus",
+                "HumanAction.Assign", "HumanAction.Complete", "HumanAction.Create", "HumanAction.UpdateStatus", "Messaging.NotifyGuest",
                 "Property.GetOperatingHours", "Property.GetPolicy", "Property.GetProperty", "Property.SearchContent",
             ],
             capabilities.Select(capability => capability.GetProperty("name").GetString()));

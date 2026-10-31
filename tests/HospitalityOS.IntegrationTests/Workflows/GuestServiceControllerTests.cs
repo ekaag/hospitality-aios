@@ -11,6 +11,7 @@ using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.Eventing.Replay;
+using HospitalityOS.Integrations.Mock.Messaging;
 using HospitalityOS.IntegrationTests.Hosts.Api;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Execution;
@@ -99,7 +100,7 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task TheTowelJourney_FromTheGuestsMessageToTheCompletedRequest_SharesOneCorrelationId()
+    public async Task TheTowelJourney_FromTheGuestsMessageToTheGuestBeingTold_SharesOneCorrelationId_AndTellsTheGuestOnce()
     {
         (GuestMessageResponse question, _) = await AskAsGuestAsync("Can you send two towels to my room?");
         ServiceRequest request = await RequestForAsync(question);
@@ -108,15 +109,38 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
         await ActOnAsync(assignee, "HumanAction.UpdateStatus", new UpdateActionStatusInput(work.Id.Value, ActionStatus.Accepted), work);
         await ActOnAsync(assignee, "HumanAction.UpdateStatus", new UpdateActionStatusInput(work.Id.Value, ActionStatus.InProgress), work);
+        await RequestUntilAsync(question, ServiceRequestStatus.InProgress);
         await ActOnAsync(assignee, "HumanAction.Complete", new CompleteActionInput(work.Id.Value, "Left at the door"), work);
 
         string[] journey =
         [
-            "GuestMessageReceived", "GuestMessageTriaged", "ServiceRequestCreated", "GuestMessageSent", "HumanActionRequested", "HumanActionAssigned",
+            "GuestMessageReceived", "GuestMessageTriaged", "ServiceRequestCreated", "HumanActionRequested", "HumanActionAssigned",
             "HumanActionAccepted", "HumanActionStarted", "ServiceRequestUpdated", "HumanActionCompleted", "ServiceRequestCompleted",
+            "GuestNotificationRequested", "GuestNotificationSent",
         ];
-        IReadOnlyList<EventMessage> flow = await FlowUntilAsync(question, "ServiceRequestCompleted");
+        IReadOnlyList<EventMessage> flow = await FlowUntilAsync(question, "GuestNotificationSent");
         Assert.All(journey, type => Assert.Single(flow, message => message.EventType == type));
+
+        // The acknowledgement and the news that it is done.
+        Assert.Equal(2, flow.Count(message => message.EventType == "GuestMessageSent"));
+
+        const string done = "Good news: your 2 bath towels have been delivered to Room 412.";
+        using HttpClient guest = api.Guest(Seed.TenantId, alex);
+        ConversationResponse conversation = new(question.ConversationId, Seed.PropertyId, Seed.AlexStay, ConversationStatus.Open, default);
+        IReadOnlyList<GuestMessageResponse> messages = await MessagesUntilAsync(api, guest, conversation, 3, Cancellation);
+        Assert.Equal((MessageSender.Concierge, done), (messages[^1].Sender, messages[^1].Text));
+
+        // Delivered again, completion tells the guest nothing more (Journey 19).
+        await using (AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope())
+        {
+            Assert.True(await scope.ServiceProvider.GetRequiredService<IEventReplayer>().ReplayAsync(new EventReplayRequest(TenantId: Seed.TenantId), Cancellation) > 0);
+        }
+
+        api.Clock.Advance(TimeSpan.FromSeconds(5));
+        await AskAsGuestAsync("We need another pillow.");
+        Assert.Single(await api.EventsAsync(Seed.TenantId, Cancellation), message => message.EventType == "GuestNotificationSent");
+        Assert.Equal([done], api.Factory.Services.GetRequiredService<MockMessagingGateway>().DeliveredFor(Seed.PropertyId).Select(delivered => delivered.Message.Body));
+        Assert.Equal(3, (await MessagesUntilAsync(api, guest, conversation, 3, Cancellation)).Count);
     }
 
     [Fact]
@@ -292,6 +316,21 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
             new CapabilityRequest(capability, JsonSerializer.SerializeToElement(input, ContractJson.Options), ContinuesFlow: work.Details.CorrelationId),
             Cancellation);
         Assert.True(result.IsSuccess, result.IsFailure ? $"{result.Error.Code}: {result.Error.Message}" : null);
+    }
+
+    /// <summary>
+    /// The message's request once it reaches <paramref name="status"/>, as continuation moves it on.
+    /// </summary>
+    private async Task RequestUntilAsync(GuestMessageResponse question, ServiceRequestStatus status)
+    {
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+
+        while ((await RequestForAsync(question)).Status != status)
+        {
+            api.Clock.Advance(TimeSpan.FromMilliseconds(50));
+            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
+        }
     }
 
     private async Task<ServiceRequest> RequestForAsync(GuestMessageResponse question) =>

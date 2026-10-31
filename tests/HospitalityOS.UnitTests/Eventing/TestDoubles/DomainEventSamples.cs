@@ -13,6 +13,8 @@ using HospitalityOS.Domain.Guests.Conversations.Events;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests.Events;
+using HospitalityOS.Domain.Guests.Notifications;
+using HospitalityOS.Domain.Guests.Notifications.Events;
 using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Guests.StayContexts.Events;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
@@ -165,6 +167,9 @@ public static class DomainEventSamples
         new GuestMessageReceived(towelMessage, alexChat, auroraGrand, alex, alexStay, Now),
         new GuestMessageSent(new GuestMessageId(Id(24)), alexChat, auroraGrand, MessageSender.Concierge, Now),
         new GuestMessageTriaged(towelMessage, alexChat, auroraGrand, alex, alexStay, MessageIntent.ServiceRequest, Now),
+        new GuestNotificationRequested(new GuestNotificationId(Id(30)), auroraGrand, alexChat, alex, ConversationChannel.Web, "ServiceRequest", towelRequest.Value, Now),
+        new GuestNotificationSent(new GuestNotificationId(Id(30)), alexChat, "MockMessaging", "mock-msg-000001", Now),
+        new GuestNotificationFailed(new GuestNotificationId(Id(31)), alexChat, "integration.rejected", Now),
         new GuestQuestionAnswered(towelMessage, new GuestMessageId(Id(24)), alexChat, auroraGrand, AnswerOutcome.Answered, Now),
         new CapabilityInvocationRequested(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),
         new CapabilityInvocationSucceeded(new CapabilityInvocationId(Id(25)), "GuestService.CreateRequest", 1, Now),

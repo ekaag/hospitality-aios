@@ -655,6 +655,77 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
                     b.ToTable("Guests", (string)null);
                 });
 
+            modelBuilder.Entity("HospitalityOS.Domain.Guests.Notifications.GuestNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("GuestId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderName")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("RequestedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("SentAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SubjectType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("GuestNotifications", (string)null);
+                });
+
             modelBuilder.Entity("HospitalityOS.Domain.Guests.StayContexts.StayContext", b =>
                 {
                     b.Property<Guid>("Id")

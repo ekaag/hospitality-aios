@@ -6,6 +6,7 @@ using HospitalityOS.Capabilities.Dining;
 using HospitalityOS.Capabilities.Execution;
 using HospitalityOS.Capabilities.GuestService;
 using HospitalityOS.Capabilities.HumanActions;
+using HospitalityOS.Capabilities.Messaging;
 using HospitalityOS.Capabilities.Properties;
 using HospitalityOS.Capabilities.Registry;
 using HospitalityOS.Capabilities.Retrieval;
@@ -80,7 +81,8 @@ public static class DependencyInjection
             .AddCapability<CreateActionCapability>()
             .AddCapability<AssignActionCapability>()
             .AddCapability<UpdateActionStatusCapability>()
-            .AddCapability<CompleteActionCapability>();
+            .AddCapability<CompleteActionCapability>()
+            .AddCapability<NotifyGuestCapability>();
     }
 
     /// <summary>

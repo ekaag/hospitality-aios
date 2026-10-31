@@ -15,6 +15,7 @@ using HospitalityOS.Domain.Dining.Restaurants.Events;
 using HospitalityOS.Domain.Guests.Conversations.Events;
 using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests.Events;
+using HospitalityOS.Domain.Guests.Notifications.Events;
 using HospitalityOS.Domain.Guests.StayContexts.Events;
 using HospitalityOS.Domain.Integrations.ExternalReferences.Events;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations.Events;
@@ -97,6 +98,9 @@ internal static class EventContractMapper
             GuestMessageReceived e => new(new GuestMessageReceivedV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.GuestId, e.StayContextId)),
             GuestMessageSent e => new(new GuestMessageSentV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.Sender.ToString())),
             GuestMessageTriaged e => new(new GuestMessageTriagedV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.GuestId, e.StayContextId, e.Intent.ToString())),
+            GuestNotificationRequested e => new(new GuestNotificationRequestedV1(e.GuestNotificationId.Value, e.PropertyId, e.ConversationId, e.GuestId, e.Channel.ToString(), e.SubjectType, e.SubjectId)),
+            GuestNotificationSent e => new(new GuestNotificationSentV1(e.GuestNotificationId.Value, e.ConversationId, e.ProviderName, e.ProviderMessageId)),
+            GuestNotificationFailed e => new(new GuestNotificationFailedV1(e.GuestNotificationId.Value, e.ConversationId, e.Reason)),
             GuestQuestionAnswered e => new(new GuestQuestionAnsweredV1(e.QuestionMessageId, e.AnswerMessageId, e.ConversationId, e.PropertyId, e.Outcome.ToString())),
             CapabilityInvocationRequested e => new(new CapabilityInvocationRequestedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
             CapabilityInvocationSucceeded e => new(new CapabilityInvocationSucceededV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
