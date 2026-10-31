@@ -6,7 +6,7 @@ React + TypeScript + Vite apps over the HospitalityOS API, in one pnpm workspace
 |---|---|---|---|
 | `guest-web` | The guest's chat and request status (J3) | Guest | http://localhost:5173 |
 | `staff-web` | The property's work in four views, with live updates (J2) | Worker, Manager | http://localhost:5174 |
-| `admin-web` | Configuration and the AI trace viewer (J4) | Admin, Manager | http://localhost:5175 |
+| `admin-web` | The property's configuration, integrations, and the AI trace viewer (J4); managers read, administrators also edit | Admin, Manager | http://localhost:5175 |
 | `packages/api-client` | The typed API client, generated from `openapi.json` | | |
 | `packages/dev-auth` | The local "sign in as" picker | | |
 | `packages/realtime` | Live updates: `useRealtime` over the API's SignalR hub | | |

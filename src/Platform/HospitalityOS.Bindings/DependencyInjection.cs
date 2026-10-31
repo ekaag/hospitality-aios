@@ -19,7 +19,8 @@ public static class DependencyInjection
     public const string InferenceHealthCheckName = "inference";
 
     /// <summary>
-    /// Registers binding resolution, startup validation, and the <c>Bindings</c> configuration section.
+    /// Registers binding resolution, startup validation, the <c>Bindings</c> configuration section, and
+    /// <see cref="IBindingInventory"/>.
     /// Call once from the host; then declare each port with <see cref="AddPortBinding{TPort}"/>.
     /// </summary>
     public static IServiceCollection AddBindings(this IServiceCollection services, IConfiguration configuration)
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.TryAddSingleton(new BindingRoot(configuration.GetSection(BindingRoot.SectionName)));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<BindingStartupCheck>, BindingStartupValidator>());
         services.AddOptions<BindingStartupCheck>().ValidateOnStart();
+        services.TryAddSingleton<IBindingInventory, BindingInventory>();
 
         return services;
     }

@@ -22,6 +22,11 @@ internal abstract class PortRegistration
 
     public abstract Type PortType { get; }
 
+    /// <summary>
+    /// The port's binding configuration, as resolution reads it.
+    /// </summary>
+    public abstract PortBindingConfiguration ConfigurationIn(IServiceProvider services);
+
     public abstract IEnumerable<string> Validate(IServiceProvider services);
 
     public abstract Task<IReadOnlyList<BindingHealth>> CheckHealthAsync(IServiceProvider services, CancellationToken cancellationToken);
@@ -39,6 +44,8 @@ internal sealed class PortRegistration<TPort> : PortRegistration
     }
 
     public override Type PortType => typeof(TPort);
+
+    public override PortBindingConfiguration ConfigurationIn(IServiceProvider services) => GetResolver(services).Configuration;
 
     public override IEnumerable<string> Validate(IServiceProvider services)
     {

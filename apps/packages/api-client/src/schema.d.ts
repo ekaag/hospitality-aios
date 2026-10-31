@@ -628,6 +628,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Integration.Get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work": {
         parameters: {
             query?: never;
@@ -1086,6 +1102,31 @@ export interface components {
          * @enum {unknown}
          */
         ConfirmationPolicy: "NotRequired" | "Required";
+        /**
+         * @description The external systems a property connects to (spec §10).
+         * @enum {unknown}
+         */
+        ConnectorKind: "Pms" | "Cms" | "Pos" | "Messaging" | "Crs" | "Payment";
+        /** @description One of a property's connectors: which provider serves it and whether it is healthy. Settings are never shown. */
+        ConnectorResponse: {
+            /** @description Which connector. */
+            kind: components["schemas"]["ConnectorKind"];
+            /** @description The chosen provider, e.g. `Mock`; null when not configured. */
+            provider: null | string;
+            /** @description Whether it is in use. */
+            status: components["schemas"]["ConnectorStatus"];
+            /** @description Whether its last check passed; null when it is not checked (not configured or disabled). */
+            healthy: null | boolean;
+            /** @description What the check found, when it failed. */
+            problem: null | string;
+            /** @description The providers this deployment has for the connector. */
+            availableProviders: components["schemas"]["ValueListOfstring"];
+        };
+        /**
+         * @description Whether a property uses one of its connectors.
+         * @enum {unknown}
+         */
+        ConnectorStatus: "NotConfigured" | "Active" | "Disabled";
         /** @description A content item, normalized (trimmed; tags lower-cased and sorted). */
         ContentItemResponse: {
             /**
@@ -1519,6 +1560,33 @@ export interface components {
          * @enum {unknown}
          */
         IdempotencyPolicy: "Inherent" | "KeyRequired";
+        /** @description Which model an AI task uses for the tenant (P6). */
+        InferenceTaskResponse: {
+            /** @description The task, e.g. `concierge.answer`. */
+            task: string;
+            /** @description What it does, e.g. `ChatModel`. */
+            capability: string;
+            /** @description The configured provider; empty when the task has no route. */
+            provider: string;
+            /** @description The provider's adapter, e.g. `Anthropic`. */
+            adapter: string;
+            /** @description The model. */
+            model: string;
+            /** @description Where it falls back to, as `provider/model`, in order. */
+            fallbacks: components["schemas"]["ValueListOfstring"];
+        };
+        /**
+         * @description `GET /api/v1/integrations` (spec §34 Integrations): what a property and the platform are connected to, read-only.
+         *             Providers, bindings, and models change through configuration, not this API.
+         */
+        IntegrationsResponse: {
+            /** @description The property's connectors, one per kind. */
+            connectors: components["schemas"]["ValueListOfConnectorResponse"];
+            /** @description The platform's port bindings. */
+            ports: components["schemas"]["ValueListOfPortBindingResponse"];
+            /** @description The AI tasks and their models. */
+            inferenceTasks: components["schemas"]["ValueListOfInferenceTaskResponse"];
+        };
         /** @description Asks for a token for one of the dev personas. */
         IssueDevTokenRequest: {
             /** @description The persona's key; required. */
@@ -1751,6 +1819,18 @@ export interface components {
          * @enum {unknown}
          */
         PolicyType: "AgeRestriction" | "Children" | "Pets" | "Smoking" | "CheckInCheckOut" | "Cancellation" | "Payment" | "DressCode" | "Safety" | "Noise" | "Other";
+        /** @description What one of the platform's ports is bound to (P6): its adapter, never its settings. */
+        PortBindingResponse: {
+            /** @description The port, e.g. `EventTransport`. */
+            port: string;
+            /**
+             * @description Where the binding applies: `Default`, `Operation:{name}`, `Tenant`, or
+             *                 `Tenant operation:{name}`.
+             */
+            scope: string;
+            /** @description The adapter, e.g. `InMemory`. */
+            adapter: string;
+        };
         /** @description A guest's message to the property. */
         PostMessageRequest: {
             /** @description The message; required, at most 4000 characters. */
@@ -2312,13 +2392,16 @@ export interface components {
         ValueListOfAITraceSummary: components["schemas"]["AITraceSummary"][];
         ValueListOfCapabilityCall: components["schemas"]["CapabilityCall"][];
         ValueListOfCapabilityCaller: components["schemas"]["CapabilityCaller"][];
+        ValueListOfConnectorResponse: components["schemas"]["ConnectorResponse"][];
         ValueListOfDietaryTag: components["schemas"]["DietaryTag"][];
         ValueListOfFlowEvent: components["schemas"]["FlowEvent"][];
         ValueListOfHoursClosure: components["schemas"]["HoursClosure"][];
         ValueListOfHoursOverride: components["schemas"]["HoursOverride"][];
+        ValueListOfInferenceTaskResponse: components["schemas"]["InferenceTaskResponse"][];
         ValueListOfMenuItemResponse: components["schemas"]["MenuItemResponse"][];
         ValueListOfModelAttempt: components["schemas"]["ModelAttempt"][];
         ValueListOfModelCall: components["schemas"]["ModelCall"][];
+        ValueListOfPortBindingResponse: components["schemas"]["PortBindingResponse"][];
         ValueListOfReplyVerdict: components["schemas"]["ReplyVerdict"][];
         ValueListOfServiceItemResponse: components["schemas"]["ServiceItemResponse"][];
         ValueListOfSourceReference: components["schemas"]["SourceReference"][];
@@ -4475,6 +4558,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GuestRequestResponse"][];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "Integration.Get": {
+        parameters: {
+            query: {
+                propertyId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationsResponse"];
                 };
             };
             /** @description The request failed; the problem says why. */

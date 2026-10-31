@@ -1,6 +1,7 @@
-import { createApiClient, type ApiClient, type Schema } from "@hospitalityos/api-client";
+import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { useEffect, useMemo, useState } from "react";
+import { Admin } from "./admin/Admin";
 
 const roles = ["Admin", "Manager"] as const;
 
@@ -30,37 +31,37 @@ export function App() {
 }
 
 /**
- * The tenant's properties, read through the typed client to show the sign-in works; configuration and traces arrive
- * with J4.
+ * The admin surface for the caller's property: the tenant's first, as Phase 1 runs one property per tenant.
  */
-function Signed({ client }: { client: ApiClient; session: DevSession }) {
-  const [properties, setProperties] = useState<Schema<"PropertyResponse">[] | undefined>();
+function Signed({ client, session }: { client: ApiClient; session: DevSession }) {
+  const [propertyId, setPropertyId] = useState<string | undefined>();
   const [problem, setProblem] = useState<string | undefined>();
 
   useEffect(() => {
     let current = true;
 
-    client.GET("/api/v1/properties").then(({ data }) => {
-      if (current) {
-        setProperties(data);
-        setProblem(data ? undefined : "The properties could not be read.");
-      }
-    }, () => current && setProblem("The API is not reachable."));
+    client.GET("/api/v1/properties").then(
+      ({ data }) => {
+        if (current) {
+          setPropertyId(data?.[0]?.id);
+          setProblem(data?.[0] ? undefined : "There is no property to show.");
+        }
+      },
+      () => {
+        if (current) {
+          setProblem("The API is not reachable.");
+        }
+      },
+    );
 
     return () => {
       current = false;
     };
   }, [client]);
 
-  return (
-    <section aria-label="Properties">
-      <h2>Properties</h2>
-      {problem && <p role="alert">{problem}</p>}
-      <ul>
-        {properties?.map((property) => (
-          <li key={property.id}>{property.name}</li>
-        ))}
-      </ul>
-    </section>
-  );
+  if (problem) {
+    return <p role="alert">{problem}</p>;
+  }
+
+  return propertyId ? <Admin client={client} propertyId={propertyId} isAdmin={session.persona.role === "Admin"} /> : <p>Loading…</p>;
 }

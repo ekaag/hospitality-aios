@@ -3102,6 +3102,52 @@
         ]
       }
     },
+    "/api/v1/integrations": {
+      "get": {
+        "tags": [
+          "Integrations"
+        ],
+        "operationId": "Integration.Get",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/work": {
       "get": {
         "tags": [
@@ -4261,6 +4307,72 @@
         ],
         "description": "Whether a capability runs only after the person it acts for explicitly confirms it (spec §11\n`confirmationPolicy`). Confirmation is asked for only where policy requires it (spec §35)."
       },
+      "ConnectorKind": {
+        "enum": [
+          "Pms",
+          "Cms",
+          "Pos",
+          "Messaging",
+          "Crs",
+          "Payment"
+        ],
+        "description": "The external systems a property connects to (spec §10)."
+      },
+      "ConnectorResponse": {
+        "required": [
+          "kind",
+          "provider",
+          "status",
+          "healthy",
+          "problem",
+          "availableProviders"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "Which connector.",
+            "$ref": "#/components/schemas/ConnectorKind"
+          },
+          "provider": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The chosen provider, e.g. `Mock`; null when not configured."
+          },
+          "status": {
+            "description": "Whether it is in use.",
+            "$ref": "#/components/schemas/ConnectorStatus"
+          },
+          "healthy": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether its last check passed; null when it is not checked (not configured or disabled)."
+          },
+          "problem": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What the check found, when it failed."
+          },
+          "availableProviders": {
+            "description": "The providers this deployment has for the connector.",
+            "$ref": "#/components/schemas/ValueListOfstring"
+          }
+        },
+        "description": "One of a property's connectors: which provider serves it and whether it is healthy. Settings are never shown."
+      },
+      "ConnectorStatus": {
+        "enum": [
+          "NotConfigured",
+          "Active",
+          "Disabled"
+        ],
+        "description": "Whether a property uses one of its connectors."
+      },
       "ContentItemResponse": {
         "required": [
           "id",
@@ -5279,6 +5391,67 @@
         ],
         "description": "How a capability keeps a repeated invocation from repeating its effect (spec §11 `idempotency`, P8)."
       },
+      "InferenceTaskResponse": {
+        "required": [
+          "task",
+          "capability",
+          "provider",
+          "adapter",
+          "model",
+          "fallbacks"
+        ],
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "The task, e.g. `concierge.answer`."
+          },
+          "capability": {
+            "type": "string",
+            "description": "What it does, e.g. `ChatModel`."
+          },
+          "provider": {
+            "type": "string",
+            "description": "The configured provider; empty when the task has no route."
+          },
+          "adapter": {
+            "type": "string",
+            "description": "The provider's adapter, e.g. `Anthropic`."
+          },
+          "model": {
+            "type": "string",
+            "description": "The model."
+          },
+          "fallbacks": {
+            "description": "Where it falls back to, as `provider/model`, in order.",
+            "$ref": "#/components/schemas/ValueListOfstring"
+          }
+        },
+        "description": "Which model an AI task uses for the tenant (P6)."
+      },
+      "IntegrationsResponse": {
+        "required": [
+          "connectors",
+          "ports",
+          "inferenceTasks"
+        ],
+        "type": "object",
+        "properties": {
+          "connectors": {
+            "description": "The property's connectors, one per kind.",
+            "$ref": "#/components/schemas/ValueListOfConnectorResponse"
+          },
+          "ports": {
+            "description": "The platform's port bindings.",
+            "$ref": "#/components/schemas/ValueListOfPortBindingResponse"
+          },
+          "inferenceTasks": {
+            "description": "The AI tasks and their models.",
+            "$ref": "#/components/schemas/ValueListOfInferenceTaskResponse"
+          }
+        },
+        "description": "`GET /api/v1/integrations` (spec §34 Integrations): what a property and the platform are connected to, read-only.\n        Providers, bindings, and models change through configuration, not this API."
+      },
       "IssueDevTokenRequest": {
         "type": "object",
         "properties": {
@@ -5826,6 +5999,29 @@
           "Other"
         ],
         "description": "The topic of a policy."
+      },
+      "PortBindingResponse": {
+        "required": [
+          "port",
+          "scope",
+          "adapter"
+        ],
+        "type": "object",
+        "properties": {
+          "port": {
+            "type": "string",
+            "description": "The port, e.g. `EventTransport`."
+          },
+          "scope": {
+            "type": "string",
+            "description": "Where the binding applies: `Default`, `Operation:{name}`, `Tenant`, or\n            `Tenant operation:{name}`."
+          },
+          "adapter": {
+            "type": "string",
+            "description": "The adapter, e.g. `InMemory`."
+          }
+        },
+        "description": "What one of the platform's ports is bound to (P6): its adapter, never its settings."
       },
       "PostMessageRequest": {
         "required": [
@@ -7244,6 +7440,12 @@
           "$ref": "#/components/schemas/CapabilityCaller"
         }
       },
+      "ValueListOfConnectorResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ConnectorResponse"
+        }
+      },
       "ValueListOfDietaryTag": {
         "type": "array",
         "items": {
@@ -7268,6 +7470,12 @@
           "$ref": "#/components/schemas/HoursOverride"
         }
       },
+      "ValueListOfInferenceTaskResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/InferenceTaskResponse"
+        }
+      },
       "ValueListOfMenuItemResponse": {
         "type": "array",
         "items": {
@@ -7284,6 +7492,12 @@
         "type": "array",
         "items": {
           "$ref": "#/components/schemas/ModelCall"
+        }
+      },
+      "ValueListOfPortBindingResponse": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PortBindingResponse"
         }
       },
       "ValueListOfReplyVerdict": {
@@ -7560,6 +7774,9 @@
     },
     {
       "name": "ServiceRequests"
+    },
+    {
+      "name": "Integrations"
     },
     {
       "name": "Work"
