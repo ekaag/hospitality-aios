@@ -19,6 +19,7 @@ using HospitalityOS.Domain.Guests.StayContexts.Events;
 using HospitalityOS.Domain.Integrations.ExternalReferences.Events;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations.Events;
 using HospitalityOS.Domain.Operations.HumanActions.Events;
+using HospitalityOS.Domain.Operations.StaffMembers.Events;
 using HospitalityOS.Domain.Organizations.Organizations.Events;
 using HospitalityOS.Domain.Properties.AccommodationTypes.Events;
 using HospitalityOS.Domain.Properties.AccommodationUnits.Events;
@@ -84,6 +85,9 @@ internal static class EventContractMapper
             HumanActionFailed e => new(new HumanActionFailedV1(e.HumanActionId.Value, e.StaffMemberId, e.ServiceRequestId, e.Reason)),
             HumanActionCancelled e => new(new HumanActionCancelledV1(e.HumanActionId.Value, e.ServiceRequestId, e.Reason)),
             HumanActionExpired e => new(new HumanActionExpiredV1(e.HumanActionId.Value, e.ServiceRequestId)),
+            StaffMemberCreated e => new(new StaffMemberCreatedV1(e.StaffMemberId, e.PropertyId, e.Details.DisplayName, e.Details.Skills!, e.IsOnDuty)),
+            StaffMemberUpdated e => new(new StaffMemberUpdatedV1(e.StaffMemberId, e.Details.DisplayName, e.Details.Skills!)),
+            StaffMemberDutyChanged e => new(new StaffMemberDutyChangedV1(e.StaffMemberId, e.PropertyId, e.IsOnDuty)),
             GuestRegistered e => new(new GuestRegisteredV1(e.GuestId)),
             GuestProfileUpdated e => new(new GuestProfileUpdatedV1(e.GuestId)),
             StayContextCreated e => new(new StayContextCreatedV1(e.StayContextId, e.PropertyId, e.GuestId, e.Arrival, e.Departure, e.AccommodationUnitId, e.Status.ToString())),

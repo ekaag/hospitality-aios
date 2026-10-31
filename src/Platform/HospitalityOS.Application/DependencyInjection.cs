@@ -13,6 +13,7 @@ using HospitalityOS.Application.Properties;
 using HospitalityOS.Application.Restaurants;
 using HospitalityOS.Application.Services;
 using HospitalityOS.Application.Spaces;
+using HospitalityOS.Application.Staff;
 using HospitalityOS.Ports.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,7 +32,7 @@ public static class DependencyInjection
     /// <see cref="ISpaceAdministration"/>, <see cref="IAmenityAdministration"/>, <see cref="IOperatingHoursAdministration"/>,
     /// <see cref="IPolicyAdministration"/>, <see cref="IContentAdministration"/>, <see cref="IRestaurantAdministration"/>,
     /// <see cref="IMenuAdministration"/>, <see cref="IPropertyEventAdministration"/>, <see cref="IServiceAdministration"/>,
-    /// <see cref="IAccommodationAdministration"/>), and the guest-facing <see cref="IGuestConversations"/>.
+    /// <see cref="IAccommodationAdministration"/>, <see cref="IStaffAdministration"/>), and the guest-facing <see cref="IGuestConversations"/>.
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -52,6 +53,7 @@ public static class DependencyInjection
         services.TryAddScoped<IMenuAdministration, MenuAdministration>();
         services.TryAddScoped<IPropertyEventAdministration, PropertyEventAdministration>();
         services.TryAddScoped<IServiceAdministration, ServiceAdministration>();
+        services.TryAddScoped<IStaffAdministration, StaffAdministration>();
         services.TryAddScoped<IAccommodationAdministration, AccommodationAdministration>();
         services.TryAddScoped<IGuestConversations, GuestConversations>();
 

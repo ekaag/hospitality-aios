@@ -18,6 +18,7 @@ internal sealed class HumanActionConfiguration : IEntityTypeConfiguration<HumanA
         builder.Property(action => action.StartedAt);
         builder.Property(action => action.FailureReason);
         builder.Property(action => action.EndedAt);
+        builder.HasIndex(nameof(HumanAction.PropertyId), nameof(HumanAction.Status));
         builder.ComplexProperty(action => action.Details, details =>
         {
             details.Property(value => value.Location).HasJsonConversion();

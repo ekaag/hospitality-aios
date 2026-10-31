@@ -34,6 +34,9 @@ public static class AdministrationActions
     public const string PropertyEventCancel = "PropertyEvent.Cancel";
     public const string ServiceCreate = "Service.Create";
     public const string ServiceUpdate = "Service.Update";
+    public const string StaffMemberCreate = "StaffMember.Create";
+    public const string StaffMemberUpdate = "StaffMember.Update";
+    public const string StaffMemberSetDuty = "StaffMember.SetDuty";
     public const string AccommodationTypeCreate = "AccommodationType.Create";
     public const string AccommodationUnitCreate = "AccommodationUnit.Create";
 }

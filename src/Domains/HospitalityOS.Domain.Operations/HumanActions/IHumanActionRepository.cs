@@ -19,6 +19,12 @@ public interface IHumanActionRepository
     Task<IReadOnlyList<HumanAction>> ListForServiceRequestAsync(ServiceRequestId serviceRequestId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// A property's actions not yet in a final state (requested, assigned, accepted, or in progress), oldest first: the
+    /// work the router balances and reroutes (I3).
+    /// </summary>
+    Task<IReadOnlyList<HumanAction>> ListOpenForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new action, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(HumanAction humanAction, CancellationToken cancellationToken);

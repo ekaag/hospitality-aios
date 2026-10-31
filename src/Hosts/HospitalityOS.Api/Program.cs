@@ -21,6 +21,7 @@ using HospitalityOS.Api.Restaurants;
 using HospitalityOS.Api.Seeding;
 using HospitalityOS.Api.Services;
 using HospitalityOS.Api.Spaces;
+using HospitalityOS.Api.Staff;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
 using HospitalityOS.Capabilities;
@@ -32,9 +33,11 @@ using HospitalityOS.Integrations.Mock;
 using HospitalityOS.Integrations.Native;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
+using HospitalityOS.Ports.Scheduling;
 using HospitalityOS.Ports.Search;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.Workflows;
+using HospitalityOS.Workflows.Routing;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +54,7 @@ builder.Services.AddLocalAdapters();
 builder.Services.AddAnthropicAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();
+builder.Services.AddPortBinding<IScheduler>();
 builder.Services.AddPortBinding<ISearchIndex>();
 builder.Services.AddPortBinding<IVectorStore>();
 // Inference tasks are declared by the modules that run them (from G4 on) and routed by the Inference section.
@@ -67,6 +71,7 @@ builder.Services.AddAi().AddContentIndexing();
 builder.Services.Configure<AITraceRedactionOptions>(builder.Configuration.GetSection(AITraceRedactionOptions.SectionName));
 // The autonomous controllers: the concierge answers guest messages (Inference:Tasks:concierge.answer picks its model).
 builder.Services.AddWorkflows();
+builder.Services.Configure<HumanActionRoutingOptions>(builder.Configuration.GetSection(HumanActionRoutingOptions.SectionName));
 // Providers available to every property; each property's integration configuration selects one per connector.
 builder.Services.AddIntegrationRuntime();
 builder.Services.AddMockIntegrations();
@@ -101,6 +106,7 @@ app.MapRestaurantEndpoints();
 app.MapMenuEndpoints();
 app.MapPropertyEventEndpoints();
 app.MapServiceEndpoints();
+app.MapStaffEndpoints();
 app.MapAITraceEndpoints();
 app.MapConversationEndpoints();
 

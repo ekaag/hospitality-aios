@@ -74,6 +74,16 @@ public static class AdministrationErrors
     public static Error ServiceNotFound { get; } = Error.NotFound("service.not_found", "There is no such service.");
 
     /// <summary>
+    /// The staff member does not exist in the caller's tenant.
+    /// </summary>
+    public static Error StaffMemberNotFound { get; } = Error.NotFound("staff_member.not_found", "There is no such staff member.");
+
+    /// <summary>
+    /// A worker may put only themselves on or off duty; managers and administrators may put anyone.
+    /// </summary>
+    public static Error DutyForbidden { get; } = Error.Forbidden("staff_member.duty_forbidden", "Only managers may put someone else on or off duty.");
+
+    /// <summary>
     /// The room type does not exist in the caller's tenant.
     /// </summary>
     public static Error AccommodationTypeNotFound { get; } = Error.NotFound("accommodation_type.not_found", "There is no such room type.");

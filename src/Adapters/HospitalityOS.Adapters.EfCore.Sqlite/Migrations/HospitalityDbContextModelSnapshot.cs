@@ -897,7 +897,48 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
 
                     b.HasIndex("TenantId");
 
+                    b.HasIndex("PropertyId", "Status");
+
                     b.ToTable("HumanActions", (string)null);
+                });
+
+            modelBuilder.Entity("HospitalityOS.Domain.Operations.StaffMembers.StaffMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsOnDuty")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.ComplexProperty(typeof(Dictionary<string, object>), "Details", "HospitalityOS.Domain.Operations.StaffMembers.StaffMember.Details#StaffMemberDetails", b1 =>
+                        {
+                            b1.IsRequired();
+
+                            b1.Property<string>("DisplayName")
+                                .IsRequired()
+                                .HasColumnType("TEXT");
+
+                            b1.Property<string>("Skills")
+                                .HasColumnType("TEXT");
+                        });
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("StaffMembers", (string)null);
                 });
 
             modelBuilder.Entity("HospitalityOS.Domain.Organizations.Organizations.Organization", b =>

@@ -136,7 +136,7 @@ public sealed class AuroraGrandSeedTests : IAsyncDisposable
         Assert.Contains(auditBefore, audit => (audit.Action, audit.Outcome, audit.Actor, audit.PropertyId)
             == ("Property.Create", AuditOutcome.Succeeded, new Actor(ActorType.System, "reference-data-seed"), AuroraGrand.PropertyId));
         Assert.Contains(auditBefore, audit => (audit.Action, audit.TargetId) == ("Menu.Create", AuroraGrand.SaffronDinner.ToString()));
-        Assert.Equal((0, 44), (again.Created, again.Existing));
+        Assert.Equal((0, 47), (again.Created, again.Existing));
         Assert.Equal(StayImportOutcome.Unchanged, Assert.Single(again.StayImport.Imported).Outcome);
         Assert.Equal(auditBefore.Count, (await api.AuditAsync(Tenant, Cancellation)).Count);
         Assert.Equal(eventsBefore, (await api.EventsAsync(Tenant, Cancellation)).Count);

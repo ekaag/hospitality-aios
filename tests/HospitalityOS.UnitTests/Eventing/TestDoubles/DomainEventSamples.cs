@@ -21,6 +21,8 @@ using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations.Events;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Operations.HumanActions.Events;
+using HospitalityOS.Domain.Operations.StaffMembers;
+using HospitalityOS.Domain.Operations.StaffMembers.Events;
 using HospitalityOS.Domain.Organizations.Organizations.Events;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
 using HospitalityOS.Domain.Properties.AccommodationTypes.Events;
@@ -150,6 +152,9 @@ public static class DomainEventSamples
         new HumanActionFailed(deliverTowels, maria, towelRequest, "Guest not in room; do not disturb sign", Now),
         new HumanActionCancelled(deliverTowels, towelRequest, "Guest cancelled the request", Now),
         new HumanActionExpired(deliverTowels, null, Now),
+        new StaffMemberCreated(maria, auroraGrand, new StaffMemberDetails("Maria Lopez", ["housekeeping"]), true, Now),
+        new StaffMemberUpdated(maria, new StaffMemberDetails("Maria Lopez", ["housekeeping", "minibar"]), Now),
+        new StaffMemberDutyChanged(maria, auroraGrand, false, Now),
 
         new GuestRegistered(alex, Now),
         new GuestProfileUpdated(alex, Now),

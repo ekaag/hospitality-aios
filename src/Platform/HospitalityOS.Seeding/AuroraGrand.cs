@@ -265,6 +265,21 @@ public static class AuroraGrand
     public static Guid MaintenanceRepair { get; } = Id(101);
 
     /// <summary>
+    /// Sam Patel, housekeeping, on duty; the subject of Sam's staff token.
+    /// </summary>
+    public static StaffMemberId SamPatel { get; } = new(Id(300));
+
+    /// <summary>
+    /// Jo Okafor, housekeeping, on duty.
+    /// </summary>
+    public static StaffMemberId JoOkafor { get; } = new(Id(301));
+
+    /// <summary>
+    /// Ravi Mehta, maintenance, on duty.
+    /// </summary>
+    public static StaffMemberId RaviMehta { get; } = new(Id(302));
+
+    /// <summary>
     /// Alex Morgan, the in-house guest in room 412.
     /// </summary>
     public static GuestId Alex { get; } = new(Id(200));

@@ -12,6 +12,7 @@ using HospitalityOS.Eventing.Replay;
 using HospitalityOS.IntegrationTests.Hosts.Api;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Tenancy;
+using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.Workflows.Concierge;
 using HospitalityOS.Workflows.GuestService;
 using HospitalityOS.Workflows.Triage;
@@ -58,8 +59,8 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
         HumanAction work = await WorkForAsync(request);
         Assert.Equal(
-            (HumanActionType.DeliverItems, "Deliver 2 × Bath towel", request.Details.Location, HumanActionPriority.Normal, request.DueAt, HumanActionStatus.Requested),
-            (work.Details.ActionType, work.Details.Instructions, work.Details.Location, work.Details.Priority, work.Deadline, work.Status));
+            (HumanActionType.DeliverItems, "Deliver 2 × Bath towel", request.Details.Location, HumanActionPriority.Normal, request.DueAt),
+            (work.Details.ActionType, work.Details.Instructions, work.Details.Location, work.Details.Priority, work.Deadline));
         Assert.Equal([new ActionItem("Bath towel", 2, "bath_towel")], work.Details.Items!);
         Assert.Equal(["housekeeping"], work.Details.SkillsRequired!);
         Assert.Equal(WorkRequester.Name, work.Details.RequestedByAgent);
@@ -68,6 +69,11 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         EventMessage requested = Assert.Single(flow, message => message.EventType == "ServiceRequestCreated" && message.AggregateId == request.Id.Value);
         Assert.Equal(requested.EventId, work.Details.SourceEventId);
         Assert.Contains(flow, message => message.EventType == "HumanActionRequested" && message.AggregateId == work.Id.Value);
+
+        // Both housekeepers are free, so the router takes them by name (spec §9).
+        HumanAction routed = await WorkForAsync(request, assigned: true);
+        Assert.Equal((HumanActionStatus.Assigned, (StaffMemberId?)Seed.JoOkafor), (routed.Status, routed.AssignedTo));
+        Assert.Contains(await FlowAsync(question), message => message.EventType == "HumanActionAssigned" && message.AggregateId == work.Id.Value);
         Assert.Contains(flow, message => message.EventType == "GuestMessageSent" && message.AggregateId == answer.Id.Value);
         Assert.DoesNotContain(flow, message => message.EventType == "GuestQuestionAnswered");
 
@@ -225,9 +231,10 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         await FindRequestAsync(question) ?? throw new Xunit.Sdk.XunitException($"No service request was created for '{question.Text}'.");
 
     /// <summary>
-    /// The one human action asked for a request, waiting for it: it is requested after the request is acknowledged.
+    /// The one human action asked for a request, waiting for it (and, when <paramref name="assigned"/>, for the router to
+    /// assign it): it is requested after the request is acknowledged.
     /// </summary>
-    private async Task<HumanAction> WorkForAsync(ServiceRequest request)
+    private async Task<HumanAction> WorkForAsync(ServiceRequest request, bool assigned = false)
     {
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
         timeout.CancelAfter(TimeSpan.FromSeconds(10));
@@ -239,7 +246,7 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
                 scope.ServiceProvider.GetRequiredService<TenantContext>().Set(Seed.TenantId);
                 IReadOnlyList<HumanAction> work = await scope.ServiceProvider.GetRequiredService<IHumanActionRepository>().ListForServiceRequestAsync(request.Id, timeout.Token);
 
-                if (work.Count > 0)
+                if (work.Count > 0 && (!assigned || work[0].AssignedTo is not null))
                 {
                     return Assert.Single(work);
                 }

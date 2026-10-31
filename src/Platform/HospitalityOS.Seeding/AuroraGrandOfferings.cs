@@ -3,12 +3,14 @@ using HospitalityOS.Application.Hours;
 using HospitalityOS.Application.Menus;
 using HospitalityOS.Application.Restaurants;
 using HospitalityOS.Application.Services;
+using HospitalityOS.Application.Staff;
 using HospitalityOS.Contracts.Api.Events;
 using HospitalityOS.Contracts.Api.Hours;
 using HospitalityOS.Contracts.Api.Menus;
 using HospitalityOS.Contracts.Api.Properties;
 using HospitalityOS.Contracts.Api.Restaurants;
 using HospitalityOS.Contracts.Api.Services;
+using HospitalityOS.Contracts.Api.Staff;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.Activities;
 using HospitalityOS.Contracts.Capabilities.Dining;
@@ -19,8 +21,8 @@ using HospitalityOS.SharedKernel.Pricing;
 namespace HospitalityOS.Seeding;
 
 /// <summary>
-/// What the Aurora Grand offers: restaurants with their hours and menus, tonight's and tomorrow's events, and the
-/// services guests can request.
+/// What the Aurora Grand offers: restaurants with their hours and menus, tonight's and tomorrow's events, the services
+/// guests can request, and the staff on duty to do them.
 /// </summary>
 internal sealed class AuroraGrandOfferings(
     SeedSteps steps,
@@ -28,13 +30,15 @@ internal sealed class AuroraGrandOfferings(
     IOperatingHoursAdministration hours,
     IMenuAdministration menus,
     IPropertyEventAdministration propertyEvents,
-    IServiceAdministration services)
+    IServiceAdministration services,
+    IStaffAdministration staff)
 {
     public async Task SeedAsync(DateOnly localToday, CancellationToken cancellationToken)
     {
         await SeedDiningAsync(cancellationToken).ConfigureAwait(false);
         await SeedEventsAsync(localToday, cancellationToken).ConfigureAwait(false);
         await SeedServicesAsync(cancellationToken).ConfigureAwait(false);
+        await SeedStaffAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SeedDiningAsync(CancellationToken cancellationToken)
@@ -209,4 +213,19 @@ internal sealed class AuroraGrandOfferings(
             id,
             () => services.GetAsync(id, cancellationToken),
             () => services.CreateAsync(request, cancellationToken));
+
+    // Two housekeepers, so the router has a choice to balance, and one engineer.
+    private async Task SeedStaffAsync(CancellationToken cancellationToken)
+    {
+        await StaffMemberAsync(AuroraGrand.SamPatel, "Sam Patel", "housekeeping", cancellationToken).ConfigureAwait(false);
+        await StaffMemberAsync(AuroraGrand.JoOkafor, "Jo Okafor", "housekeeping", cancellationToken).ConfigureAwait(false);
+        await StaffMemberAsync(AuroraGrand.RaviMehta, "Ravi Mehta", "maintenance", cancellationToken).ConfigureAwait(false);
+    }
+
+    private Task<StaffMemberResponse> StaffMemberAsync(StaffMemberId id, string name, string skill, CancellationToken cancellationToken) =>
+        steps.EnsureAsync(
+            $"staff member {name}",
+            id.Value,
+            () => staff.GetAsync(id.Value, cancellationToken),
+            () => staff.CreateAsync(new CreateStaffMemberRequest(PropertyId: AuroraGrand.PropertyId, DisplayName: name, Skills: [skill], IsOnDuty: true), cancellationToken));
 }

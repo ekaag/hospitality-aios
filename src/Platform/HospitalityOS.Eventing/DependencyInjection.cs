@@ -4,6 +4,7 @@ using HospitalityOS.Eventing.Dispatching;
 using HospitalityOS.Eventing.Envelopes;
 using HospitalityOS.Eventing.Handling;
 using HospitalityOS.Eventing.Replay;
+using HospitalityOS.Eventing.Scheduling;
 using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Execution;
@@ -67,6 +68,22 @@ public static class DependencyInjection
         services.TryAddSingleton<EventProcessor>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EventSubscriptionHost>());
 
+        services.TryAddScoped<IWorkScheduler, WorkScheduler>();
+        services.TryAddSingleton<Func<string, ScheduledScope>>(provider => handlerName =>
+        {
+            AsyncServiceScope scope = provider.CreateAsyncScope();
+            IServiceProvider scoped = scope.ServiceProvider;
+
+            return new ScheduledScope(
+                () => scoped.GetRequiredKeyedService<IScheduledHandlerInvoker>(handlerName),
+                scoped.GetRequiredService<IInboxStore>(),
+                scoped.GetRequiredService<IUnitOfWork>(),
+                scoped.GetRequiredService<TenantContext>(),
+                scoped.GetRequiredService<OperationContext>(),
+                scope);
+        });
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ScheduledWorkHost>());
+
         services.TryAddSingleton<Func<ReplayScope>>(provider => () =>
         {
             AsyncServiceScope scope = provider.CreateAsyncScope();
@@ -100,6 +117,30 @@ public static class DependencyInjection
         services.AddSingleton(new EventHandlerRegistration(name, EventTypeRegistry.Parse(typeof(TPayload))));
         services.TryAddScoped<THandler>();
         services.AddKeyedScoped<IEventHandlerInvoker, EventHandlerInvoker<TPayload, THandler>>(name);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers <typeparamref name="THandler"/> to run work scheduled for <paramref name="name"/> through
+    /// <see cref="IWorkScheduler"/>, scoped, acting as the agent <paramref name="name"/>. The host must bind
+    /// <c>IScheduler</c>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">A scheduled handler named <paramref name="name"/> is already registered.</exception>
+    public static IServiceCollection AddScheduledHandler<TPayload, THandler>(this IServiceCollection services, string name)
+        where THandler : class, IScheduledHandler<TPayload>
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(name.Length, IInboxStore.MaxHandlerLength, nameof(name));
+
+        if (services.Any(descriptor => descriptor.ImplementationInstance is ScheduledHandlerRegistration existing && existing.Name == name))
+        {
+            throw new InvalidOperationException($"A scheduled handler named '{name}' is already registered; handler names must be unique.");
+        }
+
+        services.AddSingleton(new ScheduledHandlerRegistration(name, typeof(TPayload)));
+        services.TryAddScoped<THandler>();
+        services.AddKeyedScoped<IScheduledHandlerInvoker, ScheduledHandlerInvoker<TPayload, THandler>>(name);
 
         return services;
     }
