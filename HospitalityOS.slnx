@@ -6,6 +6,7 @@
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore/HospitalityOS.Adapters.EfCore.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
+    <Project Path="src/Adapters/HospitalityOS.Adapters.SignalR/HospitalityOS.Adapters.SignalR.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Integrations.Mock/HospitalityOS.Integrations.Mock.csproj" />
   </Folder>
   <Folder Name="/src/Contracts/">

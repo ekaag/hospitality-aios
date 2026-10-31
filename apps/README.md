@@ -5,7 +5,7 @@ React + TypeScript + Vite apps over the HospitalityOS API, in one pnpm workspace
 | Folder | What | Signs in as | Dev server |
 |---|---|---|---|
 | `guest-web` | The guest's chat and request status (J3) | Guest | http://localhost:5173 |
-| `staff-web` | Assigned work and its steps (J2) | Worker, Manager | http://localhost:5174 |
+| `staff-web` | The property's work in four views, with live updates (J2) | Worker, Manager | http://localhost:5174 |
 | `admin-web` | Configuration and the AI trace viewer (J4) | Admin, Manager | http://localhost:5175 |
 | `packages/api-client` | The typed API client, generated from `openapi.json` | | |
 | `packages/dev-auth` | The local "sign in as" picker | | |
@@ -18,7 +18,7 @@ Apps never import from each other; shared code lives in `packages/` (solution-st
    `dotnet run --project src/Hosts/HospitalityOS.Api --launch-profile HospitalityOS.Api` (http://localhost:5080).
 2. In `apps/`: `pnpm install`, then `pnpm --filter @hospitalityos/staff-web dev` (or `guest-web`, `admin-web`).
 
-Each dev server proxies `/api` to the API; set `HOSPITALITYOS_API_URL` in an app's `.env.local` to use another one.
+Each dev server proxies `/api` (and `staff-web` also `/hubs`, the live updates) to the API; set `HOSPITALITYOS_API_URL` in an app's `.env.local` to use another one.
 
 ## Signing in
 

@@ -245,6 +245,48 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
     }
 
     [Fact]
+    public async Task ListInExceptionForProperty_ReturnsThatPropertysRequestsInExceptionOldestFirst()
+    {
+        ServiceRequest later = TestData.ServiceRequest(TestData.TenantA, 1, createdAt: TestData.Now.AddMinutes(1));
+        later.RecordException("Could not access the room", TestData.Now.AddMinutes(5));
+        ServiceRequest earlier = TestData.ServiceRequest(TestData.TenantA, 2, createdAt: TestData.Now);
+        earlier.RecordException("Out of towels", TestData.Now.AddMinutes(6));
+        ServiceRequest open = TestData.ServiceRequest(TestData.TenantA, 3, createdAt: TestData.Now);
+        ServiceRequest otherTenant = TestData.ServiceRequest(TestData.TenantB, 4, createdAt: TestData.Now);
+        otherTenant.RecordException("Out of towels", TestData.Now.AddMinutes(6));
+        await SaveAsync(later, earlier, open, otherTenant);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<ServiceRequest> found = await session.Get<IServiceRequestRepository>().ListInExceptionForPropertyAsync(earlier.PropertyId, Cancellation);
+        IReadOnlyList<ServiceRequest> elsewhere = await session.Get<IServiceRequestRepository>().ListInExceptionForPropertyAsync(TestData.OtherPropertyId, Cancellation);
+
+        Assert.Equal([earlier.Id, later.Id], found.Select(request => request.Id));
+        Assert.Empty(elsewhere);
+    }
+
+    [Fact]
+    public async Task ListEndedForProperty_ReturnsWorkEndedSinceThenMostRecentFirst()
+    {
+        StaffMemberId sam = new(TestData.Id(1));
+        HumanAction completed = TestData.HumanAction(TestData.TenantA, 1);
+        Assert.True(completed.Assign(sam, "router", TestData.Now).IsSuccess);
+        Assert.True(completed.Accept(sam, TestData.Now).IsSuccess);
+        Assert.True(completed.Start(sam, TestData.Now).IsSuccess);
+        Assert.True(completed.Complete(sam, null, null, TestData.Now.AddMinutes(10)).IsSuccess);
+        HumanAction cancelled = TestData.HumanAction(TestData.TenantA, 2);
+        Assert.True(cancelled.Cancel("Guest checked out", TestData.Now.AddMinutes(20)).IsSuccess);
+        HumanAction endedLongAgo = TestData.HumanAction(TestData.TenantA, 3);
+        Assert.True(endedLongAgo.Cancel("Guest checked out", TestData.Now.AddMinutes(-60)).IsSuccess);
+        HumanAction open = TestData.HumanAction(TestData.TenantA, 4);
+        await SaveAsync(completed, cancelled, endedLongAgo, open);
+        await using PersistenceSession session = OpenSession();
+
+        IReadOnlyList<HumanAction> ended = await session.Get<IHumanActionRepository>().ListEndedForPropertyAsync(TestData.PropertyId, TestData.Now, Cancellation);
+
+        Assert.Equal([cancelled.Id, completed.Id], ended.Select(action => action.Id));
+    }
+
+    [Fact]
     public async Task ListForServiceRequest_ReturnsItsActionsOldestFirst()
     {
         ServiceRequestId requestId = new(TestData.Id(1));

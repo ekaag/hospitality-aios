@@ -23,6 +23,17 @@ internal static class AuthenticationRegistration
             options.TokenValidationParameters.NameClaimType = StaffClaims.Subject;
             options.TokenValidationParameters.RoleClaimType = StaffClaims.Role;
             options.Events ??= new JwtBearerEvents();
+            options.Events.OnMessageReceived = context =>
+            {
+                // Browsers cannot send headers on WebSockets, so the realtime hub takes the token from the query.
+                if (context.HttpContext.Request.Path.StartsWithSegments(Realtime.RealtimeRegistration.HubPath)
+                    && context.Request.Query["access_token"] is { Count: > 0 } token)
+                {
+                    context.Token = token.ToString();
+                }
+
+                return Task.CompletedTask;
+            };
             options.Events.OnTokenValidated = context =>
             {
                 string? problem;

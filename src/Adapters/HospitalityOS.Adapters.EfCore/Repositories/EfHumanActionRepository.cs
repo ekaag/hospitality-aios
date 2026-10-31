@@ -29,4 +29,15 @@ internal sealed class EfHumanActionRepository(HospitalityDbContext context, EfUn
                 .ThenBy(action => action.Id),
             cancellationToken);
     }
+
+    public Task<IReadOnlyList<HumanAction>> ListEndedForPropertyAsync(PropertyId propertyId, DateTimeOffset endedSince, CancellationToken cancellationToken)
+    {
+        return QueryAsync(
+            actions => actions
+                .Where(action => action.PropertyId == propertyId
+                    && ((action.Completion != null && action.Completion.CompletedAt >= endedSince) || (action.EndedAt != null && action.EndedAt >= endedSince)))
+                .OrderByDescending(action => action.Completion != null ? action.Completion.CompletedAt : action.EndedAt)
+                .ThenByDescending(action => action.Id),
+            cancellationToken);
+    }
 }

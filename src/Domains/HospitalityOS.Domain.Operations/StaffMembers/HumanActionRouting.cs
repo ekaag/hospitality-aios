@@ -30,13 +30,22 @@ public static class HumanActionRouting
             .ToDictionary(group => group.Key, group => group.Count());
 
         return roster
-            .Where(member => member.IsOnDuty
-                && member.PropertyId == action.PropertyId
-                && member.Id != excluding
-                && member.HasSkills(action.Details.SkillsRequired ?? []))
+            .Where(member => member.Id != excluding && IsEligible(member, action))
             .OrderBy(member => load.GetValueOrDefault(member.Id))
             .ThenBy(member => member.Details.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(member => member.Id.Value)
             .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Whether <paramref name="member"/> may do <paramref name="action"/>: on duty at its property with every skill it
+    /// requires. The router chooses among them, and a worker may claim unassigned work only then (J2).
+    /// </summary>
+    public static bool IsEligible(StaffMember member, HumanAction action)
+    {
+        ArgumentNullException.ThrowIfNull(member);
+        ArgumentNullException.ThrowIfNull(action);
+
+        return member.IsOnDuty && member.PropertyId == action.PropertyId && member.HasSkills(action.Details.SkillsRequired ?? []);
     }
 }

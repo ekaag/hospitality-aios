@@ -25,6 +25,12 @@ public interface IServiceRequestRepository
     Task<IReadOnlyList<ServiceRequest>> ListActiveForStayAsync(StayContextId stayContextId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// A property's requests in <see cref="ServiceRequestStatus.Exception"/>, oldest first: work for them failed, expired,
+    /// or was cancelled and nothing has replaced it yet (the staff surface's exceptions, J2).
+    /// </summary>
+    Task<IReadOnlyList<ServiceRequest>> ListInExceptionForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new request, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(ServiceRequest serviceRequest, CancellationToken cancellationToken);

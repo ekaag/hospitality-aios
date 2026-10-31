@@ -484,3 +484,5 @@ $RECYCLE.BIN/
 # Frontends (apps/)
 apps/**/dist/
 *.tsbuildinfo
+# The frontends' shared packages, not NuGet's packages folder ignored above.
+!apps/packages/*

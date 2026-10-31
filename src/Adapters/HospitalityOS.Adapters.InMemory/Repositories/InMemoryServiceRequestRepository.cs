@@ -22,4 +22,14 @@ internal sealed class InMemoryServiceRequestRepository(InMemoryStore store, InMe
                 .ThenByDescending(request => request.Id.Value),
             cancellationToken);
     }
+
+    public Task<IReadOnlyList<ServiceRequest>> ListInExceptionForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken)
+    {
+        return QueryAsync(
+            requests => requests
+                .Where(request => request.PropertyId == propertyId && request.Status == ServiceRequestStatus.Exception)
+                .OrderBy(request => request.CreatedAt)
+                .ThenBy(request => request.Id.Value),
+            cancellationToken);
+    }
 }

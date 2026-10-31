@@ -15,6 +15,12 @@ internal static class HumanActionErrors
     public static Error ServiceRequestNotFound { get; } =
         Error.Validation("serviceRequestId", "human_action.service_request_not_found", "The property has no such service request.");
 
+    public static Error NotUnassigned { get; } =
+        Error.InvalidState("human_action.not_unassigned", "Only unassigned work can be claimed.");
+
+    public static Error NotEligible { get; } =
+        Error.Forbidden("human_action.not_eligible", "Only a staff member on duty at the property with every skill the work requires can claim it.");
+
     public static Error StatusNotSettable { get; } =
         Error.Validation("status", "human_action.status_not_settable", "The status can be set to Accepted, InProgress, or Failed.");
 

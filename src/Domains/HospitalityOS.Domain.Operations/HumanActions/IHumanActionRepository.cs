@@ -25,6 +25,12 @@ public interface IHumanActionRepository
     Task<IReadOnlyList<HumanAction>> ListOpenForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// A property's actions that reached a final state (completed, failed, cancelled, or expired) at or after
+    /// <paramref name="endedSince"/>, most recently ended first: the staff surface's completed work (J2).
+    /// </summary>
+    Task<IReadOnlyList<HumanAction>> ListEndedForPropertyAsync(PropertyId propertyId, DateTimeOffset endedSince, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Adds a new action, persisted when the unit of work commits.
     /// </summary>
     Task AddAsync(HumanAction humanAction, CancellationToken cancellationToken);

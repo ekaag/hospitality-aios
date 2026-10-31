@@ -7,6 +7,7 @@ using HospitalityOS.Eventing;
 using HospitalityOS.Workflows.Concierge;
 using HospitalityOS.Workflows.GuestService;
 using HospitalityOS.Workflows.Routing;
+using HospitalityOS.Workflows.StaffSurface;
 using HospitalityOS.Workflows.Triage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -29,7 +30,8 @@ public static class DependencyInjection
     /// (<see cref="RequestContinuation"/>), telling the guest once it is done (<see cref="CompletionNotifier.Name"/>); and the
     /// HumanAction Router, which assigns new work, reroutes it when duty
     /// changes, and hands on work not accepted within <see cref="HumanActionRoutingOptions.AcceptanceTimeout"/>. Each that
-    /// uses a model declares its task with its prompt. The host must also bind <c>IScheduler</c>.
+    /// uses a model declares its task with its prompt; and the staff surface's notifier, which tells connected staff when work
+    /// changes (<see cref="WorkChangeNotifier"/>). The host must also bind <c>IScheduler</c> and <c>IRealtimeNotifier</c>.
     /// </summary>
     public static IServiceCollection AddWorkflows(this IServiceCollection services)
     {
@@ -53,7 +55,15 @@ public static class DependencyInjection
             .AddEventHandler<StaffMemberDutyChangedV1, DutyRerouting>(DutyRerouting.Name)
             .AddEventHandler<StaffMemberCreatedV1, DutyRerouting>(DutyRerouting.JoinedName)
             .AddEventHandler<HumanActionAssignedV1, AcceptanceWatch>(AcceptanceWatch.Name)
-            .AddScheduledHandler<AcceptanceDue, UnacceptedRerouting>(UnacceptedRerouting.Name);
+            .AddScheduledHandler<AcceptanceDue, UnacceptedRerouting>(UnacceptedRerouting.Name)
+            .AddEventHandler<HumanActionRequestedV1, WorkChangeNotifier>(WorkChangeNotifier.OnRequested)
+            .AddEventHandler<HumanActionAssignedV1, WorkChangeNotifier>(WorkChangeNotifier.OnAssigned)
+            .AddEventHandler<HumanActionAcceptedV1, WorkChangeNotifier>(WorkChangeNotifier.OnAccepted)
+            .AddEventHandler<HumanActionStartedV1, WorkChangeNotifier>(WorkChangeNotifier.OnStarted)
+            .AddEventHandler<HumanActionCompletedV1, WorkChangeNotifier>(WorkChangeNotifier.OnCompleted)
+            .AddEventHandler<HumanActionFailedV1, WorkChangeNotifier>(WorkChangeNotifier.OnFailed)
+            .AddEventHandler<HumanActionCancelledV1, WorkChangeNotifier>(WorkChangeNotifier.OnCancelled)
+            .AddEventHandler<HumanActionExpiredV1, WorkChangeNotifier>(WorkChangeNotifier.OnExpired);
         services.AddOptions<HumanActionRoutingOptions>();
         services.TryAddScoped<HumanActionRouter>();
 

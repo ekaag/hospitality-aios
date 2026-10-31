@@ -1,11 +1,13 @@
-import { createApiClient, type ApiClient, type Schema } from "@hospitalityos/api-client";
+import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { useEffect, useMemo, useState } from "react";
+import { Board } from "./work/Board";
 
 const roles = ["Worker", "Manager"] as const;
 
 /**
- * Staff work: assigned human actions and their steps (J2). Signed out, it offers the dev personas for its roles.
+ * Staff work (J2): the four views of the property's human actions and their steps. Signed out, it offers the dev
+ * personas for its roles.
  */
 export function App() {
   const { session, signIn, signOut } = useDevSession("staff-web");
@@ -30,42 +32,41 @@ export function App() {
 }
 
 /**
- * The first property's roster, read through the typed client to show the sign-in works; the work views arrive with J2.
+ * The board for the caller's property: the tenant's first, as Phase 1 runs one property per tenant.
  */
-function Signed({ client }: { client: ApiClient; session: DevSession }) {
-  const [roster, setRoster] = useState<Schema<"StaffMemberResponse">[] | undefined>();
+function Signed({ client, session }: { client: ApiClient; session: DevSession }) {
+  const [propertyId, setPropertyId] = useState<string | undefined>();
   const [problem, setProblem] = useState<string | undefined>();
 
   useEffect(() => {
     let current = true;
 
-    void (async () => {
-      const properties = await client.GET("/api/v1/properties");
-      const property = properties.data?.[0];
-      const staff = property ? await client.GET("/api/v1/staff", { params: { query: { propertyId: property.id } } }) : undefined;
-
-      if (current) {
-        setRoster(staff?.data);
-        setProblem(staff?.data ? undefined : "The roster could not be read.");
-      }
-    })();
+    client.GET("/api/v1/properties").then(
+      ({ data }) => {
+        if (current) {
+          setPropertyId(data?.[0]?.id);
+          setProblem(data?.[0] ? undefined : "There is no property to show.");
+        }
+      },
+      () => {
+        if (current) {
+          setProblem("The API is not reachable.");
+        }
+      },
+    );
 
     return () => {
       current = false;
     };
   }, [client]);
 
-  return (
-    <section aria-label="Roster">
-      <h2>On the roster</h2>
-      {problem && <p role="alert">{problem}</p>}
-      <ul>
-        {roster?.map((member) => (
-          <li key={member.id}>
-            {member.displayName} ({member.skills.join(", ")}){member.isOnDuty ? ", on duty" : ""}
-          </li>
-        ))}
-      </ul>
-    </section>
+  if (problem) {
+    return <p role="alert">{problem}</p>;
+  }
+
+  return propertyId ? (
+    <Board client={client} token={session.token} propertyId={propertyId} oversees={session.persona.role !== "Worker"} />
+  ) : (
+    <p>Loading…</p>
   );
 }

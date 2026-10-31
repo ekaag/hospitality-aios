@@ -17,11 +17,13 @@ using HospitalityOS.Api.Organizations;
 using HospitalityOS.Api.Persistence;
 using HospitalityOS.Api.Policies;
 using HospitalityOS.Api.Properties;
+using HospitalityOS.Api.Realtime;
 using HospitalityOS.Api.Restaurants;
 using HospitalityOS.Api.Seeding;
 using HospitalityOS.Api.Services;
 using HospitalityOS.Api.Spaces;
 using HospitalityOS.Api.Staff;
+using HospitalityOS.Api.Work;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
 using HospitalityOS.Capabilities;
@@ -87,6 +89,8 @@ builder.Services.AddHealthChecks().AddBindingHealthChecks().AddInferenceHealthCh
 builder.Services.AddCallerAuthentication();
 builder.Services.AddApiDescription();
 builder.Services.AddDevTokens(builder.Configuration, builder.Environment);
+builder.Services.AddStaffWork();
+builder.Services.AddRealtime();
 
 WebApplication app = builder.Build();
 
@@ -118,6 +122,8 @@ app.MapServiceEndpoints();
 app.MapStaffEndpoints();
 app.MapAITraceEndpoints();
 app.MapConversationEndpoints();
+app.MapWorkEndpoints();
+app.MapRealtime();
 app.MapDevTokenEndpoints();
 
 app.Run();

@@ -82,6 +82,7 @@ public static class DependencyInjection
             .AddCapability<AssignActionCapability>()
             .AddCapability<UpdateActionStatusCapability>()
             .AddCapability<CompleteActionCapability>()
+            .AddCapability<ClaimActionCapability>()
             .AddCapability<NotifyGuestCapability>();
     }
 
