@@ -92,6 +92,7 @@ internal static class EventContractMapper
             ConversationUpdated e => new(new ConversationUpdatedV1(e.ConversationId, e.GuestId, e.StayContextId, e.Status.ToString())),
             GuestMessageReceived e => new(new GuestMessageReceivedV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.GuestId, e.StayContextId)),
             GuestMessageSent e => new(new GuestMessageSentV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.Sender.ToString())),
+            GuestMessageTriaged e => new(new GuestMessageTriagedV1(e.GuestMessageId, e.ConversationId, e.PropertyId, e.GuestId, e.StayContextId, e.Intent.ToString())),
             GuestQuestionAnswered e => new(new GuestQuestionAnsweredV1(e.QuestionMessageId, e.AnswerMessageId, e.ConversationId, e.PropertyId, e.Outcome.ToString())),
             CapabilityInvocationRequested e => new(new CapabilityInvocationRequestedV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),
             CapabilityInvocationSucceeded e => new(new CapabilityInvocationSucceededV1(e.CapabilityInvocationId.Value, e.CapabilityName, e.CapabilityVersion)),

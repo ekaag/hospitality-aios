@@ -26,6 +26,7 @@ public sealed class EnumMirrorTests
         { typeof(Model.Capabilities.AITraces.AITraceOutcome), typeof(Api.Ai.AITraceOutcome) },
         { typeof(Model.Guests.Conversations.ConversationStatus), typeof(Api.Conversations.ConversationStatus) },
         { typeof(Model.Guests.GuestMessages.MessageSender), typeof(Api.Conversations.MessageSender) },
+        { typeof(Model.Services.ServiceRequests.ServiceRequestStatus), typeof(Contract.GuestService.RequestStatus) },
     };
 
     [Theory]

@@ -583,6 +583,10 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
                     b.Property<Guid?>("GuestId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Intent")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("PropertyId")
                         .HasColumnType("TEXT");
 

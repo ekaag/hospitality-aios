@@ -30,6 +30,7 @@ internal static class AiTestHost
 {
     public const string Concierge = "test.concierge";
     public const string Extract = "test.extract";
+    public const string Classify = "test.classify";
     public const string Grounded = "test.grounded";
 
     /// <summary>
@@ -63,6 +64,8 @@ internal static class AiTestHost
             ["Inference:Providers:scripted:Adapter"] = "Scripted",
             [$"Inference:Tasks:{Concierge}:Provider"] = "scripted",
             [$"Inference:Tasks:{Concierge}:Model"] = "scripted-model",
+            [$"Inference:Tasks:{Classify}:Provider"] = "scripted",
+            [$"Inference:Tasks:{Classify}:Model"] = "scripted-model",
             [$"Inference:Tasks:{Extract}:Provider"] = "scripted",
             [$"Inference:Tasks:{Extract}:Model"] = "scripted-model",
             [$"Inference:Tasks:{Grounded}:Provider"] = "scripted",
@@ -83,10 +86,12 @@ internal static class AiTestHost
         services.AddPrompts(typeof(AiTestHost).Assembly);
         services.AddSingleton<IAdapterFactory<IChatModel>>(new ScriptedModelFactory<IChatModel>(model));
         services.AddSingleton<IAdapterFactory<IStructuredExtractor>>(new ScriptedModelFactory<IStructuredExtractor>(model));
+        services.AddSingleton<IAdapterFactory<IClassifier>>(new ScriptedModelFactory<IClassifier>(model));
         services.AddSingleton(new CapabilityRegistry(Capabilities));
         services.AddSingleton(executor);
         services.AddScoped<ICapabilityExecutor, RecordingExecutor>();
         services.AddExtraction(Extract, "test.extract");
+        services.AddClassification(Classify, "test.classify");
         services.AddGroundedAnswering(Grounded, "test.grounded", ["Test.GetHours@1"]);
         declare(services);
 

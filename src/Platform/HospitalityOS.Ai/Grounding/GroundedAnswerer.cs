@@ -62,6 +62,12 @@ internal sealed class GroundedAnswerer(
             throw new ArgumentException($"The '{ContextVariable}' prompt value is filled in by the answerer.", nameof(question));
         }
 
+        if (question.ExtraContext?.Select(extra => extra.Name).Any(name => name is "property" or "content") == true
+            || question.ExtraContext?.Select(extra => extra.Name).Distinct(StringComparer.Ordinal).Count() < question.ExtraContext?.Count)
+        {
+            throw new ArgumentException("Extra context reads need distinct names other than 'property' and 'content'.", nameof(question));
+        }
+
         operation.ActAs(Actor.Agent(question.Task));
 
         // Structured first: the property profile, then the published content that best matches the question.
@@ -77,9 +83,23 @@ internal sealed class GroundedAnswerer(
             ContentCapability, new { propertyId = question.PropertyId, query = asked, limit = ContextPassages }, reads, cancellationToken).ConfigureAwait(false);
         JsonElement content = passages.IsSuccess ? passages.Value.Output.GetProperty("results") : JsonSerializer.SerializeToElement(Array.Empty<object>());
         HashSet<SourceReference> retrieved = [.. SourceFinder.In(profile.Value.Output), .. SourceFinder.In(content)];
+        JsonObject context = new() { ["property"] = JsonNode.Parse(profile.Value.Output.GetRawText()), ["content"] = JsonNode.Parse(content.GetRawText()) };
+
+        // The caller's further reads; one that fails is left out (null), as content is.
+        foreach (ContextReadRequest extra in question.ExtraContext ?? [])
+        {
+            Result<CapabilityResponse> read = await ReadAsync(extra.Capability, extra.Input, reads, cancellationToken).ConfigureAwait(false);
+            context[extra.Name] = read.IsSuccess ? JsonNode.Parse(read.Value.Output.GetRawText()) : null;
+
+            if (read.IsSuccess)
+            {
+                retrieved.UnionWith(SourceFinder.In(read.Value.Output));
+            }
+        }
+
         Dictionary<string, string> values = new(question.PromptValues ?? new Dictionary<string, string>())
         {
-            [ContextVariable] = new JsonObject { ["property"] = JsonNode.Parse(profile.Value.Output.GetRawText()), ["content"] = JsonNode.Parse(content.GetRawText()) }.ToJsonString(),
+            [ContextVariable] = context.ToJsonString(),
         };
 
         List<ChatMessage> conversation = [.. question.Messages];

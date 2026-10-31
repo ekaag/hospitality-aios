@@ -5,6 +5,7 @@ using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.GuestMessages;
+using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
@@ -22,7 +23,9 @@ using HospitalityOS.Domain.Properties.Spaces;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.PortContractTests.Persistence.Support;
+using HospitalityOS.Ports.Persistence;
 using HospitalityOS.SharedKernel.Ids;
+using HospitalityOS.SharedKernel.Results;
 using Xunit;
 
 namespace HospitalityOS.PortContractTests.Persistence;
@@ -132,6 +135,25 @@ public abstract class RepositoryQueryContractTests : PersistenceContractTests
 
         Assert.Equal(message.Id, found?.Id);
         Assert.Null(otherConversationMessage);
+    }
+
+    [Fact]
+    public async Task Triage_IsSavedOnTheMessage_AndRaisesTriaged()
+    {
+        GuestMessage message = TestData.GuestMessage(TestData.TenantA, 1, TestData.Conversation(TestData.TenantA, 1));
+        await SaveAsync(message);
+
+        await using (PersistenceSession session = OpenSession())
+        {
+            GuestMessage loaded = (await session.Get<IGuestMessageRepository>().GetByIdAsync(message.Id, Cancellation))!;
+            Assert.True(loaded.Triage(MessageIntent.ServiceRequest, TestData.Now).IsSuccess);
+            Result<CommitReceipt> commit = await session.CommitAsync(Cancellation);
+            Assert.True(commit.IsSuccess, commit.IsFailure ? commit.Error.Message : null);
+            Assert.Contains(commit.Value.Events, committed => committed.Event is GuestMessageTriaged);
+        }
+
+        await using PersistenceSession reread = OpenSession();
+        Assert.Equal(MessageIntent.ServiceRequest, (await reread.Get<IGuestMessageRepository>().GetByIdAsync(message.Id, Cancellation))?.Intent);
     }
 
     [Fact]

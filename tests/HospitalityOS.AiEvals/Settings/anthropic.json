@@ -5,6 +5,8 @@
     },
     "Tasks": {
       "concierge.answer": { "Provider": "anthropic", "Model": "claude-sonnet-5-5" },
+      "intent.classify": { "Provider": "anthropic", "Model": "claude-haiku-5-5" },
+      "guestservice.extract": { "Provider": "anthropic", "Model": "claude-haiku-5-5" },
       "eval.judge": { "Provider": "anthropic", "Model": "claude-opus-5-5" }
     }
   }

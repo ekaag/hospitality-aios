@@ -24,4 +24,9 @@ public enum AITraceOutcome
     /// The agent answered from relevant sources that do not clearly settle the question, and said so.
     /// </summary>
     Uncertain,
+
+    /// <summary>
+    /// The agent decided who handles the request, e.g. triaging a guest message by its intent.
+    /// </summary>
+    Routed,
 }

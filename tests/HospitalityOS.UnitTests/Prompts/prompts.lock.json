@@ -1,4 +1,5 @@
 {
+  "test.classify@1": "sha256:78147de6ec966847c3d79265faa185c4500b0f3b637e979af5dcef60c76d37e2",
   "test.concierge@1": "sha256:ccf282e2bd235efa42eabde614c1b5835e0758c765886ba3ebea57da977604b1",
   "test.concierge@2": "sha256:e516ba2d04825d8ddd742b55b00aa2dacc5f3f51b2395b3e828accf1b07950cb",
   "test.extract@1": "sha256:33fe231b12454e3682a884cccb02fb0cced3ce4c445eb06cba62ecc8fd3ea8f5",

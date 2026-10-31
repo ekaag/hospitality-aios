@@ -10,9 +10,15 @@
     <ProjectReference Include="../../Core/HospitalityOS.Ports/HospitalityOS.Ports.csproj" />
     <ProjectReference Include="../../Contracts/HospitalityOS.Contracts/HospitalityOS.Contracts.csproj" />
     <ProjectReference Include="../../Domains/HospitalityOS.Domain.Guests/HospitalityOS.Domain.Guests.csproj" />
+    <ProjectReference Include="../../Domains/HospitalityOS.Domain.Services/HospitalityOS.Domain.Services.csproj" />
     <ProjectReference Include="../HospitalityOS.Ai/HospitalityOS.Ai.csproj" />
     <ProjectReference Include="../HospitalityOS.Bindings/HospitalityOS.Bindings.csproj" />
+    <ProjectReference Include="../HospitalityOS.Capabilities/HospitalityOS.Capabilities.csproj" />
     <ProjectReference Include="../HospitalityOS.Eventing/HospitalityOS.Eventing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="HospitalityOS.IntegrationTests" />
   </ItemGroup>
 
 </Project>

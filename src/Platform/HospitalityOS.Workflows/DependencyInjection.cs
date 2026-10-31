@@ -3,6 +3,8 @@ using HospitalityOS.Bindings;
 using HospitalityOS.Contracts.Events.Guests;
 using HospitalityOS.Eventing;
 using HospitalityOS.Workflows.Concierge;
+using HospitalityOS.Workflows.GuestService;
+using HospitalityOS.Workflows.Triage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -16,16 +18,22 @@ namespace HospitalityOS.Workflows;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers the Concierge Controller, which answers <c>GuestMessageReceived</c> with grounded answers, and declares
-    /// its task (<see cref="Concierge.Concierge.AnswerTask"/>) with its prompt and tool allow-list.
+    /// Registers the controllers for guest messages: triage, which classifies each message once by intent
+    /// (<see cref="GuestTriage.Task"/>); the Concierge Controller, which answers questions and status checks with grounded
+    /// answers (<see cref="Concierge.Concierge.AnswerTask"/>); and the Guest Service Controller, which turns service requests
+    /// into canonical requests (<see cref="GuestServiceController.Task"/>). Each declares its task with its prompt.
     /// </summary>
     public static IServiceCollection AddWorkflows(this IServiceCollection services)
     {
         services.TryAddSingleton(TimeProvider.System);
         services
             .AddPrompts(typeof(DependencyInjection).Assembly)
+            .AddClassification(GuestTriage.Task, GuestTriage.Task)
             .AddGroundedAnswering(Concierge.Concierge.AnswerTask, Concierge.Concierge.AnswerTask, Concierge.Concierge.Tools)
-            .AddEventHandler<GuestMessageReceivedV1, ConciergeController>(ConciergeController.OnGuestMessageReceived);
+            .AddExtraction(GuestServiceController.Task, GuestServiceController.Task)
+            .AddEventHandler<GuestMessageReceivedV1, GuestTriage>(GuestTriage.Task)
+            .AddEventHandler<GuestMessageTriagedV1, ConciergeController>(ConciergeController.OnGuestMessageTriaged)
+            .AddEventHandler<GuestMessageTriagedV1, GuestServiceController>(GuestServiceController.Task);
 
         return services;
     }

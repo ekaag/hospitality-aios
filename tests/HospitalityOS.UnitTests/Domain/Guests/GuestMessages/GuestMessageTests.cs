@@ -99,6 +99,39 @@ public sealed class GuestMessageTests
     }
 
     [Fact]
+    public void Triage_RecordsTheIntentOnce_RaisingTriaged()
+    {
+        Conversation conversation = GuestFixture.Conversation();
+        StayContext stay = GuestFixture.Stay(unit: GuestFixture.Room412);
+        conversation.LinkStay(stay, GuestFixture.Now);
+        GuestMessage message = GuestMessage.Record(id, conversation, MessageSender.Guest, "Can you send two towels?", null, GuestFixture.Now).Value;
+        message.DequeueDomainEvents();
+
+        Result first = message.Triage(MessageIntent.ServiceRequest, GuestFixture.Now);
+        Result again = message.Triage(MessageIntent.ServiceRequest, GuestFixture.Now);
+        Result other = message.Triage(MessageIntent.Question, GuestFixture.Now);
+
+        Assert.True(first.IsSuccess && again.IsSuccess);
+        Assert.Equal("message.already_triaged", other.Error.Code);
+        Assert.Equal(MessageIntent.ServiceRequest, message.Intent);
+        Assert.Equal(
+            [new GuestMessageTriaged(id, conversation.Id, GuestFixture.PropertyId, stay.GuestId, stay.Id, MessageIntent.ServiceRequest, GuestFixture.Now)],
+            message.DomainEvents);
+    }
+
+    [Fact]
+    public void Triage_OfAnythingButAGuestsMessage_OrAnUnknownIntent_IsRefused()
+    {
+        Conversation conversation = GuestFixture.Conversation();
+        GuestMessage concierge = GuestMessage.Record(id, conversation, MessageSender.Concierge, "Hello!", null, GuestFixture.Now).Value;
+        GuestMessage guest = GuestMessage.Record(id, conversation, MessageSender.Guest, "Hello?", null, GuestFixture.Now).Value;
+
+        Assert.Equal("message.not_from_guest", concierge.Triage(MessageIntent.Question, GuestFixture.Now).Error.Code);
+        Assert.Equal("message.intent_invalid", Assert.Single(Assert.IsType<ValidationError>(guest.Triage((MessageIntent)99, GuestFixture.Now).Error).Fields).Code);
+        Assert.Null(guest.Intent);
+    }
+
+    [Fact]
     public void Record_InClosedConversation_ReturnsInvalidState()
     {
         Conversation conversation = GuestFixture.Conversation();

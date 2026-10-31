@@ -5,6 +5,7 @@ using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.SharedKernel.Results;
+using HospitalityOS.Workflows.Concierge;
 using Xunit;
 
 namespace HospitalityOS.AiEvals;
@@ -45,7 +46,7 @@ public sealed class ConciergeEvals
         (GuestMessageResponse question, GuestMessageResponse answer) = await host.AskAsync(scenario.Input, Cancellation);
         IReadOnlyList<EventMessage> events = await host.EventsAsync(Cancellation);
         Guid correlation = events.Single(message => message.EventType == "GuestMessageReceived" && message.AggregateId == question.Id.Value).CorrelationId;
-        AITraceResponse? trace = await host.TraceAsync(correlation, Cancellation);
+        AITraceResponse? trace = await host.TraceAsync(correlation, Concierge.AnswerTask, Cancellation);
         Result<Judgement> judgement = await host.JudgeAsync(new JudgeRequest(scenario.Criteria, scenario.Input, answer.Text, scenario.Reference), Cancellation);
 
         EvalResult result = EvalResult.Of(scenario, answer, trace, [.. events.Where(message => message.CorrelationId == correlation)], judgement, host.Live);

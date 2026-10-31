@@ -1,4 +1,6 @@
+using HospitalityOS.Capabilities.Execution;
 using HospitalityOS.Domain.Capabilities.AITraces;
+using HospitalityOS.SharedKernel.Results;
 
 namespace HospitalityOS.Ai.Tracing;
 
@@ -21,4 +23,12 @@ public interface IAITraceRecorder
     /// <exception cref="InvalidOperationException">The turn was already completed, or a citation was not retrieved during
     /// it.</exception>
     Task<AITraceId> CompleteAsync(AITraceCompletion completion, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Records a capability the agent's own code ran to act on what the model understood (P7: through the executor, like
+    /// every action), with its input and what it returned; the sources in its output may be cited.
+    /// </summary>
+    /// <param name="request">What was run.</param>
+    /// <param name="response">How it went.</param>
+    void RecordAction(CapabilityRequest request, Result<CapabilityResponse> response);
 }

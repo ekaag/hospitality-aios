@@ -55,16 +55,18 @@ public sealed class ConciergeControllerTests : IAsyncLifetime
 
         IReadOnlyList<EventMessage> events = await api.EventsAsync(aurora.TenantId, Cancellation);
         EventMessage received = Assert.Single(events, message => message.EventType == "GuestMessageReceived");
+        EventMessage triaged = Assert.Single(events, message => message.EventType == "GuestMessageTriaged");
         EventMessage answered = Assert.Single(events, message => message.EventType == "GuestQuestionAnswered");
         EventMessage sent = Assert.Single(events, message => message.EventType == "GuestMessageSent");
         Assert.Equal((question.Id.Value, answer.Id.Value, answer.Id.Value), (received.AggregateId, sent.AggregateId, answered.AggregateId));
-        Assert.True(events.ToList().IndexOf(received) < events.ToList().IndexOf(sent) && events.ToList().IndexOf(sent) < events.ToList().IndexOf(answered));
-        Assert.Equal((received.CorrelationId, received.CorrelationId), (sent.CorrelationId, answered.CorrelationId));
+        List<EventMessage> order = [.. events];
+        Assert.True(order.IndexOf(received) < order.IndexOf(triaged) && order.IndexOf(triaged) < order.IndexOf(sent) && order.IndexOf(sent) < order.IndexOf(answered));
+        Assert.Equal((received.CorrelationId, received.CorrelationId, received.CorrelationId), (triaged.CorrelationId, sent.CorrelationId, answered.CorrelationId));
         Assert.Equal((question.Id.Value, answer.Id.Value, "Answered"), Payload(answered));
 
         AITraceResponse trace = await TraceAsync(api, received.CorrelationId);
         Assert.Equal(
-            (AITraceOutcome.Answered, Concierge.AnswerTask, Concierge.QuestionIntent, "GuestMessage", question.Id.Value, received.EventId),
+            (AITraceOutcome.Answered, Concierge.AnswerTask, Concierge.QuestionIntent, "GuestMessage", question.Id.Value, triaged.EventId),
             (trace.Outcome, trace.Agent, trace.Intent, trace.TriggerType, trace.TriggerId, trace.CausationId));
         Assert.Equal(question.Text, trace.Body.TriggerText);
         Assert.Equal(new TraceResponse(answer.Text, [new SourceReference("OperatingHours", aurora.PoolHours.Id.Value, 1)]), trace.Body.Response);

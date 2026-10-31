@@ -17,6 +17,7 @@ internal sealed class GuestMessageConfiguration : IEntityTypeConfiguration<Guest
         builder.Property(message => message.Text).HasMaxLength(GuestMessage.MaxTextLength);
         builder.Property(message => message.ClientMessageId).HasMaxLength(GuestMessage.MaxClientMessageIdLength);
         builder.Property(message => message.SentAt);
+        builder.Property(message => message.Intent);
         builder.HasIndex(message => new { message.ConversationId, message.ClientMessageId }).IsUnique();
         builder.HasIndex(message => new { message.ConversationId, message.SentAt });
     }

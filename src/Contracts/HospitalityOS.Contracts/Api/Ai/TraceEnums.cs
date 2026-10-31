@@ -14,6 +14,11 @@ public enum ModelCallKind
     /// A schema-constrained extraction.
     /// </summary>
     Extraction,
+
+    /// <summary>
+    /// A choice of one label for a text, e.g. a guest message's intent.
+    /// </summary>
+    Classification,
 }
 
 /// <summary>
@@ -103,6 +108,11 @@ public enum CapabilityCallPurpose
     /// The model called it as a tool.
     /// </summary>
     Tool,
+
+    /// <summary>
+    /// The agent's own code called it to act on what the model understood, e.g. creating the service request a guest asked for.
+    /// </summary>
+    Action,
 }
 
 /// <summary>

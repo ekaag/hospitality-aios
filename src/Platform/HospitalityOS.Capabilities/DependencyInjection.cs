@@ -4,6 +4,7 @@ using HospitalityOS.Capabilities.Activities;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Dining;
 using HospitalityOS.Capabilities.Execution;
+using HospitalityOS.Capabilities.GuestService;
 using HospitalityOS.Capabilities.Properties;
 using HospitalityOS.Capabilities.Registry;
 using HospitalityOS.Capabilities.Retrieval;
@@ -72,7 +73,9 @@ public static class DependencyInjection
             .AddCapability<SearchContentCapability>()
             .AddCapability<SearchRestaurantsCapability>()
             .AddCapability<GetMenuCapability>()
-            .AddCapability<SearchPropertyEventsCapability>();
+            .AddCapability<SearchPropertyEventsCapability>()
+            .AddCapability<CreateRequestCapability>()
+            .AddCapability<GetRequestStatusCapability>();
     }
 
     /// <summary>

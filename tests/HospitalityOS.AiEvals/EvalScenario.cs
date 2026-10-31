@@ -40,7 +40,7 @@ public sealed record EvalScenario(
     /// <summary>
     /// The events of a question the concierge answered.
     /// </summary>
-    public static IReadOnlyList<string> AnsweredEvents { get; } = ["GuestMessageReceived", "AITraceCreated", "GuestMessageSent", "GuestQuestionAnswered"];
+    public static IReadOnlyList<string> AnsweredEvents { get; } = ["GuestMessageReceived", "GuestMessageTriaged", "AITraceCreated", "GuestMessageSent", "GuestQuestionAnswered"];
 
     /// <summary>
     /// What the judge grades the answer against.

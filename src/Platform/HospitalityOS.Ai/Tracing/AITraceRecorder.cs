@@ -14,6 +14,7 @@ using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Collections;
+using HospitalityOS.SharedKernel.Results;
 
 namespace HospitalityOS.Ai.Tracing;
 
@@ -145,6 +146,29 @@ internal sealed class AITraceRecorder(
     }
 
     /// <summary>
+    /// Records a classification call: its instructions, input, and the label chosen, or <c>null</c> when no provider could
+    /// serve it.
+    /// </summary>
+    public void RecordClassification(string task, string? instructions, string input, Classification? classification, IReadOnlyList<InferenceAttempt> attempts)
+    {
+        Begin();
+
+        modelCalls.Add(new ModelCall(
+            ModelCallKind.Classification,
+            task,
+            Attempts(attempts),
+            instructions,
+            ContinuesConversation: false,
+            [TraceMapping.Message(ChatMessage.User(input))],
+            [],
+            StructuredOutput: false,
+            classification is null ? null : TraceMapping.Message(ChatMessage.Assistant(classification.Label)),
+            null,
+            classification is null ? null : new TokenUsage(classification.Usage.InputTokens, classification.Usage.OutputTokens),
+            classification?.Model));
+    }
+
+    /// <summary>
     /// Records a capability call and the sources its output names.
     /// </summary>
     /// <param name="purpose">Context read or tool call.</param>
@@ -180,6 +204,21 @@ internal sealed class AITraceRecorder(
         {
             retrieved.AddRange(SourceFinder.In(value).Where(source => !retrieved.Contains(source)));
         }
+    }
+
+    public void RecordAction(CapabilityRequest request, Result<CapabilityResponse> response)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(response);
+
+        RecordCapabilityCall(
+            CapabilityCallPurpose.Action,
+            response.IsSuccess ? $"{response.Value.Name}@{response.Value.Version}" : request.Version is { } version ? $"{request.Name}@{version}" : request.Name,
+            null,
+            request.Input,
+            response.IsSuccess ? response.Value.InvocationId : null,
+            response.IsSuccess ? response.Value.Output : null,
+            response.IsFailure ? response.Error.Code : null);
     }
 
     /// <summary>

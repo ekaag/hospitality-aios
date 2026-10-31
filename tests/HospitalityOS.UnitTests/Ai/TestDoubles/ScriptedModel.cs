@@ -8,17 +8,20 @@ using Microsoft.Extensions.Configuration;
 namespace HospitalityOS.UnitTests.Ai.TestDoubles;
 
 /// <summary>
-/// A chat model and extractor that answer from a queue of scripted replies, in order, and record every request. A
+/// A chat model, extractor, and classifier that answer from a queue of scripted replies, in order, and record every request. A
 /// reply may throw (e.g. <see cref="InferenceUnavailableException"/>) to simulate a failure.
 /// </summary>
-internal sealed class ScriptedModel : IChatModel, IStructuredExtractor
+internal sealed class ScriptedModel : IChatModel, IStructuredExtractor, IClassifier
 {
     private readonly ConcurrentQueue<Func<ChatRequest, ChatCompletion>> chatReplies = new();
     private readonly ConcurrentQueue<string> extractionReplies = new();
+    private readonly ConcurrentQueue<string> labels = new();
 
     public List<ChatRequest> ChatRequests { get; } = [];
 
     public List<ExtractionRequest> ExtractionRequests { get; } = [];
+
+    public List<ClassificationRequest> ClassificationRequests { get; } = [];
 
     public static ChatCompletion Answer(string text, ChatStopReason stop = ChatStopReason.Completed) =>
         new(ChatMessage.Assistant(text), stop, new InferenceUsage(10, 5), "scripted-model");
@@ -35,6 +38,13 @@ internal sealed class ScriptedModel : IChatModel, IStructuredExtractor
     public ScriptedModel Then(Func<ChatRequest, ChatCompletion> reply)
     {
         chatReplies.Enqueue(reply);
+
+        return this;
+    }
+
+    public ScriptedModel ThenClassify(string label)
+    {
+        labels.Enqueue(label);
 
         return this;
     }
@@ -62,6 +72,15 @@ internal sealed class ScriptedModel : IChatModel, IStructuredExtractor
         return extractionReplies.TryDequeue(out string? json)
             ? Task.FromResult(new Extraction(JsonDocument.Parse(json).RootElement.Clone(), new InferenceUsage(20, 4), "scripted-model"))
             : throw new InvalidOperationException("The script has no more extraction replies.");
+    }
+
+    public Task<Classification> ClassifyAsync(ClassificationRequest request, ModelSelection model, CancellationToken cancellationToken)
+    {
+        ClassificationRequests.Add(request);
+
+        return labels.TryDequeue(out string? label)
+            ? Task.FromResult(new Classification(label, null, new InferenceUsage(15, 1), "scripted-model"))
+            : throw new InvalidOperationException("The script has no more labels.");
     }
 }
 

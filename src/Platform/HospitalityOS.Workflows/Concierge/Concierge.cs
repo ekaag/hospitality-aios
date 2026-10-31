@@ -37,7 +37,22 @@ public static class Concierge
         "I'm sorry, I can't answer right now. Please try again in a moment, or ask the front desk.";
 
     /// <summary>
-    /// The intent recorded on the concierge's traces.
+    /// Where a status check's context lists the guest's requests.
+    /// </summary>
+    public const string RequestsContext = "requests";
+
+    /// <summary>
+    /// What reads them.
+    /// </summary>
+    public const string RequestStatusCapability = "GuestService.GetRequestStatus";
+
+    /// <summary>
+    /// The intent recorded on the concierge's traces of a question.
     /// </summary>
     public const string QuestionIntent = "question";
+
+    /// <summary>
+    /// The intent recorded on the concierge's traces of a status check.
+    /// </summary>
+    public const string StatusIntent = "request_status";
 }

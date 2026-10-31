@@ -1,0 +1,213 @@
+using System.Text.Json;
+using HospitalityOS.Adapters.Local.Inference;
+using HospitalityOS.Contracts.Api.Ai;
+using HospitalityOS.Contracts.Api.Conversations;
+using HospitalityOS.Contracts.Capabilities;
+using HospitalityOS.Contracts.Capabilities.GuestService;
+using HospitalityOS.Contracts.Serialization;
+using HospitalityOS.Domain.Services.ServiceRequests;
+using HospitalityOS.Domain.Services.Services;
+using HospitalityOS.Eventing.Replay;
+using HospitalityOS.IntegrationTests.Hosts.Api;
+using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Tenancy;
+using HospitalityOS.Workflows.Concierge;
+using HospitalityOS.Workflows.GuestService;
+using HospitalityOS.Workflows.Triage;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+using static HospitalityOS.IntegrationTests.Workflows.GuestChat;
+using Seed = HospitalityOS.Seeding.AuroraGrand;
+
+namespace HospitalityOS.IntegrationTests.Workflows;
+
+/// <summary>
+/// Triage and the Guest Service Controller end to end over HTTP against the seeded Aurora Grand, where Alex is in house in
+/// room 412, with the Fake model scripted to classify and read requests as a model would: two towels, a pillow, and a
+/// broken AC each become one canonical <c>ServiceRequest</c> for room 412 in the message's flow and are acknowledged
+/// without a promised time (Journeys 9 to 11); a redelivered message creates nothing more (P8); a request the model cannot
+/// read is answered with a request for detail, and one the service refuses is passed to the front desk; and "where are my
+/// towels?" goes to the concierge with Alex's own requests in its context (Journey 12).
+/// </summary>
+public sealed class GuestServiceControllerTests : IAsyncLifetime
+{
+    private static readonly GuestStay alex = new(Seed.Alex, Seed.AlexStay, Seed.PropertyId);
+
+    private readonly StaffApi api = new(seedAuroraGrand: true, dispatchEvents: true, configure: Scripted);
+
+    private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
+
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public ValueTask DisposeAsync() => api.DisposeAsync();
+
+    [Fact]
+    public async Task TwoTowels_BecomeOneRequestForRoom412_AcknowledgedInTheMessagesFlow()
+    {
+        (GuestMessageResponse question, GuestMessageResponse answer) = await AskAsGuestAsync("Can you send two towels to my room?");
+
+        Assert.Equal((MessageSender.Concierge, "Of course. I've asked our team to bring 2 bath towels to Room 412."), (answer.Sender, answer.Text));
+        ServiceRequest request = await RequestForAsync(question);
+        Assert.Equal(
+            (ServiceCategory.Housekeeping, "bath_towel", 2, "Room 412", Seed.Room412, ServiceRequestStatus.Open),
+            (request.ServiceCategory, request.Details.ItemCode, request.Details.Quantity, request.Details.Location.Label, request.Details.Location.AccommodationUnitId, request.Status));
+        Assert.Equal((Seed.Alex, Seed.AlexStay, question.ConversationId, question.Id), (request.Origin.GuestId, request.Origin.StayContextId, request.Origin.ConversationId, request.Origin.SourceMessageId));
+
+        IReadOnlyList<EventMessage> flow = await FlowAsync(question);
+        Assert.Contains(flow, message => message.EventType == "ServiceRequestCreated" && message.AggregateId == request.Id.Value);
+        Assert.Contains(flow, message => message.EventType == "GuestMessageSent" && message.AggregateId == answer.Id.Value);
+        Assert.DoesNotContain(flow, message => message.EventType == "GuestQuestionAnswered");
+
+        AITraceResponse triage = await TraceAsync(api, Seed.TenantId, flow[0].CorrelationId, Cancellation, GuestTriage.Task);
+        Assert.Equal((AITraceOutcome.Routed, GuestTriage.ServiceRequestLabel), (triage.Outcome, triage.Intent));
+        Assert.Equal(ModelCallKind.Classification, Assert.Single(triage.Body.ModelCalls).Kind);
+
+        AITraceResponse trace = await TraceAsync(api, Seed.TenantId, flow[0].CorrelationId, Cancellation, GuestServiceController.Task);
+        Assert.Equal((AITraceOutcome.Answered, GuestServiceController.Intent), (trace.Outcome, trace.Intent));
+        CapabilityCall created = Assert.Single(trace.Body.CapabilityCalls);
+        Assert.Equal((CapabilityCallPurpose.Action, "GuestService.CreateRequest@1", (string?)null), (created.Purpose, created.Capability, created.ErrorCode));
+        Assert.Equal([new SourceReference("ServiceRequest", request.Id.Value, 1)], trace.Body.Response!.Citations);
+    }
+
+    [Fact]
+    public async Task APillow_IsOneUnlessTheGuestSaysOtherwise_ThroughTheSameDeliveryWorkflow()
+    {
+        (GuestMessageResponse question, GuestMessageResponse answer) = await AskAsGuestAsync("We need another pillow.");
+
+        Assert.Equal("Of course. I've asked our team to bring a pillow to Room 412.", answer.Text);
+        ServiceRequest request = await RequestForAsync(question);
+        Assert.Equal(("pillow", 1, ServiceCategory.Housekeeping), (request.Details.ItemCode, request.Details.Quantity, request.ServiceCategory));
+    }
+
+    [Fact]
+    public async Task ABrokenAirConditioner_BecomesAMaintenanceRequestInTheGuestsWords_AndIsAcknowledged()
+    {
+        (GuestMessageResponse question, GuestMessageResponse answer) = await AskAsGuestAsync("The AC isn't working.");
+
+        Assert.Equal("Thanks for letting us know. I've asked our team to take care of it in Room 412.", answer.Text);
+        ServiceRequest request = await RequestForAsync(question);
+        Assert.Equal(
+            (ServiceCategory.Maintenance, (string?)null, "The air conditioning is not working"),
+            (request.ServiceCategory, request.Details.ItemCode, request.Details.Description));
+    }
+
+    [Fact]
+    public async Task ARedeliveredRequest_CreatesNothingMore()
+    {
+        (GuestMessageResponse question, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+
+        await using (AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope())
+        {
+            Assert.True(await scope.ServiceProvider.GetRequiredService<IEventReplayer>().ReplayAsync(new EventReplayRequest(TenantId: Seed.TenantId), Cancellation) > 0);
+        }
+
+        // A later message is handled after the replayed deliveries, which by then were skipped as already processed.
+        api.Clock.Advance(TimeSpan.FromSeconds(5));
+        await AskAsGuestAsync("We need another pillow.");
+
+        IReadOnlyList<EventMessage> events = await api.EventsAsync(Seed.TenantId, Cancellation);
+        Assert.Equal(2, events.Count(message => message.EventType == "ServiceRequestCreated"));
+        Assert.Single(events, message => message.EventType == "GuestMessageTriaged" && message.AggregateId == question.Id.Value);
+        await RequestForAsync(question);
+    }
+
+    [Fact]
+    public async Task ARequestTheModelCannotRead_GetsARequestForDetail_AndCreatesNothing()
+    {
+        (GuestMessageResponse question, GuestMessageResponse answer) = await AskAsGuestAsync("Can you send a unicorn up?");
+
+        Assert.Equal(GuestServiceController.ClarifyAnswer, answer.Text);
+        Assert.Null(await FindRequestAsync(question));
+        AITraceResponse trace = await TraceAsync(api, Seed.TenantId, (await FlowAsync(question))[0].CorrelationId, Cancellation, GuestServiceController.Task);
+        Assert.Equal(AITraceOutcome.Uncertain, trace.Outcome);
+    }
+
+    [Fact]
+    public async Task ARequestTheServiceRefuses_IsPassedToTheFrontDesk()
+    {
+        // Housekeeping delivers at most four bath towels per request.
+        (GuestMessageResponse question, GuestMessageResponse answer) = await AskAsGuestAsync("Please send nine towels.");
+
+        Assert.Equal(GuestServiceController.RefusedAnswer, answer.Text);
+        Assert.Null(await FindRequestAsync(question));
+        AITraceResponse trace = await TraceAsync(api, Seed.TenantId, (await FlowAsync(question))[0].CorrelationId, Cancellation, GuestServiceController.Task);
+        Assert.Equal(AITraceOutcome.Failed, trace.Outcome);
+        Assert.NotNull(Assert.Single(trace.Body.CapabilityCalls).ErrorCode);
+    }
+
+    [Fact]
+    public async Task WhereAreMyTowels_GoesToTheConcierge_WithTheGuestsOwnRequestsInItsContext()
+    {
+        (GuestMessageResponse towels, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+        ServiceRequest request = await RequestForAsync(towels);
+
+        (GuestMessageResponse status, _) = await AskAsGuestAsync("Where are my towels?");
+
+        AITraceResponse trace = await TraceAsync(api, Seed.TenantId, (await FlowAsync(status))[0].CorrelationId, Cancellation);
+        Assert.Equal(Concierge.StatusIntent, trace.Intent);
+        CapabilityCall read = Assert.Single(trace.Body.CapabilityCalls, call => call.Capability == "GuestService.GetRequestStatus@1");
+        Assert.Equal(CapabilityCallPurpose.Context, read.Purpose);
+        Assert.Equal(Seed.AlexStay.Value, read.Input!.Value.GetProperty("stayContextId").GetGuid());
+        ServiceRequestEntry pending = Assert.Single(read.Output!.Value.Deserialize<GetRequestStatusOutput>(ContractJson.Options)!.Requests);
+        Assert.Equal((new SourceReference("ServiceRequest", request.Id.Value, 1), RequestStatus.Open, "bath_towel"), (pending.Source, pending.Status, pending.ItemCode));
+        Assert.Contains(new SourceReference("ServiceRequest", request.Id.Value, 1), trace.Body.Retrieved);
+    }
+
+    private static void Scripted(IWebHostBuilder builder)
+    {
+        FakeScriptOptions script = new();
+        script.Classification.Add(new FakeClassificationRuleOptions("where are my", GuestTriage.RequestStatusLabel));
+        script.Classification.Add(new FakeClassificationRuleOptions("towel", GuestTriage.ServiceRequestLabel));
+        script.Classification.Add(new FakeClassificationRuleOptions("pillow", GuestTriage.ServiceRequestLabel));
+        script.Classification.Add(new FakeClassificationRuleOptions("AC", GuestTriage.ServiceRequestLabel));
+        script.Classification.Add(new FakeClassificationRuleOptions("unicorn", GuestTriage.ServiceRequestLabel));
+        script.Extraction.Add(Read("nine towels", "housekeeping.amenities", "bath_towel", 9));
+        script.Extraction.Add(Read("two towels", "housekeeping.amenities", "bath_towel", 2));
+        script.Extraction.Add(Read("pillow", "housekeeping.amenities", "pillow", null));
+        script.Extraction.Add(new FakeExtractionRuleOptions("AC", """{"understood":true,"serviceCode":"maintenance.repair","itemCode":null,"quantity":null,"description":"The air conditioning is not working"}"""));
+        script.Extraction.Add(new FakeExtractionRuleOptions("unicorn", """{"understood":false,"serviceCode":null,"itemCode":null,"quantity":null,"description":null}"""));
+        script.Chat.Add(new FakeChatRuleOptions(Reply: """{"status":"Unknown","answer":"","citations":[]}"""));
+
+        builder.UseSetting("Inference:Providers:scripted:Adapter", "Fake");
+        builder.UseSetting("Inference:Providers:scripted:Settings:Script", "guests");
+
+        foreach (string task in new[] { GuestTriage.Task, GuestServiceController.Task, Concierge.AnswerTask })
+        {
+            builder.UseSetting($"Inference:Tasks:{task}:Provider", "scripted");
+            builder.UseSetting($"Inference:Tasks:{task}:Model", "fake");
+        }
+
+        builder.ConfigureTestServices(services => services.Configure<FakeInferenceOptions>(options => options.Scripts["guests"] = script));
+
+        static FakeExtractionRuleOptions Read(string says, string service, string item, int? quantity) =>
+            new(says, JsonSerializer.Serialize(new { understood = true, serviceCode = service, itemCode = item, quantity, description = (string?)null }));
+    }
+
+    private async Task<(GuestMessageResponse Question, GuestMessageResponse Answer)> AskAsGuestAsync(string text)
+    {
+        using HttpClient guest = api.Guest(Seed.TenantId, alex);
+
+        return await AskAsync(api, guest, text, Cancellation);
+    }
+
+    private async Task<IReadOnlyList<EventMessage>> FlowAsync(GuestMessageResponse question)
+    {
+        IReadOnlyList<EventMessage> events = await api.EventsAsync(Seed.TenantId, Cancellation);
+        Guid correlation = events.Single(message => message.EventType == "GuestMessageReceived" && message.AggregateId == question.Id.Value).CorrelationId;
+
+        return [.. events.Where(message => message.CorrelationId == correlation)];
+    }
+
+    private async Task<ServiceRequest> RequestForAsync(GuestMessageResponse question) =>
+        await FindRequestAsync(question) ?? throw new Xunit.Sdk.XunitException($"No service request was created for '{question.Text}'.");
+
+    private async Task<ServiceRequest?> FindRequestAsync(GuestMessageResponse question)
+    {
+        await using AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(Seed.TenantId);
+
+        return await scope.ServiceProvider.GetRequiredService<IServiceRequestRepository>().FindBySourceMessageAsync(question.Id, Cancellation);
+    }
+}

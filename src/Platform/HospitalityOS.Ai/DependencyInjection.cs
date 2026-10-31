@@ -1,3 +1,4 @@
+using HospitalityOS.Ai.Classifying;
 using HospitalityOS.Ai.Grounding;
 using HospitalityOS.Ai.Retrieval;
 using HospitalityOS.Ai.StructuredOutput;
@@ -26,7 +27,7 @@ public static class DependencyInjection
     public const int DefaultMaxToolRounds = ToolLoopRegistration.DefaultMaxToolRounds;
 
     /// <summary>
-    /// Registers <see cref="IToolLoop"/>, <see cref="ITypedExtractor"/>, <see cref="IGroundedAnswerer"/>, and the AI trace
+    /// Registers <see cref="IToolLoop"/>, <see cref="ITypedExtractor"/>, <see cref="ILabelClassifier"/>, <see cref="IGroundedAnswerer"/>, and the AI trace
     /// recorder and reader (<see cref="IAITraceRecorder"/>, <see cref="IAITraceReader"/>; scoped), with startup validation of
     /// the declared tool loops, grounded tasks, and trace redaction. The host binds <see cref="AITraceRedactionOptions"/>.
     /// </summary>
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.TryAddSingleton<ToolLoopCatalog>();
         services.TryAddScoped<IToolLoop, ToolLoop>();
         services.TryAddScoped<ITypedExtractor, TypedExtractor>();
+        services.TryAddScoped<ILabelClassifier, LabelClassifier>();
         services.TryAddScoped<IGroundedAnswerer, GroundedAnswerer>();
         services.TryAddScoped<AITraceRecorder>();
         services.TryAddScoped<IAITraceRecorder>(provider => provider.GetRequiredService<AITraceRecorder>());
@@ -107,6 +109,19 @@ public static class DependencyInjection
         services
             .AddEventHandler<ContentItemCreatedV1, ContentIndexingHandler>(ContentIndexingHandler.OnCreated)
             .AddEventHandler<ContentItemUpdatedV1, ContentIndexingHandler>(ContentIndexingHandler.OnUpdated);
+
+    /// <summary>
+    /// Declares a classification task for <see cref="ILabelClassifier"/>, run through <see cref="IClassifier"/> with
+    /// <paramref name="prompt"/> as its instructions: one <c>label: description</c> line per label.
+    /// </summary>
+    public static IServiceCollection AddClassification(this IServiceCollection services, string task, string prompt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
+
+        services.AddInferenceTask<IClassifier>(task, prompt);
+
+        return services.AddAi();
+    }
 
     /// <summary>
     /// Declares an extraction task for <see cref="ITypedExtractor"/>, run through <see cref="IStructuredExtractor"/> with

@@ -92,7 +92,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task List_InTheHostAsShipped_PublishesTheSpecReadCapabilities()
+    public async Task List_InTheHostAsShipped_PublishesTheSpecCapabilities()
     {
         await using WebApplicationFactory<Program> shipped = new();
         using HttpClient client = shipped.CreateClient();
@@ -101,9 +101,12 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
 
         JsonElement[] capabilities = [.. body.RootElement.EnumerateArray()];
         Assert.Equal(
-            ["Dining.GetMenu", "Dining.SearchRestaurants", "Events.SearchPropertyEvents", "Property.GetOperatingHours", "Property.GetPolicy", "Property.GetProperty", "Property.SearchContent"],
+            [
+                "Dining.GetMenu", "Dining.SearchRestaurants", "Events.SearchPropertyEvents", "GuestService.CreateRequest", "GuestService.GetRequestStatus",
+                "Property.GetOperatingHours", "Property.GetPolicy", "Property.GetProperty", "Property.SearchContent",
+            ],
             capabilities.Select(capability => capability.GetProperty("name").GetString()));
-        JsonElement hoursInput = capabilities[3].GetProperty("inputSchema");
+        JsonElement hoursInput = capabilities[5].GetProperty("inputSchema");
         Assert.Equal(
             "The amenity, restaurant, space, or service ID; required unless the subject is the property.",
             hoursInput.GetProperty("properties").GetProperty("subjectId").GetProperty("description").GetString());

@@ -18,8 +18,16 @@ public static class AiErrors
     /// </summary>
     public const string InvalidOutputCode = "inference.invalid_output";
 
+    /// <summary>
+    /// The model chose a label it was not offered.
+    /// </summary>
+    public const string UnknownLabelCode = "inference.unknown_label";
+
     internal static Error ToolRoundLimit(string task, int rounds) =>
         Error.Unavailable(ToolRoundLimitCode, $"The model for inference task '{task}' was still calling tools after {rounds} rounds.");
+
+    internal static Error UnknownLabel(string task, string label) =>
+        Error.Unavailable(UnknownLabelCode, $"The model for inference task '{task}' chose '{label}', which is not one of the labels offered.");
 
     internal static Error InvalidOutput(string task, string reason) =>
         Error.Unavailable(InvalidOutputCode, $"The model for inference task '{task}' did not produce output matching the schema: {reason}");

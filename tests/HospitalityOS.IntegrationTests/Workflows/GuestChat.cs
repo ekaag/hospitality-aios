@@ -100,14 +100,21 @@ internal static class GuestChat
     }
 
     /// <summary>
-    /// The one trace of a flow, in full, as a manager reads it.
+    /// The one trace of a flow by <paramref name="agent"/> (the concierge's by default; triage leaves its own), in full, as
+    /// a manager reads it.
     /// </summary>
-    public static async Task<AITraceResponse> TraceAsync(StaffApi host, TenantId tenant, Guid correlationId, CancellationToken cancellationToken)
+    public static async Task<AITraceResponse> TraceAsync(
+        StaffApi host,
+        TenantId tenant,
+        Guid correlationId,
+        CancellationToken cancellationToken,
+        string agent = Concierge.AnswerTask)
     {
         using HttpClient manager = host.Staff(tenant, "Manager");
         AITracePage page = await StaffApi.OkAsync<AITracePage>(await manager.GetAsync($"/api/v1/ai/traces?correlationId={correlationId}", cancellationToken), cancellationToken);
+        AITraceSummary trace = Assert.Single(page.Traces, candidate => candidate.Agent == agent);
 
-        return await StaffApi.OkAsync<AITraceResponse>(await manager.GetAsync($"/api/v1/ai/traces/{Assert.Single(page.Traces).Id}", cancellationToken), cancellationToken);
+        return await StaffApi.OkAsync<AITraceResponse>(await manager.GetAsync($"/api/v1/ai/traces/{trace.Id}", cancellationToken), cancellationToken);
     }
 
     /// <summary>

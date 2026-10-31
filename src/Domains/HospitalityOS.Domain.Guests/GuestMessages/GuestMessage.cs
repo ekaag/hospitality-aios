@@ -100,6 +100,47 @@ public sealed class GuestMessage : AggregateRoot<GuestMessageId>, ITenantScoped,
     public DateTimeOffset SentAt { get; }
 
     /// <summary>
+    /// What a guest's message asks for, once triaged; the message's only change after it is recorded.
+    /// </summary>
+    public MessageIntent? Intent { get; private set; }
+
+    /// <summary>
+    /// Records what a guest's message asks for and raises <see cref="GuestMessageTriaged"/>, which routes it to the
+    /// controller that handles it. Triaging again with the same intent is a no-op; a message is triaged once.
+    /// </summary>
+    /// <param name="intent">What the message asks for.</param>
+    /// <param name="now">Current time from the injected <see cref="TimeProvider"/>.</param>
+    /// <returns>Success, a <see cref="ValidationError"/>, or an <see cref="ErrorKind.InvalidState"/> error when the message is
+    /// not a guest's or was triaged differently.</returns>
+    public Result Triage(MessageIntent intent, DateTimeOffset now)
+    {
+        if (!Enum.IsDefined(intent))
+        {
+            return Error.Validation("intent", "message.intent_invalid", $"'{intent}' is not a known intent.");
+        }
+
+        if (Sender != MessageSender.Guest)
+        {
+            return Error.InvalidState("message.not_from_guest", "Only a guest's message is triaged.");
+        }
+
+        if (Intent == intent)
+        {
+            return Result.Success();
+        }
+
+        if (Intent is not null)
+        {
+            return Error.InvalidState("message.already_triaged", $"The message was already triaged as {Intent}.");
+        }
+
+        Intent = intent;
+        Raise(new GuestMessageTriaged(Id, ConversationId, PropertyId, GuestId, StayContextId, intent, now));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Records a message in an open conversation. Raises <see cref="GuestMessageReceived"/> for guest messages
     /// and <see cref="GuestMessageSent"/> for everyone else's.
     /// </summary>

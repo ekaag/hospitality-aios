@@ -156,15 +156,17 @@ public sealed class EvalHost : IAsyncDisposable
     }
 
     /// <summary>
-    /// The one trace of the flow, in full (as an administrator reads it), or <c>null</c> when there is none or several.
+    /// The flow's one trace by <paramref name="agent"/>, in full (as an administrator reads it), or <c>null</c> when there
+    /// is none or several.
     /// </summary>
-    public async Task<AITraceResponse?> TraceAsync(Guid correlationId, CancellationToken cancellationToken)
+    public async Task<AITraceResponse?> TraceAsync(Guid correlationId, string agent, CancellationToken cancellationToken)
     {
         using HttpClient admin = Admin();
         AITracePage page = await ReadAsync<AITracePage>(await admin.GetAsync($"/api/v1/ai/traces?correlationId={correlationId}", cancellationToken), cancellationToken);
+        AITraceSummary[] traces = [.. page.Traces.Where(trace => trace.Agent == agent)];
 
-        return page.Traces.Count == 1
-            ? await ReadAsync<AITraceResponse>(await admin.GetAsync($"/api/v1/ai/traces/{page.Traces[0].Id}", cancellationToken), cancellationToken)
+        return traces.Length == 1
+            ? await ReadAsync<AITraceResponse>(await admin.GetAsync($"/api/v1/ai/traces/{traces[0].Id}", cancellationToken), cancellationToken)
             : null;
     }
 

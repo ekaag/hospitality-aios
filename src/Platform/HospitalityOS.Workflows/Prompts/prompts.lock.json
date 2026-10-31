@@ -1,4 +1,7 @@
 {
   "concierge.answer@1": "sha256:652afdf405b71d8d90d47b9ccfab52d0264542d4220db7a3a5941920e5c404f9",
-  "concierge.answer@2": "sha256:2680aeec7987b768262caa95bf3f1b9d673e0c03653aad1a91cfbe9fb04c021a"
+  "concierge.answer@2": "sha256:2680aeec7987b768262caa95bf3f1b9d673e0c03653aad1a91cfbe9fb04c021a",
+  "concierge.answer@3": "sha256:1f1509a4de5e233d3a0aaa3f5078d8a2e9fbea8f0d53c2ba5d98345aa709625f",
+  "guestservice.extract@1": "sha256:1cf7abf8d11972652fcf6fb9a7f6ae737ab5be62b56a1d1ab952fd9bcc15ef5f",
+  "intent.classify@1": "sha256:cc5e92174b75454134ec95222910fc9fdcb34de260b5821491720cf890830d94"
 }
