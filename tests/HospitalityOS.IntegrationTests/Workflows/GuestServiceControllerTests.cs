@@ -5,6 +5,7 @@ using HospitalityOS.Contracts.Api.Conversations;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.GuestService;
 using HospitalityOS.Contracts.Serialization;
+using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.Eventing.Replay;
@@ -55,8 +56,18 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
             (request.ServiceCategory, request.Details.ItemCode, request.Details.Quantity, request.Details.Location.Label, request.Details.Location.AccommodationUnitId, request.Status));
         Assert.Equal((Seed.Alex, Seed.AlexStay, question.ConversationId, question.Id), (request.Origin.GuestId, request.Origin.StayContextId, request.Origin.ConversationId, request.Origin.SourceMessageId));
 
+        HumanAction work = await WorkForAsync(request);
+        Assert.Equal(
+            (HumanActionType.DeliverItems, "Deliver 2 × Bath towel", request.Details.Location, HumanActionPriority.Normal, request.DueAt, HumanActionStatus.Requested),
+            (work.Details.ActionType, work.Details.Instructions, work.Details.Location, work.Details.Priority, work.Deadline, work.Status));
+        Assert.Equal([new ActionItem("Bath towel", 2, "bath_towel")], work.Details.Items!);
+        Assert.Equal(["housekeeping"], work.Details.SkillsRequired!);
+        Assert.Equal(WorkRequester.Name, work.Details.RequestedByAgent);
+
         IReadOnlyList<EventMessage> flow = await FlowAsync(question);
-        Assert.Contains(flow, message => message.EventType == "ServiceRequestCreated" && message.AggregateId == request.Id.Value);
+        EventMessage requested = Assert.Single(flow, message => message.EventType == "ServiceRequestCreated" && message.AggregateId == request.Id.Value);
+        Assert.Equal(requested.EventId, work.Details.SourceEventId);
+        Assert.Contains(flow, message => message.EventType == "HumanActionRequested" && message.AggregateId == work.Id.Value);
         Assert.Contains(flow, message => message.EventType == "GuestMessageSent" && message.AggregateId == answer.Id.Value);
         Assert.DoesNotContain(flow, message => message.EventType == "GuestQuestionAnswered");
 
@@ -79,6 +90,7 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         Assert.Equal("Of course. I've asked our team to bring a pillow to Room 412.", answer.Text);
         ServiceRequest request = await RequestForAsync(question);
         Assert.Equal(("pillow", 1, ServiceCategory.Housekeeping), (request.Details.ItemCode, request.Details.Quantity, request.ServiceCategory));
+        Assert.Equal([new ActionItem("Pillow", 1, "pillow")], (await WorkForAsync(request)).Details.Items!);
     }
 
     [Fact]
@@ -91,12 +103,19 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         Assert.Equal(
             (ServiceCategory.Maintenance, (string?)null, "The air conditioning is not working"),
             (request.ServiceCategory, request.Details.ItemCode, request.Details.Description));
+
+        HumanAction work = await WorkForAsync(request);
+        Assert.Equal(
+            (HumanActionType.CheckRoom, "Repairs: The air conditioning is not working", "Room 412", 0),
+            (work.Details.ActionType, work.Details.Instructions, work.Details.Location.Label, work.Details.Items!.Count));
+        Assert.Equal(["maintenance"], work.Details.SkillsRequired!);
     }
 
     [Fact]
     public async Task ARedeliveredRequest_CreatesNothingMore()
     {
         (GuestMessageResponse question, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+        await WorkForAsync(await RequestForAsync(question));
 
         await using (AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope())
         {
@@ -105,12 +124,14 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
         // A later message is handled after the replayed deliveries, which by then were skipped as already processed.
         api.Clock.Advance(TimeSpan.FromSeconds(5));
-        await AskAsGuestAsync("We need another pillow.");
+        (GuestMessageResponse pillow, _) = await AskAsGuestAsync("We need another pillow.");
+        await WorkForAsync(await RequestForAsync(pillow));
 
         IReadOnlyList<EventMessage> events = await api.EventsAsync(Seed.TenantId, Cancellation);
         Assert.Equal(2, events.Count(message => message.EventType == "ServiceRequestCreated"));
+        Assert.Equal(2, events.Count(message => message.EventType == "HumanActionRequested"));
         Assert.Single(events, message => message.EventType == "GuestMessageTriaged" && message.AggregateId == question.Id.Value);
-        await RequestForAsync(question);
+        await WorkForAsync(await RequestForAsync(question));
     }
 
     [Fact]
@@ -202,6 +223,32 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
     private async Task<ServiceRequest> RequestForAsync(GuestMessageResponse question) =>
         await FindRequestAsync(question) ?? throw new Xunit.Sdk.XunitException($"No service request was created for '{question.Text}'.");
+
+    /// <summary>
+    /// The one human action asked for a request, waiting for it: it is requested after the request is acknowledged.
+    /// </summary>
+    private async Task<HumanAction> WorkForAsync(ServiceRequest request)
+    {
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+
+        while (true)
+        {
+            await using (AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope())
+            {
+                scope.ServiceProvider.GetRequiredService<TenantContext>().Set(Seed.TenantId);
+                IReadOnlyList<HumanAction> work = await scope.ServiceProvider.GetRequiredService<IHumanActionRepository>().ListForServiceRequestAsync(request.Id, timeout.Token);
+
+                if (work.Count > 0)
+                {
+                    return Assert.Single(work);
+                }
+            }
+
+            api.Clock.Advance(TimeSpan.FromMilliseconds(50));
+            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
+        }
+    }
 
     private async Task<ServiceRequest?> FindRequestAsync(GuestMessageResponse question)
     {

@@ -1,6 +1,7 @@
 using HospitalityOS.Ai;
 using HospitalityOS.Bindings;
 using HospitalityOS.Contracts.Events.Guests;
+using HospitalityOS.Contracts.Events.Services;
 using HospitalityOS.Eventing;
 using HospitalityOS.Workflows.Concierge;
 using HospitalityOS.Workflows.GuestService;
@@ -21,7 +22,8 @@ public static class DependencyInjection
     /// Registers the controllers for guest messages: triage, which classifies each message once by intent
     /// (<see cref="GuestTriage.Task"/>); the Concierge Controller, which answers questions and status checks with grounded
     /// answers (<see cref="Concierge.Concierge.AnswerTask"/>); and the Guest Service Controller, which turns service requests
-    /// into canonical requests (<see cref="GuestServiceController.Task"/>). Each declares its task with its prompt.
+    /// into canonical requests (<see cref="GuestServiceController.Task"/>) and asks staff to do the work each request needs
+    /// (<see cref="WorkRequester.Name"/>). Each that uses a model declares its task with its prompt.
     /// </summary>
     public static IServiceCollection AddWorkflows(this IServiceCollection services)
     {
@@ -33,7 +35,8 @@ public static class DependencyInjection
             .AddExtraction(GuestServiceController.Task, GuestServiceController.Task)
             .AddEventHandler<GuestMessageReceivedV1, GuestTriage>(GuestTriage.Task)
             .AddEventHandler<GuestMessageTriagedV1, ConciergeController>(ConciergeController.OnGuestMessageTriaged)
-            .AddEventHandler<GuestMessageTriagedV1, GuestServiceController>(GuestServiceController.Task);
+            .AddEventHandler<GuestMessageTriagedV1, GuestServiceController>(GuestServiceController.Task)
+            .AddEventHandler<ServiceRequestCreatedV1, WorkRequester>(WorkRequester.Name);
 
         return services;
     }

@@ -103,10 +103,11 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
         Assert.Equal(
             [
                 "Dining.GetMenu", "Dining.SearchRestaurants", "Events.SearchPropertyEvents", "GuestService.CreateRequest", "GuestService.GetRequestStatus",
+                "HumanAction.Assign", "HumanAction.Complete", "HumanAction.Create", "HumanAction.UpdateStatus",
                 "Property.GetOperatingHours", "Property.GetPolicy", "Property.GetProperty", "Property.SearchContent",
             ],
             capabilities.Select(capability => capability.GetProperty("name").GetString()));
-        JsonElement hoursInput = capabilities[5].GetProperty("inputSchema");
+        JsonElement hoursInput = capabilities.Single(capability => capability.GetProperty("name").GetString() == "Property.GetOperatingHours").GetProperty("inputSchema");
         Assert.Equal(
             "The amenity, restaurant, space, or service ID; required unless the subject is the property.",
             hoursInput.GetProperty("properties").GetProperty("subjectId").GetProperty("description").GetString());
