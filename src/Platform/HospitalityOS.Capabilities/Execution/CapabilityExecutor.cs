@@ -105,8 +105,8 @@ internal sealed class CapabilityExecutor(
             canonicalInput,
             currentTenant.TenantId,
             operation.Actor,
-            operation.CorrelationId,
-            operation.CausationId);
+            request.ContinuesFlow is { } flow && flow != Guid.Empty ? flow : operation.CorrelationId,
+            request.ContinuesFlow is { } joined && joined != Guid.Empty ? operation.CorrelationId : operation.CausationId);
 
         if (key is not null && await ReplayAsync(attempt, cancellationToken).ConfigureAwait(false) is { } replayed)
         {

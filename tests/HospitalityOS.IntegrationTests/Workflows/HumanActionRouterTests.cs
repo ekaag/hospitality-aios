@@ -6,7 +6,6 @@ using HospitalityOS.Contracts.Capabilities.HumanActions;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.IntegrationTests.Hosts.Api;
-using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Execution;
@@ -37,37 +36,10 @@ public sealed class HumanActionRouterTests : IAsyncLifetime
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     /// <summary>
-    /// Waits until the seeded roster's joining has been handled, so routing in a test is not raced by it.
+    /// Waits until the seeded roster's joining has been routed, so it cannot race the test's own work.
     /// </summary>
-    public async ValueTask InitializeAsync()
-    {
-        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
-        Guid[] joined = [.. (await api.EventsAsync(Seed.TenantId, Cancellation)).Where(message => message.EventType == "StaffMemberCreated").Select(message => message.EventId)];
-        Assert.Equal(3, joined.Length);
-
-        while (true)
-        {
-            await using (AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope())
-            {
-                IInboxStore inbox = scope.ServiceProvider.GetRequiredService<IInboxStore>();
-                bool handled = true;
-
-                foreach (Guid eventId in joined)
-                {
-                    handled &= await inbox.HasProcessedAsync(DutyRerouting.JoinedName, eventId, timeout.Token);
-                }
-
-                if (handled)
-                {
-                    return;
-                }
-            }
-
-            api.Clock.Advance(TimeSpan.FromMilliseconds(50));
-            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
-        }
-    }
+    public async ValueTask InitializeAsync() =>
+        await api.HandledAsync(Seed.TenantId, "StaffMemberCreated", DutyRerouting.JoinedName, Cancellation);
 
     public ValueTask DisposeAsync() => api.DisposeAsync();
 

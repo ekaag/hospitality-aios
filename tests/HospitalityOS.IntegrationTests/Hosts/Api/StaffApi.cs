@@ -138,9 +138,57 @@ internal sealed class StaffApi : IAsyncDisposable
     public async Task<IReadOnlyList<EventMessage>> EventsAsync(TenantId tenant, CancellationToken cancellationToken)
     {
         await using AsyncServiceScope scope = Factory.Services.CreateAsyncScope();
-        IReadOnlyList<StoredEvent> stored = await scope.ServiceProvider.GetRequiredService<IEventStore>().ReadAsync(new EventStoreQuery(TenantId: tenant), cancellationToken);
+        IEventStore store = scope.ServiceProvider.GetRequiredService<IEventStore>();
+        List<EventMessage> events = [];
+        long after = 0;
 
-        return [.. stored.Select(entry => entry.Message)];
+        // Every page: a seeded property and a journey hold more events than one page.
+        while (true)
+        {
+            IReadOnlyList<StoredEvent> page = await store.ReadAsync(new EventStoreQuery(after, EventStoreQuery.MaxLimit, tenant), cancellationToken);
+            events.AddRange(page.Select(entry => entry.Message));
+
+            if (page.Count < EventStoreQuery.MaxLimit)
+            {
+                return events;
+            }
+
+            after = page[^1].Position;
+        }
+    }
+
+    /// <summary>
+    /// Waits until <paramref name="handler"/> has handled every <paramref name="eventType"/> event of <paramref name="tenant"/>
+    /// so far, moving the clock as the dispatcher needs; e.g. until the seeded roster's joining is routed, so it cannot
+    /// race a test's own work.
+    /// </summary>
+    public async Task HandledAsync(TenantId tenant, string eventType, string handler, CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+        Guid[] events = [.. (await EventsAsync(tenant, cancellationToken)).Where(message => message.EventType == eventType).Select(message => message.EventId)];
+
+        while (true)
+        {
+            await using (AsyncServiceScope scope = Factory.Services.CreateAsyncScope())
+            {
+                IInboxStore inbox = scope.ServiceProvider.GetRequiredService<IInboxStore>();
+                bool handled = true;
+
+                foreach (Guid eventId in events)
+                {
+                    handled &= await inbox.HasProcessedAsync(handler, eventId, timeout.Token);
+                }
+
+                if (handled)
+                {
+                    return;
+                }
+            }
+
+            Clock.Advance(TimeSpan.FromMilliseconds(50));
+            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
+        }
     }
 
     /// <summary>

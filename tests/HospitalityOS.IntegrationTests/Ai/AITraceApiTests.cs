@@ -81,7 +81,7 @@ public sealed class AITraceApiTests : IAsyncLifetime
             Assert.NotNull(call.InvocationId);
         });
         Assert.All(trace.Body.ModelCalls.SelectMany(call => call.Attempts), attempt => Assert.Equal(
-            ("scripted", "fake-concierge", "concierge.answer", 3),
+            ("scripted", "fake-concierge", "concierge.answer", 4),
             (attempt.Provider, attempt.Model, attempt.Prompt?.Name, attempt.Prompt?.Number ?? 0)));
         Assert.Contains("Answer only from authoritative sources", trace.Body.ModelCalls[0].SystemPrompt, StringComparison.Ordinal);
         Assert.Equal([new ReplyVerdict(true, null)], trace.Body.Grounding!.Replies);

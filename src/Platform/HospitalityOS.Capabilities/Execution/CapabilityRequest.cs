@@ -13,4 +13,7 @@ namespace HospitalityOS.Capabilities.Execution;
 /// result without running again. Trimmed; at most 200 characters.</param>
 /// <param name="Confirmed">Whether the person it acts for explicitly confirmed it, for capabilities that require
 /// confirmation.</param>
-public sealed record CapabilityRequest(string Name, JsonElement Input, int? Version = null, string? IdempotencyKey = null, bool Confirmed = false);
+/// <param name="ContinuesFlow">The flow the invocation continues, when the caller acts on something begun in another
+/// flow, e.g. a worker completing work a guest's message asked for: the invocation and what it raises join that flow, and
+/// the caller's own flow is recorded as their cause. Only the trace changes; tenant and actor stay the caller's.</param>
+public sealed record CapabilityRequest(string Name, JsonElement Input, int? Version = null, string? IdempotencyKey = null, bool Confirmed = false, Guid? ContinuesFlow = null);

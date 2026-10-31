@@ -1,3 +1,5 @@
+using HospitalityOS.Contracts.Capabilities.HumanActions;
+
 namespace HospitalityOS.Contracts.Capabilities.GuestService;
 
 /// <summary>
@@ -13,6 +15,8 @@ namespace HospitalityOS.Contracts.Capabilities.GuestService;
 /// <param name="Location">Where it is delivered or done, e.g. <c>Room 412</c>.</param>
 /// <param name="Status">Where it is; report only this, never an estimate of when it will be done.</param>
 /// <param name="LocalRequestedAt">When it was requested (property-local).</param>
+/// <param name="WorkStatus">Where the staff work for it is (Requested, Assigned, Accepted, InProgress, ...), when staff
+/// have been asked; report only this, never an estimate.</param>
 public sealed record ServiceRequestEntry(
     SourceReference Source,
     string ServiceCode,
@@ -23,4 +27,5 @@ public sealed record ServiceRequestEntry(
     string? Description,
     string Location,
     RequestStatus Status,
-    DateTime LocalRequestedAt);
+    DateTime LocalRequestedAt,
+    ActionStatus? WorkStatus = null);

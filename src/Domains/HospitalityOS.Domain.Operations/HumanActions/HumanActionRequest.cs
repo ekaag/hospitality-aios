@@ -19,6 +19,8 @@ namespace HospitalityOS.Domain.Operations.HumanActions;
 /// <param name="SkillsRequired">Skill codes the router matches, e.g. <c>housekeeping</c>, <c>hvac</c>.</param>
 /// <param name="ServiceRequestId">The service request the work fulfils, if any; its controller resumes on completion.</param>
 /// <param name="SourceEventId">The ID of the event that triggered the request, e.g. <c>ServiceRequestCreated</c>.</param>
+/// <param name="CorrelationId">The end-to-end flow the work belongs to (P11), e.g. the guest's message; acting on the
+/// work continues it, so a request and its fulfilment share one correlation ID.</param>
 public sealed record HumanActionRequest(
     HumanActionType ActionType,
     string Instructions,
@@ -31,4 +33,5 @@ public sealed record HumanActionRequest(
     ValueList<ActionItem>? Items = null,
     ValueList<string>? SkillsRequired = null,
     ServiceRequestId? ServiceRequestId = null,
-    Guid? SourceEventId = null);
+    Guid? SourceEventId = null,
+    Guid? CorrelationId = null);

@@ -1,6 +1,8 @@
 using HospitalityOS.Capabilities.Reading;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Capabilities.GuestService;
+using HospitalityOS.Contracts.Capabilities.HumanActions;
+using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Domain.Services.Services;
 
@@ -11,7 +13,11 @@ namespace HospitalityOS.Capabilities.GuestService;
 /// </summary>
 internal static class RequestEntries
 {
-    public static ServiceRequestEntry Of(ServiceRequest request, Service? service, TimeZoneInfo timeZone)
+    /// <param name="request">The request.</param>
+    /// <param name="service">Its service, if it still exists.</param>
+    /// <param name="timeZone">The property's time zone.</param>
+    /// <param name="work">The latest staff work for it, if staff have been asked.</param>
+    public static ServiceRequestEntry Of(ServiceRequest request, Service? service, TimeZoneInfo timeZone, HumanAction? work = null)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -27,6 +33,7 @@ internal static class RequestEntries
             request.Details.Description,
             request.Details.Location.Label,
             EnumMirror.To<RequestStatus>(request.Status),
-            TimeZoneInfo.ConvertTime(request.CreatedAt, timeZone).DateTime);
+            TimeZoneInfo.ConvertTime(request.CreatedAt, timeZone).DateTime,
+            work is null ? null : EnumMirror.To<ActionStatus>(work.Status));
     }
 }

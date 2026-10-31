@@ -21,6 +21,7 @@ namespace HospitalityOS.Contracts.Capabilities.HumanActions;
 /// <param name="RequestedBy">The agent or user that requested it.</param>
 /// <param name="ServiceRequestId">The service request it fulfils, if any.</param>
 /// <param name="FailureReason">Why it failed or was cancelled, if it did.</param>
+/// <param name="CorrelationId">The flow the work belongs to: pass it as the flow to continue when acting on the work.</param>
 public sealed record HumanActionEntry(
     SourceReference Source,
     ActionType ActionType,
@@ -35,4 +36,5 @@ public sealed record HumanActionEntry(
     StaffMemberId? AssignedTo,
     string RequestedBy,
     ServiceRequestId? ServiceRequestId,
-    string? FailureReason);
+    string? FailureReason,
+    Guid? CorrelationId);

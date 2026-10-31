@@ -17,7 +17,8 @@ namespace HospitalityOS.Capabilities.HumanActions;
 /// <summary>
 /// <c>HumanAction.Create</c>: asks staff to do physical work the AI cannot (spec §7, P2), raising
 /// <c>HumanActionRequested</c> for the router. The caller is recorded as who requested it; work for a service request must
-/// be at that request's property. The idempotency key makes a repeated request create the work once (P8).
+/// be at that request's property, and the caller's flow is the work's, which acting on it continues (P11). The idempotency
+/// key makes a repeated request create the work once (P8).
 /// </summary>
 internal sealed class CreateActionCapability(
     IPropertyRepository properties,
@@ -79,7 +80,8 @@ internal sealed class CreateActionCapability(
             input.Items is null ? null : ValueList.From(input.Items.Select(item => item is null ? null! : new ActionItem(item.Name, item.Quantity, item.Code))),
             input.SkillsRequired,
             input.ServiceRequestId,
-            input.SourceEventId);
+            input.SourceEventId,
+            operation.CorrelationId);
         Result<HumanAction> requested = HumanAction.Request(
             new HumanActionId(idGenerators.Resolve().NewId()), property.TenantId, property.Id, work, timeProvider.GetUtcNow());
 

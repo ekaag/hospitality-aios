@@ -1,9 +1,11 @@
 using System.Text.Json;
 using HospitalityOS.Adapters.Local.Inference;
+using HospitalityOS.Capabilities.Execution;
 using HospitalityOS.Contracts.Api.Ai;
 using HospitalityOS.Contracts.Api.Conversations;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.GuestService;
+using HospitalityOS.Contracts.Capabilities.HumanActions;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Services.ServiceRequests;
@@ -11,10 +13,14 @@ using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.Eventing.Replay;
 using HospitalityOS.IntegrationTests.Hosts.Api;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.Ports.Execution;
 using HospitalityOS.Ports.Tenancy;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
+using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.Workflows.Concierge;
 using HospitalityOS.Workflows.GuestService;
+using HospitalityOS.Workflows.Routing;
 using HospitalityOS.Workflows.Triage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -41,7 +47,11 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
-    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+    /// <summary>
+    /// Waits until the seeded roster's joining has been routed, so it cannot race the test's own work.
+    /// </summary>
+    public async ValueTask InitializeAsync() =>
+        await api.HandledAsync(Seed.TenantId, "StaffMemberCreated", DutyRerouting.JoinedName, Cancellation);
 
     public ValueTask DisposeAsync() => api.DisposeAsync();
 
@@ -86,6 +96,27 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         CapabilityCall created = Assert.Single(trace.Body.CapabilityCalls);
         Assert.Equal((CapabilityCallPurpose.Action, "GuestService.CreateRequest@1", (string?)null), (created.Purpose, created.Capability, created.ErrorCode));
         Assert.Equal([new SourceReference("ServiceRequest", request.Id.Value, 1)], trace.Body.Response!.Citations);
+    }
+
+    [Fact]
+    public async Task TheTowelJourney_FromTheGuestsMessageToTheCompletedRequest_SharesOneCorrelationId()
+    {
+        (GuestMessageResponse question, _) = await AskAsGuestAsync("Can you send two towels to my room?");
+        ServiceRequest request = await RequestForAsync(question);
+        HumanAction work = await WorkForAsync(request, assigned: true);
+        Actor assignee = Actor.Staff(work.AssignedTo!.Value.ToString(), StaffRole.Worker);
+
+        await ActOnAsync(assignee, "HumanAction.UpdateStatus", new UpdateActionStatusInput(work.Id.Value, ActionStatus.Accepted), work);
+        await ActOnAsync(assignee, "HumanAction.UpdateStatus", new UpdateActionStatusInput(work.Id.Value, ActionStatus.InProgress), work);
+        await ActOnAsync(assignee, "HumanAction.Complete", new CompleteActionInput(work.Id.Value, "Left at the door"), work);
+
+        string[] journey =
+        [
+            "GuestMessageReceived", "GuestMessageTriaged", "ServiceRequestCreated", "GuestMessageSent", "HumanActionRequested", "HumanActionAssigned",
+            "HumanActionAccepted", "HumanActionStarted", "ServiceRequestUpdated", "HumanActionCompleted", "ServiceRequestCompleted",
+        ];
+        IReadOnlyList<EventMessage> flow = await FlowUntilAsync(question, "ServiceRequestCompleted");
+        Assert.All(journey, type => Assert.Single(flow, message => message.EventType == type));
     }
 
     [Fact]
@@ -225,6 +256,42 @@ public sealed class GuestServiceControllerTests : IAsyncLifetime
         Guid correlation = events.Single(message => message.EventType == "GuestMessageReceived" && message.AggregateId == question.Id.Value).CorrelationId;
 
         return [.. events.Where(message => message.CorrelationId == correlation)];
+    }
+
+    /// <summary>
+    /// The message's flow once it holds an event of <paramref name="type"/>: events reach the store as they are dispatched.
+    /// </summary>
+    private async Task<IReadOnlyList<EventMessage>> FlowUntilAsync(GuestMessageResponse question, string type)
+    {
+        using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
+        timeout.CancelAfter(TimeSpan.FromSeconds(10));
+
+        while (true)
+        {
+            IReadOnlyList<EventMessage> flow = await FlowAsync(question);
+
+            if (flow.Any(message => message.EventType == type))
+            {
+                return flow;
+            }
+
+            api.Clock.Advance(TimeSpan.FromMilliseconds(50));
+            await Task.Delay(TimeSpan.FromMilliseconds(50), timeout.Token);
+        }
+    }
+
+    /// <summary>
+    /// Acts on work as the staff surface does, continuing the work's flow.
+    /// </summary>
+    private async Task ActOnAsync(Actor actor, string capability, object input, HumanAction work)
+    {
+        await using AsyncServiceScope scope = api.Factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TenantContext>().Set(Seed.TenantId);
+        scope.ServiceProvider.GetRequiredService<OperationContext>().ActAs(actor);
+        Result<CapabilityResponse> result = await scope.ServiceProvider.GetRequiredService<ICapabilityExecutor>().ExecuteAsync(
+            new CapabilityRequest(capability, JsonSerializer.SerializeToElement(input, ContractJson.Options), ContinuesFlow: work.Details.CorrelationId),
+            Cancellation);
+        Assert.True(result.IsSuccess, result.IsFailure ? $"{result.Error.Code}: {result.Error.Message}" : null);
     }
 
     private async Task<ServiceRequest> RequestForAsync(GuestMessageResponse question) =>

@@ -33,7 +33,8 @@ internal static class HumanActionEntries
             action.AssignedTo,
             details.RequestedByAgent,
             details.ServiceRequestId,
-            action.FailureReason));
+            action.FailureReason,
+            details.CorrelationId));
     }
 
     /// <summary>

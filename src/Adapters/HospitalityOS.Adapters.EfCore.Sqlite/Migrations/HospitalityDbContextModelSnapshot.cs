@@ -853,6 +853,9 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
                                 .HasMaxLength(64)
                                 .HasColumnType("TEXT");
 
+                            b1.Property<Guid?>("CorrelationId")
+                                .HasColumnType("TEXT");
+
                             b1.Property<long?>("Deadline")
                                 .HasColumnType("INTEGER");
 
