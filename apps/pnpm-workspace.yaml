@@ -1,0 +1,5 @@
+packages:
+  - guest-web
+  - staff-web
+  - admin-web
+  - packages/*

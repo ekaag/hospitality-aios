@@ -17,8 +17,8 @@ internal static class CapabilityEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route);
 
-        group.MapGet("/", List);
-        group.MapGet("/{name}", Get);
+        group.MapGet("/", List).WithName("Capability.List");
+        group.MapGet("/{name}", Get).WithName("Capability.Get");
 
         return endpoints;
     }

@@ -7,7 +7,8 @@
       "applicationUrl": "http://localhost:5080",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "Seed__AuroraGrand__Enabled": "true"
+        "Seed__AuroraGrand__Enabled": "true",
+        "Authentication__DevTokens__Enabled": "true"
       }
     }
   }

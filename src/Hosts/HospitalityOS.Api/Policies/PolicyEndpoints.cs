@@ -19,12 +19,12 @@ internal static class PolicyEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.PolicyCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Policy.List");
-        group.MapGet("/{id}", GetAsync).WithName("Policy.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.PolicyUpdate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPost("/{id}/activate", ActivateAsync).WithName(AdministrationActions.PolicyActivate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPost("/{id}/retire", RetireAsync).WithName(AdministrationActions.PolicyRetire).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<PolicyResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.PolicyCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<PolicyResponse>>().WithName("Policy.List");
+        group.MapGet("/{id}", GetAsync).Produces<PolicyResponse>().WithName("Policy.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<PolicyResponse>().WithName(AdministrationActions.PolicyUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/{id}/activate", ActivateAsync).Produces<PolicyResponse>().WithName(AdministrationActions.PolicyActivate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/{id}/retire", RetireAsync).Produces<PolicyResponse>().WithName(AdministrationActions.PolicyRetire).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

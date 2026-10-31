@@ -19,10 +19,10 @@ internal static class RestaurantEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.RestaurantCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Restaurant.List");
-        group.MapGet("/{id}", GetAsync).WithName("Restaurant.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.RestaurantUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<RestaurantResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.RestaurantCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<RestaurantResponse>>().WithName("Restaurant.List");
+        group.MapGet("/{id}", GetAsync).Produces<RestaurantResponse>().WithName("Restaurant.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<RestaurantResponse>().WithName(AdministrationActions.RestaurantUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

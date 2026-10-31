@@ -1,0 +1,27 @@
+{
+  "name": "hospitalityos-apps",
+  "private": true,
+  "description": "The HospitalityOS frontends (guest, staff, admin) and their shared packages.",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  },
+  "type": "module",
+  "scripts": {
+    "generate": "pnpm --filter @hospitalityos/api-client generate",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.14.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
+  }
+}

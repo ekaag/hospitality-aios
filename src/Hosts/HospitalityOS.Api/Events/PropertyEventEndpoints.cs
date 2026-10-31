@@ -19,11 +19,11 @@ internal static class PropertyEventEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.PropertyEventCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("PropertyEvent.List");
-        group.MapGet("/{id}", GetAsync).WithName("PropertyEvent.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.PropertyEventUpdate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPost("/{id}/cancel", CancelAsync).WithName(AdministrationActions.PropertyEventCancel).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<PropertyEventResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.PropertyEventCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<PropertyEventResponse>>().WithName("PropertyEvent.List");
+        group.MapGet("/{id}", GetAsync).Produces<PropertyEventResponse>().WithName("PropertyEvent.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<PropertyEventResponse>().WithName(AdministrationActions.PropertyEventUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/{id}/cancel", CancelAsync).Produces<PropertyEventResponse>().WithName(AdministrationActions.PropertyEventCancel).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

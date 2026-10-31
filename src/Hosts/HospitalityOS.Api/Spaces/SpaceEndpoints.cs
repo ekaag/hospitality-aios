@@ -18,10 +18,10 @@ internal static class SpaceEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.SpaceCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Space.List");
-        group.MapGet("/{id}", GetAsync).WithName("Space.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.SpaceUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<SpaceResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.SpaceCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<SpaceResponse>>().WithName("Space.List");
+        group.MapGet("/{id}", GetAsync).Produces<SpaceResponse>().WithName("Space.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<SpaceResponse>().WithName(AdministrationActions.SpaceUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

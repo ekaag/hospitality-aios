@@ -18,11 +18,11 @@ internal static class MenuEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.MenuCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Menu.List");
-        group.MapGet("/{id}", GetAsync).WithName("Menu.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.MenuUpdate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPut("/{id}/items/{itemId}/availability", SetItemAvailabilityAsync)
+        group.MapPost("/", CreateAsync).Produces<MenuResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.MenuCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<MenuResponse>>().WithName("Menu.List");
+        group.MapGet("/{id}", GetAsync).Produces<MenuResponse>().WithName("Menu.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<MenuResponse>().WithName(AdministrationActions.MenuUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPut("/{id}/items/{itemId}/availability", SetItemAvailabilityAsync).Produces<MenuResponse>()
             .WithName(AdministrationActions.MenuSetItemAvailability)
             .RequireAuthorization(StaffPolicies.Admin);
 

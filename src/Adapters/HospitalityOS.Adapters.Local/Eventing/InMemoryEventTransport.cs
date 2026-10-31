@@ -87,7 +87,16 @@ internal sealed class InMemoryEventTransport(int maxDeliveryCount, TimeSpan rede
         public void Stop()
         {
             channel.Writer.TryComplete();
-            stopping.Cancel();
+
+            // The transport stops every subscription it holds when it is disposed, which can race with the subscription
+            // disposing itself; one already disposed was already stopped.
+            try
+            {
+                stopping.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         public async ValueTask DisposeAsync()

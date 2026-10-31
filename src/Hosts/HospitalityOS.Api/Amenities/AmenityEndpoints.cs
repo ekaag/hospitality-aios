@@ -19,10 +19,10 @@ internal static class AmenityEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.AmenityCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Amenity.List");
-        group.MapGet("/{id}", GetAsync).WithName("Amenity.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.AmenityUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<AmenityResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.AmenityCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<AmenityResponse>>().WithName("Amenity.List");
+        group.MapGet("/{id}", GetAsync).Produces<AmenityResponse>().WithName("Amenity.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<AmenityResponse>().WithName(AdministrationActions.AmenityUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

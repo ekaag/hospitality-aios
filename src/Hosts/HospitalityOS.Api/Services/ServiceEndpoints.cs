@@ -19,10 +19,10 @@ internal static class ServiceEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.ServiceCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Service.List");
-        group.MapGet("/{id}", GetAsync).WithName("Service.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.ServiceUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<ServiceResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.ServiceCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<ServiceResponse>>().WithName("Service.List");
+        group.MapGet("/{id}", GetAsync).Produces<ServiceResponse>().WithName("Service.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<ServiceResponse>().WithName(AdministrationActions.ServiceUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

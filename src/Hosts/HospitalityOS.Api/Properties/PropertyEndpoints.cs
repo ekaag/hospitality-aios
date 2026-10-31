@@ -18,10 +18,10 @@ internal static class PropertyEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.PropertyCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Property.List");
-        group.MapGet("/{id}", GetAsync).WithName("Property.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.PropertyUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<PropertyResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.PropertyCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<PropertyResponse>>().WithName("Property.List");
+        group.MapGet("/{id}", GetAsync).Produces<PropertyResponse>().WithName("Property.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<PropertyResponse>().WithName(AdministrationActions.PropertyUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

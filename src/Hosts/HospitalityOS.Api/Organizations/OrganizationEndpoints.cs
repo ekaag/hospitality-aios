@@ -18,10 +18,10 @@ internal static class OrganizationEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.OrganizationCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("Organization.List");
-        group.MapGet("/{id}", GetAsync).WithName("Organization.Get");
-        group.MapPut("/{id}", RenameAsync).WithName(AdministrationActions.OrganizationRename).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<OrganizationResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.OrganizationCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<OrganizationResponse>>().WithName("Organization.List");
+        group.MapGet("/{id}", GetAsync).Produces<OrganizationResponse>().WithName("Organization.Get");
+        group.MapPut("/{id}", RenameAsync).Produces<OrganizationResponse>().WithName(AdministrationActions.OrganizationRename).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

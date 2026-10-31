@@ -1,5 +1,5 @@
 # Continuous integration: build, style, and all test suites on every PR and push (implementation plan §5.1, slice A4).
-# Port contract tests (C1) run with the other suites; frontend lint/build (J1) and AI evals against the Fake model (H3) join this workflow with their slices.
+# Port contract tests (C1) and AI evals against the Fake model (H3) run with the other suites; the frontends (J1) have their own job.
 name: ci
 
 on:
@@ -83,3 +83,48 @@ jobs:
           name: test-results
           path: TestResults/
           retention-days: 7
+
+  frontend:
+    name: Frontends
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm (version from apps/package.json)
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: apps/package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The .NET suite checks openapi.json is what the API describes; this checks the client is generated from it.
+      - name: Verify the client matches the API contract
+        run: |
+          pnpm generate
+          git diff --exit-code -- packages/api-client/src/schema.d.ts
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build

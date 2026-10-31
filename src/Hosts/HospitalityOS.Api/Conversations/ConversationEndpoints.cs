@@ -21,10 +21,10 @@ internal static class ConversationEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(GuestPolicies.Guest);
 
-        group.MapPost("/", StartAsync).WithName("Conversation.Start");
-        group.MapGet("/{id}", GetAsync).WithName("Conversation.Get");
-        group.MapPost("/{id}/messages", PostMessageAsync).WithName("Conversation.PostMessage");
-        group.MapGet("/{id}/messages", ListMessagesAsync).WithName("Conversation.ListMessages");
+        group.MapPost("/", StartAsync).Produces<ConversationResponse>(StatusCodes.Status201Created).WithName("Conversation.Start");
+        group.MapGet("/{id}", GetAsync).Produces<ConversationResponse>().WithName("Conversation.Get");
+        group.MapPost("/{id}/messages", PostMessageAsync).Produces<GuestMessageResponse>().Produces<GuestMessageResponse>(StatusCodes.Status201Created).WithName("Conversation.PostMessage");
+        group.MapGet("/{id}/messages", ListMessagesAsync).Produces<IReadOnlyList<GuestMessageResponse>>().WithName("Conversation.ListMessages");
 
         return endpoints;
     }

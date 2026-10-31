@@ -19,8 +19,8 @@ internal static class AITraceEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Oversight);
 
-        group.MapGet("/", ListAsync).WithName("AITrace.List");
-        group.MapGet("/{id}", GetAsync).WithName("AITrace.Get");
+        group.MapGet("/", ListAsync).Produces<AITracePage>().WithName("AITrace.List");
+        group.MapGet("/{id}", GetAsync).Produces<AITraceResponse>().WithName("AITrace.Get");
 
         return endpoints;
     }

@@ -19,10 +19,10 @@ internal static class OperatingHoursEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.OperatingHoursCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("OperatingHours.List");
-        group.MapGet("/{id}", GetAsync).WithName("OperatingHours.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.OperatingHoursUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<OperatingHoursResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.OperatingHoursCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<OperatingHoursResponse>>().WithName("OperatingHours.List");
+        group.MapGet("/{id}", GetAsync).Produces<OperatingHoursResponse>().WithName("OperatingHours.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<OperatingHoursResponse>().WithName(AdministrationActions.OperatingHoursUpdate).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

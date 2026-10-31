@@ -85,6 +85,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<MalformedRequestHandler>();
 builder.Services.AddHealthChecks().AddBindingHealthChecks().AddInferenceHealthChecks();
 builder.Services.AddCallerAuthentication();
+builder.Services.AddApiDescription();
+builder.Services.AddDevTokens(builder.Configuration, builder.Environment);
 
 WebApplication app = builder.Build();
 
@@ -94,6 +96,13 @@ app.UseAuthentication();
 app.UseMiddleware<CallerContextMiddleware>();
 app.UseAuthorization();
 app.MapHealthChecks("/health");
+
+// The contract the frontends' client is generated from (J1).
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
 app.MapCapabilityEndpoints();
 app.MapOrganizationEndpoints();
 app.MapPropertyEndpoints();
@@ -109,6 +118,7 @@ app.MapServiceEndpoints();
 app.MapStaffEndpoints();
 app.MapAITraceEndpoints();
 app.MapConversationEndpoints();
+app.MapDevTokenEndpoints();
 
 app.Run();
 

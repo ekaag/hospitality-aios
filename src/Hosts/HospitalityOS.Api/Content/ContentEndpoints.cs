@@ -19,12 +19,12 @@ internal static class ContentEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.ContentItemCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("ContentItem.List");
-        group.MapGet("/{id}", GetAsync).WithName("ContentItem.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.ContentItemUpdate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPost("/{id}/publish", PublishAsync).WithName(AdministrationActions.ContentItemPublish).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPost("/{id}/archive", ArchiveAsync).WithName(AdministrationActions.ContentItemArchive).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/", CreateAsync).Produces<ContentItemResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.ContentItemCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<ContentItemResponse>>().WithName("ContentItem.List");
+        group.MapGet("/{id}", GetAsync).Produces<ContentItemResponse>().WithName("ContentItem.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<ContentItemResponse>().WithName(AdministrationActions.ContentItemUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/{id}/publish", PublishAsync).Produces<ContentItemResponse>().WithName(AdministrationActions.ContentItemPublish).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPost("/{id}/archive", ArchiveAsync).Produces<ContentItemResponse>().WithName(AdministrationActions.ContentItemArchive).RequireAuthorization(StaffPolicies.Admin);
 
         return endpoints;
     }

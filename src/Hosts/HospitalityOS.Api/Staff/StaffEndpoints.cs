@@ -19,11 +19,11 @@ internal static class StaffEndpoints
     {
         RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Staff);
 
-        group.MapPost("/", CreateAsync).WithName(AdministrationActions.StaffMemberCreate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapGet("/", ListAsync).WithName("StaffMember.List");
-        group.MapGet("/{id}", GetAsync).WithName("StaffMember.Get");
-        group.MapPut("/{id}", UpdateAsync).WithName(AdministrationActions.StaffMemberUpdate).RequireAuthorization(StaffPolicies.Admin);
-        group.MapPut("/{id}/duty", SetDutyAsync).WithName(AdministrationActions.StaffMemberSetDuty);
+        group.MapPost("/", CreateAsync).Produces<StaffMemberResponse>(StatusCodes.Status201Created).WithName(AdministrationActions.StaffMemberCreate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapGet("/", ListAsync).Produces<IReadOnlyList<StaffMemberResponse>>().WithName("StaffMember.List");
+        group.MapGet("/{id}", GetAsync).Produces<StaffMemberResponse>().WithName("StaffMember.Get");
+        group.MapPut("/{id}", UpdateAsync).Produces<StaffMemberResponse>().WithName(AdministrationActions.StaffMemberUpdate).RequireAuthorization(StaffPolicies.Admin);
+        group.MapPut("/{id}/duty", SetDutyAsync).Produces<StaffMemberResponse>().WithName(AdministrationActions.StaffMemberSetDuty);
 
         return endpoints;
     }
