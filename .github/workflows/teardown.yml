@@ -57,6 +57,10 @@ jobs:
           ENVIRONMENT: ${{ inputs.environment }}
           CONFIRM: ${{ inputs.confirm }}
           PLAN: ${{ inputs.plan }}
-          STATEFUL: ${{ inputs.include-stateful && '--include-stateful' || '' }}
-        # STATEFUL is either empty or one flag, so it is left unquoted on purpose.
-        run: python3 deploy/tooling/deploy.py down --env "${ENVIRONMENT}" --plan "${PLAN}" --confirm "${CONFIRM}" ${STATEFUL}
+          STATEFUL: ${{ inputs.include-stateful }}
+        run: |
+          arguments=(down --env "${ENVIRONMENT}" --plan "${PLAN}" --confirm "${CONFIRM}")
+          if [ "${STATEFUL}" = "true" ]; then
+            arguments+=(--include-stateful)
+          fi
+          python3 deploy/tooling/deploy.py "${arguments[@]}"
