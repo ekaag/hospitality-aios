@@ -6,6 +6,7 @@ using HospitalityOS.Contracts.Events.Services;
 using HospitalityOS.Eventing;
 using HospitalityOS.Workflows.Concierge;
 using HospitalityOS.Workflows.GuestService;
+using HospitalityOS.Workflows.GuestSurface;
 using HospitalityOS.Workflows.Routing;
 using HospitalityOS.Workflows.StaffSurface;
 using HospitalityOS.Workflows.Triage;
@@ -31,7 +32,8 @@ public static class DependencyInjection
     /// HumanAction Router, which assigns new work, reroutes it when duty
     /// changes, and hands on work not accepted within <see cref="HumanActionRoutingOptions.AcceptanceTimeout"/>. Each that
     /// uses a model declares its task with its prompt; and the staff surface's notifier, which tells connected staff when work
-    /// changes (<see cref="WorkChangeNotifier"/>). The host must also bind <c>IScheduler</c> and <c>IRealtimeNotifier</c>.
+    /// changes (<see cref="WorkChangeNotifier"/>), and the guest surface's, which tells a connected guest when their stay's
+    /// messages or requests change (<see cref="StayChangeNotifier"/>). The host must also bind <c>IScheduler</c> and <c>IRealtimeNotifier</c>.
     /// </summary>
     public static IServiceCollection AddWorkflows(this IServiceCollection services)
     {
@@ -63,7 +65,12 @@ public static class DependencyInjection
             .AddEventHandler<HumanActionCompletedV1, WorkChangeNotifier>(WorkChangeNotifier.OnCompleted)
             .AddEventHandler<HumanActionFailedV1, WorkChangeNotifier>(WorkChangeNotifier.OnFailed)
             .AddEventHandler<HumanActionCancelledV1, WorkChangeNotifier>(WorkChangeNotifier.OnCancelled)
-            .AddEventHandler<HumanActionExpiredV1, WorkChangeNotifier>(WorkChangeNotifier.OnExpired);
+            .AddEventHandler<HumanActionExpiredV1, WorkChangeNotifier>(WorkChangeNotifier.OnExpired)
+            .AddEventHandler<GuestMessageReceivedV1, StayChangeNotifier>(StayChangeNotifier.OnMessageReceived)
+            .AddEventHandler<GuestMessageSentV1, StayChangeNotifier>(StayChangeNotifier.OnMessageSent)
+            .AddEventHandler<ServiceRequestCreatedV1, StayChangeNotifier>(StayChangeNotifier.OnRequestCreated)
+            .AddEventHandler<ServiceRequestUpdatedV1, StayChangeNotifier>(StayChangeNotifier.OnRequestUpdated)
+            .AddEventHandler<ServiceRequestCompletedV1, StayChangeNotifier>(StayChangeNotifier.OnRequestCompleted);
         services.AddOptions<HumanActionRoutingOptions>();
         services.TryAddScoped<HumanActionRouter>();
 

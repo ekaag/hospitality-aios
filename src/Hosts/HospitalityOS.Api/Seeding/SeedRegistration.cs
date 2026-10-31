@@ -1,3 +1,4 @@
+using HospitalityOS.Adapters.Local.Inference;
 using HospitalityOS.Integrations.Mock.Pms;
 using HospitalityOS.Seeding;
 
@@ -6,7 +7,7 @@ namespace HospitalityOS.Api.Seeding;
 /// <summary>
 /// Seeds the Aurora Grand reference property at startup when <c>Seed:AuroraGrand:Enabled</c> is true (the local launch
 /// profile sets it; deployments may, as their seed step). Off by default, so hosts that do not ask for it, including
-/// test hosts, start empty.
+/// test hosts, start empty. With it comes <see cref="AuroraGrandScript"/>, which the Fake models play when told to.
 /// </summary>
 internal static class SeedRegistration
 {
@@ -25,6 +26,9 @@ internal static class SeedRegistration
         services.AddOptions<MockPmsOptions>().Configure<TimeProvider>((options, timeProvider) =>
             options.Stays[AuroraGrand.PropertyId] = [.. AuroraGrand.PmsStays(AuroraGrand.LocalToday(timeProvider.GetUtcNow()))]);
         services.AddHostedService<ReferenceDataSeeding>();
+
+        // What the Fake models play locally, when the fake provider names it (the launch profile does).
+        services.Configure<FakeInferenceOptions>(options => options.Scripts[AuroraGrandScript.Name] = AuroraGrandScript.Create());
 
         return services;
     }

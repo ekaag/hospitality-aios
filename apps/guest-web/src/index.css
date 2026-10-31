@@ -16,3 +16,99 @@ header {
   gap: 1rem;
   justify-content: space-between;
 }
+
+.stay {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.messages li {
+  border-radius: 0.75rem;
+  max-width: 80%;
+  padding: 0.5rem 0.75rem;
+}
+
+.messages li p {
+  margin: 0.125rem 0;
+  white-space: pre-wrap;
+}
+
+.messages .mine {
+  align-self: flex-end;
+  background: color-mix(in srgb, CanvasText 12%, Canvas);
+}
+
+.messages .theirs {
+  align-self: flex-start;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas);
+}
+
+.messages .pending {
+  opacity: 0.7;
+}
+
+.from,
+.messages time {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.suggestions p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.waiting {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.composer {
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: 1fr auto;
+}
+
+.composer label {
+  grid-column: 1 / -1;
+}
+
+.composer textarea {
+  font: inherit;
+  resize: vertical;
+}
+
+.requests ul {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+}
+
+.requests li {
+  border: 1px solid color-mix(in srgb, CanvasText 20%, Canvas);
+  border-radius: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.requests .Exception {
+  font-weight: bold;
+}

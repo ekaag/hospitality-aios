@@ -9,6 +9,7 @@ React + TypeScript + Vite apps over the HospitalityOS API, in one pnpm workspace
 | `admin-web` | Configuration and the AI trace viewer (J4) | Admin, Manager | http://localhost:5175 |
 | `packages/api-client` | The typed API client, generated from `openapi.json` | | |
 | `packages/dev-auth` | The local "sign in as" picker | | |
+| `packages/realtime` | Live updates: `useRealtime` over the API's SignalR hub | | |
 
 Apps never import from each other; shared code lives in `packages/` (solution-structure.md §7).
 
@@ -18,7 +19,11 @@ Apps never import from each other; shared code lives in `packages/` (solution-st
    `dotnet run --project src/Hosts/HospitalityOS.Api --launch-profile HospitalityOS.Api` (http://localhost:5080).
 2. In `apps/`: `pnpm install`, then `pnpm --filter @hospitalityos/staff-web dev` (or `guest-web`, `admin-web`).
 
-Each dev server proxies `/api` (and `staff-web` also `/hubs`, the live updates) to the API; set `HOSPITALITYOS_API_URL` in an app's `.env.local` to use another one.
+Each dev server proxies `/api` (and `guest-web` and `staff-web` also `/hubs`, the live updates) to the API; set `HOSPITALITYOS_API_URL` in an app's `.env.local` to use another one.
+
+The launch profile also has the Fake models play a script for the Aurora Grand, so without a model provider the guest chat answers questions about the pool, gym, children, check-out, pets, smoking, Wi-Fi, parking, dining, and tonight's events, and turns requests ("two towels", "a pillow", "the air con is not working") into work on the staff board. Anything else gets "I don't have confirmed information", and so do status questions in the chat (the requests panel shows where each is).
+
+If a page stays blank after dependencies change, restart its dev server with `--force` (`pnpm --filter @hospitalityos/staff-web exec vite --force`), which rebuilds Vite's dependency cache.
 
 ## Signing in
 

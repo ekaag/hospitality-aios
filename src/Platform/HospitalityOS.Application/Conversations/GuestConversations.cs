@@ -123,9 +123,7 @@ internal sealed class GuestConversations(
     {
         StayContext? stay = await stays.GetByIdAsync(caller.StayContextId, cancellationToken).ConfigureAwait(false);
 
-        return stay is not null && stay.GuestId == caller.GuestId && stay.PropertyId == caller.PropertyId && stay.Status is StayStatus.Reserved or StayStatus.InHouse
-            ? stay
-            : null;
+        return caller.IsActive(stay) ? stay : null;
     }
 
     /// <summary>

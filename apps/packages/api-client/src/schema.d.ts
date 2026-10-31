@@ -612,6 +612,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ServiceRequest.ListMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work": {
         parameters: {
             query?: never;
@@ -1439,6 +1455,36 @@ export interface components {
              */
             sentAt: string;
         };
+        /** @description One of a guest's unresolved requests, as the guest sees it: what, where, and where it is, but not who is doing it. */
+        GuestRequestResponse: {
+            /** @description The request. */
+            id: components["schemas"]["ServiceRequestId"];
+            /** @description The service, e.g. `Housekeeping amenities`. */
+            serviceName: string;
+            /** @description The item, e.g. `Bath towel`, for a service with items. */
+            itemName: null | string;
+            /**
+             * Format: int32
+             * @description How many.
+             */
+            quantity: number;
+            /** @description The request in the guest's words, for a service without items. */
+            description: null | string;
+            /** @description Where it is delivered or done, e.g. `Room 412`. */
+            location: string;
+            /** @description Where it is. */
+            status: components["schemas"]["GuestRequestStatus"];
+            /**
+             * Format: date-time
+             * @description When it was requested, in the property's time.
+             */
+            localRequestedAt: string;
+        };
+        /**
+         * @description Where a guest's request is, as the platform knows it; never an estimate of when it will be done.
+         * @enum {unknown}
+         */
+        GuestRequestStatus: "Open" | "InProgress" | "Exception";
         /**
          * @description Closed on every date from From to To, whatever the weekly hours or overrides
          *     say, e.g. for maintenance.
@@ -1912,6 +1958,8 @@ export interface components {
              */
             maxQuantityPerRequest: number;
         };
+        /** Format: uuid */
+        ServiceRequestId: string;
         /** @description A service, normalized (trimmed, codes lower-cased). */
         ServiceResponse: {
             /**
@@ -4398,6 +4446,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GuestMessageResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "ServiceRequest.ListMine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuestRequestResponse"][];
                 };
             };
             /** @description The request failed; the problem says why. */

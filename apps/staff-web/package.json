@@ -13,7 +13,7 @@
   "dependencies": {
     "@hospitalityos/api-client": "workspace:*",
     "@hospitalityos/dev-auth": "workspace:*",
-    "@microsoft/signalr": "10.0.11",
+    "@hospitalityos/realtime": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

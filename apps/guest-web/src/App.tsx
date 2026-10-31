@@ -1,6 +1,7 @@
 import { createApiClient } from "@hospitalityos/api-client";
-import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
+import { DevSignIn, useDevSession } from "@hospitalityos/dev-auth";
 import { useMemo } from "react";
+import { Stay } from "./stay/Stay";
 
 const roles = ["Guest"] as const;
 
@@ -24,14 +25,13 @@ export function App() {
           </p>
         )}
       </header>
-      <main>{session ? <Signed session={session} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}</main>
+      <main>
+        {session ? (
+          <Stay client={client} token={session.token} persona={session.persona.id} />
+        ) : (
+          <DevSignIn client={client} roles={roles} onSignedIn={signIn} />
+        )}
+      </main>
     </>
   );
-}
-
-/**
- * What the guest app will show once signed in; the chat arrives with J3.
- */
-function Signed({ session }: { session: DevSession }) {
-  return <p>Welcome, {session.persona.displayName}. The chat with the hotel arrives with J3.</p>;
 }

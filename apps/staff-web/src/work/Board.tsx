@@ -1,7 +1,7 @@
 import type { ApiClient, Problem, Schema } from "@hospitalityos/api-client";
+import { useRealtime } from "@hospitalityos/realtime";
 import { useCallback, useEffect, useState } from "react";
 import { WorkCard, type StaffMember, type Step, type WorkItem } from "./WorkCard";
-import { useWorkChanges } from "./useWorkChanges";
 
 type View = Schema<"WorkView">;
 
@@ -52,7 +52,7 @@ export function Board({ client, token, propertyId, oversees }: BoardProps) {
     void client.GET("/api/v1/staff", { params: { query: { propertyId } } }).then(({ data }) => setRoster(data ?? []));
   }, [client, propertyId, oversees]);
 
-  useWorkChanges(token, () => void load());
+  useRealtime(token, "WorkChanged", () => void load());
 
   async function step(item: WorkItem, taken: Step) {
     const result = await send(client, item.id, taken);

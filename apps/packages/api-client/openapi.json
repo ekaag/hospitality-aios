@@ -3064,6 +3064,44 @@
         ]
       }
     },
+    "/api/v1/service-requests": {
+      "get": {
+        "tags": [
+          "ServiceRequests"
+        ],
+        "operationId": "ServiceRequest.ListMine",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GuestRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/work": {
       "get": {
         "tags": [
@@ -5114,6 +5152,70 @@
         },
         "description": "One message in a conversation."
       },
+      "GuestRequestResponse": {
+        "required": [
+          "id",
+          "serviceName",
+          "itemName",
+          "quantity",
+          "description",
+          "location",
+          "status",
+          "localRequestedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The request.",
+            "$ref": "#/components/schemas/ServiceRequestId"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "The service, e.g. `Housekeeping amenities`."
+          },
+          "itemName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The item, e.g. `Bath towel`, for a service with items."
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "How many.",
+            "format": "int32"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The request in the guest's words, for a service without items."
+          },
+          "location": {
+            "type": "string",
+            "description": "Where it is delivered or done, e.g. `Room 412`."
+          },
+          "status": {
+            "description": "Where it is.",
+            "$ref": "#/components/schemas/GuestRequestStatus"
+          },
+          "localRequestedAt": {
+            "type": "string",
+            "description": "When it was requested, in the property's time.",
+            "format": "date-time"
+          }
+        },
+        "description": "One of a guest's unresolved requests, as the guest sees it: what, where, and where it is, but not who is doing it."
+      },
+      "GuestRequestStatus": {
+        "enum": [
+          "Open",
+          "InProgress",
+          "Exception"
+        ],
+        "description": "Where a guest's request is, as the platform knows it; never an estimate of when it will be done."
+      },
       "HoursClosure": {
         "type": "object",
         "properties": {
@@ -6214,6 +6316,10 @@
           }
         },
         "description": "A requestable item, normalized (code lower-cased)."
+      },
+      "ServiceRequestId": {
+        "type": "string",
+        "format": "uuid"
       },
       "ServiceResponse": {
         "required": [
@@ -7451,6 +7557,9 @@
     },
     {
       "name": "ConversationEndpoints"
+    },
+    {
+      "name": "ServiceRequests"
     },
     {
       "name": "Work"
