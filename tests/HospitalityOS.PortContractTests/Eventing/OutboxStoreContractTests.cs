@@ -83,6 +83,50 @@ public abstract class OutboxStoreContractTests : PersistenceContractTests
     }
 
     [Fact]
+    public async Task ListDeadLetters_ReturnsTheTenantsGivenUpEvents_MostRecentFirst_WithTheirLastError()
+    {
+        await QueueAsync(TestEvents.Message(1), TestEvents.Message(2), TestEvents.Message(3, TestData.TenantB), TestEvents.Message(4));
+        await ClaimAsync(TestData.Now);
+        await WithOutboxAsync(outbox => outbox.ScheduleRetryAsync(TestEvents.Message(1).EventId, TestData.Now, "broker unavailable", Cancellation));
+        await WithOutboxAsync(outbox => outbox.DeadLetterAsync(TestEvents.Message(1).EventId, TestData.Now.AddMinutes(2), "payload rejected", Cancellation));
+        await WithOutboxAsync(outbox => outbox.DeadLetterAsync(TestEvents.Message(2).EventId, TestData.Now.AddMinutes(5), "too large", Cancellation));
+        await WithOutboxAsync(outbox => outbox.DeadLetterAsync(TestEvents.Message(3, TestData.TenantB).EventId, TestData.Now, "other tenant", Cancellation));
+
+        IReadOnlyList<DeadLetteredOutboxEvent> deadLetters = await ListAsync(TestData.TenantA);
+
+        Assert.Equal(
+            [
+                new DeadLetteredOutboxEvent(TestEvents.Message(2), 0, "too large", TestData.Now.AddMinutes(5)),
+                new DeadLetteredOutboxEvent(TestEvents.Message(1), 1, "payload rejected", TestData.Now.AddMinutes(2)),
+            ],
+            deadLetters);
+        Assert.Single(await ListAsync(TestData.TenantA, maxCount: 1));
+    }
+
+    [Fact]
+    public async Task Requeue_MakesADeadLetteredEventDueAtOnce_AsIfNew_ButOnlyForItsTenant()
+    {
+        await QueueAsync(TestEvents.Message(1), TestEvents.Message(2));
+        await ClaimAsync(TestData.Now);
+        await WithOutboxAsync(outbox => outbox.ScheduleRetryAsync(TestEvents.Message(1).EventId, TestData.Now, "broker unavailable", Cancellation));
+        await WithOutboxAsync(outbox => outbox.DeadLetterAsync(TestEvents.Message(1).EventId, TestData.Now, "payload rejected", Cancellation));
+        bool otherTenant = false, notDeadLettered = true, requeued = false, again = true;
+
+        await WithOutboxAsync(async outbox =>
+        {
+            otherTenant = await outbox.RequeueAsync(TestData.TenantB, TestEvents.Message(1).EventId, Cancellation);
+            notDeadLettered = await outbox.RequeueAsync(TestData.TenantA, TestEvents.Message(2).EventId, Cancellation);
+            requeued = await outbox.RequeueAsync(TestData.TenantA, TestEvents.Message(1).EventId, Cancellation);
+            again = await outbox.RequeueAsync(TestData.TenantA, TestEvents.Message(1).EventId, Cancellation);
+        });
+
+        Assert.Equal((false, false, true, false), (otherTenant, notDeadLettered, requeued, again));
+        Assert.Empty(await ListAsync(TestData.TenantA));
+        OutboxEntry entry = Assert.Single(await ClaimAsync(TestData.Now.AddSeconds(1)), claimed => claimed.Message == TestEvents.Message(1));
+        Assert.Equal((0, "payload rejected"), (entry.Attempts, entry.LastError));
+    }
+
+    [Fact]
     public async Task Operations_DoNotSaveTheScopesPendingChanges()
     {
         await QueueAsync(TestEvents.Message(1));
@@ -132,6 +176,13 @@ public abstract class OutboxStoreContractTests : PersistenceContractTests
         await using PersistenceSession session = OpenSession();
 
         return await session.Get<IOutboxStore>().ClaimDueAsync(now, maxCount, lease, Cancellation);
+    }
+
+    private async Task<IReadOnlyList<DeadLetteredOutboxEvent>> ListAsync(SharedKernel.Tenancy.TenantId tenantId, int maxCount = 10)
+    {
+        await using PersistenceSession session = OpenSession();
+
+        return await session.Get<IOutboxStore>().ListDeadLettersAsync(tenantId, maxCount, Cancellation);
     }
 
     private async Task WithOutboxAsync(Func<IOutboxStore, Task> action)

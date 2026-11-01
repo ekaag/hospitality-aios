@@ -1,5 +1,6 @@
 using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace HospitalityOS.Adapters.EfCore.Eventing;
@@ -70,6 +71,30 @@ internal sealed class EfOutboxStore(HospitalityDbContext context) : IOutboxStore
                 .SetProperty(record => record.LeaseUntil, (DateTimeOffset?)null),
             cancellationToken);
     }
+
+    public async Task<IReadOnlyList<DeadLetteredOutboxEvent>> ListDeadLettersAsync(TenantId tenantId, int maxCount, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCount);
+
+        List<OutboxRecord> found = await Outbox.AsNoTracking()
+            .Where(record => record.TenantId == tenantId && record.DeadLetteredAt != null)
+            .OrderByDescending(record => record.DeadLetteredAt)
+            .ThenByDescending(record => record.Sequence)
+            .Take(maxCount)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return [.. found.Select(record => new DeadLetteredOutboxEvent(record.ToEntry().Message, record.Attempts, record.LastError ?? string.Empty, record.DeadLetteredAt!.Value))];
+    }
+
+    public async Task<bool> RequeueAsync(TenantId tenantId, Guid eventId, CancellationToken cancellationToken) =>
+        await Outbox.Where(record => record.EventId == eventId && record.TenantId == tenantId && record.DeadLetteredAt != null).ExecuteUpdateAsync(
+            setters => setters
+                .SetProperty(record => record.DeadLetteredAt, (DateTimeOffset?)null)
+                .SetProperty(record => record.Attempts, 0)
+                .SetProperty(record => record.NextAttemptAt, (DateTimeOffset?)null)
+                .SetProperty(record => record.LeaseUntil, (DateTimeOffset?)null),
+            cancellationToken).ConfigureAwait(false) == 1;
 
     private static IQueryable<OutboxRecord> Due(IQueryable<OutboxRecord> records, DateTimeOffset now) =>
         records.Where(record => record.DeadLetteredAt == null

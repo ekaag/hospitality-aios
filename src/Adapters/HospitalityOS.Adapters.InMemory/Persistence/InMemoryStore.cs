@@ -168,6 +168,37 @@ internal sealed class InMemoryStore
         }
     }
 
+    public IReadOnlyList<DeadLetteredOutboxEvent> DeadLetters(TenantId tenantId, int maxCount)
+    {
+        lock (gate)
+        {
+            return [.. outbox.Values
+                .Where(row => row.DeadLetteredAt is not null && row.Message.TenantId == tenantId)
+                .OrderByDescending(row => row.DeadLetteredAt)
+                .ThenByDescending(row => row.Position)
+                .Take(maxCount)
+                .Select(row => new DeadLetteredOutboxEvent(row.Message, row.Attempts, row.LastError ?? string.Empty, row.DeadLetteredAt!.Value))];
+        }
+    }
+
+    public bool Requeue(TenantId tenantId, Guid eventId)
+    {
+        lock (gate)
+        {
+            if (!outbox.TryGetValue(eventId, out OutboxRow? row) || row.DeadLetteredAt is null || row.Message.TenantId != tenantId)
+            {
+                return false;
+            }
+
+            row.DeadLetteredAt = null;
+            row.Attempts = 0;
+            row.NextAttemptAt = null;
+            row.LeaseUntil = null;
+
+            return true;
+        }
+    }
+
     public bool HasProcessed(InboxKey key)
     {
         lock (gate)

@@ -31,4 +31,7 @@ internal sealed class RecordingTransport : IEventTransport, IBindingResolver<IEv
 
     public Task<IReadOnlyList<DeadLetteredEvent>> ReadDeadLettersAsync(string subscription, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
+
+    public Task<bool> RemoveDeadLetterAsync(string subscription, Guid eventId, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
 }

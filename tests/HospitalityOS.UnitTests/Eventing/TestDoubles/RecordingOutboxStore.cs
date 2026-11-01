@@ -1,4 +1,5 @@
 using HospitalityOS.Ports.Eventing;
+using HospitalityOS.SharedKernel.Tenancy;
 
 namespace HospitalityOS.UnitTests.Eventing.TestDoubles;
 
@@ -42,4 +43,10 @@ internal sealed class RecordingOutboxStore(params OutboxEntry[] due) : IOutboxSt
 
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<DeadLetteredOutboxEvent>> ListDeadLettersAsync(TenantId tenantId, int maxCount, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+
+    public Task<bool> RequeueAsync(TenantId tenantId, Guid eventId, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
 }

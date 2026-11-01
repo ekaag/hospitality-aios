@@ -97,6 +97,12 @@ as its own identity; local auth is off, so the connection string alone sends not
 Locally nothing is collected unless asked: set `Telemetry__Exporter=Otlp` and the standard `OTEL_EXPORTER_OTLP_*`
 variables to send to a local dashboard.
 
+Besides requests, outgoing calls, and runtime metrics, the platform reports its own (meters `HospitalityOS.*`):
+`hospitalityos.events.published`, `.events.publish.failures`, `.events.handled` (by handler, event type, and outcome),
+`.events.handling.duration`, `.events.delivery.delay`, `hospitalityos.capabilities.invocations` and `.duration` (by
+capability and outcome), and `hospitalityos.inference.attempts` and `.duration` (by task, provider, model, and outcome).
+Events given up on are listed, and can be retried, in admin-web's Failed events section.
+
 ## Database and migrations
 
 `data` is PostgreSQL with Entra sign-in only. Before each API deployment, `up` deploys the `migrate` job and runs it to

@@ -724,6 +724,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/failed-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["FailedEvent.List"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/failed-events/{eventId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["FailedEvent.Retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations": {
         parameters: {
             query?: never;
@@ -1644,6 +1676,69 @@ export interface components {
              */
             length: number;
         };
+        /**
+         * @description An event the platform gave up processing (spec §37, §42: failed event processing is visible): one the outbox could not
+         *     publish, or one a handler kept failing on after every redelivery.
+         */
+        FailedEventResponse: {
+            /**
+             * Format: uuid
+             * @description The event.
+             */
+            eventId: string;
+            /** @description Its type, e.g. `HumanActionCompleted`. */
+            eventType: string;
+            /** @description Whether publishing or handling failed. */
+            stage: components["schemas"]["FailedEventStage"];
+            /** @description For a handling failure, the handler that failed, e.g. `guest-service.human-action-completed`. */
+            handler: null | string;
+            /** @description The last failure, as the platform recorded it. */
+            error: string;
+            /**
+             * Format: int32
+             * @description How often it was tried.
+             */
+            attempts: number;
+            /** @description What changed, e.g. `HumanAction`. */
+            aggregateType: string;
+            /**
+             * Format: uuid
+             * @description Which one.
+             */
+            aggregateId: string;
+            /**
+             * Format: uuid
+             * @description The flow it belongs to, to find it in AI traces and logs.
+             */
+            correlationId: string;
+            /**
+             * Format: date-time
+             * @description When the event happened.
+             */
+            recordedAt: string;
+            /**
+             * Format: date-time
+             * @description When it was given up on, where known.
+             */
+            failedAt: null | string;
+        };
+        /** @description A failed event sent to be processed again. */
+        FailedEventRetriedResponse: {
+            /**
+             * Format: uuid
+             * @description The event.
+             */
+            eventId: string;
+            /** @description The failure retried. */
+            stage: components["schemas"]["FailedEventStage"];
+            /** @description For a handling failure, the handler. */
+            handler: null | string;
+        };
+        /**
+         * @description Where processing an event stopped.
+         * @enum {unknown}
+         */
+        FailedEventStage: "Publish" | "Handle";
         /** @description Fails work. */
         FailWorkRequest: {
             /** @description Why it cannot be done, e.g. `Could not access the room`; required. */
@@ -2255,6 +2350,14 @@ export interface components {
              * @description Increases with every change; send it back in `If-Match` to update safely.
              */
             version: number;
+        };
+        /**
+         * @description `POST /api/v1/failed-events/{eventId}/retry`: processes a failed event again: publishes it again, or, with a
+         *             handler, delivers it again (handlers that already handled it skip it). If it fails again it is listed again.
+         */
+        RetryFailedEventRequest: {
+            /** @description The handler whose failure to retry; omitted for a publish failure. */
+            handler?: null | string;
         };
         /**
          * @description Which kind of team fulfils a service.
@@ -5139,6 +5242,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AITraceResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "FailedEvent.List": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FailedEventResponse"][];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "FailedEvent.Retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["RetryFailedEventRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FailedEventRetriedResponse"];
                 };
             };
             /** @description The request failed; the problem says why. */

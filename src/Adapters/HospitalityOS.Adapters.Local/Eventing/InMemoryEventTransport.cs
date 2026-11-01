@@ -12,7 +12,7 @@ namespace HospitalityOS.Adapters.Local.Eventing;
 internal sealed class InMemoryEventTransport(int maxDeliveryCount, TimeSpan redeliveryDelay, TimeProvider timeProvider) : IEventTransport, IDisposable
 {
     private readonly ConcurrentDictionary<string, Subscription> subscriptions = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, ConcurrentQueue<DeadLetteredEvent>> deadLetters = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, List<DeadLetteredEvent>> deadLetters = new(StringComparer.Ordinal);
 
     private int MaxDeliveryCount { get; } = maxDeliveryCount;
 
@@ -56,9 +56,31 @@ internal sealed class InMemoryEventTransport(int maxDeliveryCount, TimeSpan rede
         ArgumentException.ThrowIfNullOrWhiteSpace(subscription);
         cancellationToken.ThrowIfCancellationRequested();
 
-        IReadOnlyList<DeadLetteredEvent> found = deadLetters.TryGetValue(subscription, out ConcurrentQueue<DeadLetteredEvent>? queue) ? [.. queue] : [];
+        if (!deadLetters.TryGetValue(subscription, out List<DeadLetteredEvent>? letters))
+        {
+            return Task.FromResult<IReadOnlyList<DeadLetteredEvent>>([]);
+        }
 
-        return Task.FromResult(found);
+        lock (letters)
+        {
+            return Task.FromResult<IReadOnlyList<DeadLetteredEvent>>([.. letters]);
+        }
+    }
+
+    public Task<bool> RemoveDeadLetterAsync(string subscription, Guid eventId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subscription);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!deadLetters.TryGetValue(subscription, out List<DeadLetteredEvent>? letters))
+        {
+            return Task.FromResult(false);
+        }
+
+        lock (letters)
+        {
+            return Task.FromResult(letters.RemoveAll(letter => letter.Message.EventId == eventId) > 0);
+        }
     }
 
     public void Dispose()
@@ -71,8 +93,15 @@ internal sealed class InMemoryEventTransport(int maxDeliveryCount, TimeSpan rede
         subscriptions.Clear();
     }
 
-    private void DeadLetter(string subscription, DeadLetteredEvent deadLettered) =>
-        deadLetters.GetOrAdd(subscription, _ => new ConcurrentQueue<DeadLetteredEvent>()).Enqueue(deadLettered);
+    private void DeadLetter(string subscription, DeadLetteredEvent deadLettered)
+    {
+        List<DeadLetteredEvent> letters = deadLetters.GetOrAdd(subscription, _ => []);
+
+        lock (letters)
+        {
+            letters.Add(deadLettered);
+        }
+    }
 
     private sealed class Subscription(InMemoryEventTransport transport, string name, Func<EventMessage, CancellationToken, Task> handler) : IAsyncDisposable
     {

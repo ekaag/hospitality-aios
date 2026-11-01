@@ -15,11 +15,13 @@ import {
   SpacesSection,
   type SectionProps,
 } from "./sections";
+import { FailedEvents } from "./FailedEvents";
 import { Traces } from "./Traces";
 
 /**
- * The sections of spec §34, in its order, and who may sign in. People & access and integrations are for administrators
- * only; everything else is read by managers too, and changed only by administrators.
+ * The sections of spec §34, in its order, then failed events (L1), and who may sign in. People & access, integrations,
+ * and failed events are for administrators only; everything else is read by managers too, and changed only by
+ * administrators.
  */
 const sections: readonly { id: string; title: string; adminOnly?: boolean; component: ComponentType<SectionProps> }[] = [
   { id: "property", title: "Property", component: PropertySection },
@@ -35,6 +37,7 @@ const sections: readonly { id: string; title: string; adminOnly?: boolean; compo
   { id: "access", title: "People & access", adminOnly: true, component: ({ client, propertyId }) => <Access client={client} propertyId={propertyId} /> },
   { id: "integrations", title: "Integrations", adminOnly: true, component: ({ client, propertyId }) => <Integrations client={client} propertyId={propertyId} /> },
   { id: "traces", title: "AI Traces", component: ({ client, propertyId }) => <Traces client={client} propertyId={propertyId} /> },
+  { id: "failed-events", title: "Failed events", adminOnly: true, component: ({ client }) => <FailedEvents client={client} /> },
 ];
 
 export interface AdminProps {

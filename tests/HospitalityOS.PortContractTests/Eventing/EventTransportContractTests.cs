@@ -133,6 +133,35 @@ public abstract class EventTransportContractTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task RemoveDeadLetter_RemovesOnlyThatEventsDeadLetter_FromOnlyThatSubscription()
+    {
+        TaskCompletionSource<EventMessage> last = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using IAsyncDisposable subscription = await Transport.SubscribeAsync("removing", (message, _) =>
+        {
+            if (message != TestEvents.Message(3))
+            {
+                throw new InvalidOperationException("room not found");
+            }
+
+            last.TrySetResult(message);
+
+            return Task.CompletedTask;
+        }, Cancellation);
+        await Transport.PublishAsync(TestEvents.Message(1), Cancellation);
+        await Transport.PublishAsync(TestEvents.Message(2), Cancellation);
+        await Transport.PublishAsync(TestEvents.Message(3), Cancellation);
+        await last.Task.WaitAsync(timeout, Cancellation);
+
+        bool otherSubscription = await Transport.RemoveDeadLetterAsync("poisoned", TestEvents.Message(1).EventId, Cancellation);
+        bool removed = await Transport.RemoveDeadLetterAsync("removing", TestEvents.Message(1).EventId, Cancellation);
+        bool again = await Transport.RemoveDeadLetterAsync("removing", TestEvents.Message(1).EventId, Cancellation);
+
+        Assert.Equal((false, true, false), (otherSubscription, removed, again));
+        DeadLetteredEvent remaining = Assert.Single(await Transport.ReadDeadLettersAsync("removing", Cancellation));
+        Assert.Equal(TestEvents.Message(2), remaining.Message);
+    }
+
+    [Fact]
     public async Task Subscribe_NameAlreadyActive_Throws()
     {
         await using IAsyncDisposable subscription = await SubscribeAsync("single", _ => { });

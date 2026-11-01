@@ -124,6 +124,70 @@ internal sealed partial class AzureServiceBusEventTransport : IEventTransport, I
         }
     }
 
+    public async Task<bool> RemoveDeadLetterAsync(string subscription, Guid eventId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subscription);
+
+        string id = eventId.ToString("D");
+        ServiceBusReceiver receiver = client.CreateReceiver(topic, subscription, new ServiceBusReceiverOptions { SubQueue = SubQueue.DeadLetter });
+
+        await using (receiver.ConfigureAwait(false))
+        {
+            // Peeking finds where the event's dead letters are; receiving is the only way to remove them.
+            HashSet<long> targets = [];
+            long? from = null;
+
+            while (true)
+            {
+                IReadOnlyList<ServiceBusReceivedMessage> page = await receiver.PeekMessagesAsync(PeekPageSize, from, cancellationToken).ConfigureAwait(false);
+
+                if (page.Count == 0)
+                {
+                    break;
+                }
+
+                targets.UnionWith(page.Where(message => message.MessageId == id).Select(message => message.SequenceNumber));
+                from = page[^1].SequenceNumber + 1;
+            }
+
+            if (targets.Count == 0)
+            {
+                return false;
+            }
+
+            // Others received on the way are released untouched; one received twice means every message has been seen.
+            HashSet<long> passed = [];
+            bool removed = false;
+
+            while (targets.Count > 0)
+            {
+                IReadOnlyList<ServiceBusReceivedMessage> batch = await receiver.ReceiveMessagesAsync(PeekPageSize, TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+                bool seenAll = batch.Count == 0;
+
+                foreach (ServiceBusReceivedMessage message in batch)
+                {
+                    if (targets.Remove(message.SequenceNumber))
+                    {
+                        await receiver.CompleteMessageAsync(message, cancellationToken).ConfigureAwait(false);
+                        removed = true;
+                    }
+                    else
+                    {
+                        seenAll |= !passed.Add(message.SequenceNumber);
+                        await receiver.AbandonMessageAsync(message, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
+                if (seenAll)
+                {
+                    break;
+                }
+            }
+
+            return removed;
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         foreach (Subscription subscription in subscriptions.Values)

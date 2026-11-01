@@ -65,6 +65,13 @@ public sealed class AzureServiceBusEventTransportContractTests : EventTransportC
 
             return await Inner.ReadDeadLettersAsync(subscription, cancellationToken);
         }
+
+        public async Task<bool> RemoveDeadLetterAsync(string subscription, Guid eventId, CancellationToken cancellationToken)
+        {
+            await created.Value;
+
+            return await Inner.RemoveDeadLetterAsync(subscription, eventId, cancellationToken);
+        }
     }
 
     private sealed class Owner(Provisioned transport, ServiceProvider services, ServiceBusTestNamespace bus, string topic) : IAsyncDisposable

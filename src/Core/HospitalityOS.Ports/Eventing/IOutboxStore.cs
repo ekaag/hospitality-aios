@@ -1,3 +1,5 @@
+using HospitalityOS.SharedKernel.Tenancy;
+
 namespace HospitalityOS.Ports.Eventing;
 
 /// <summary>
@@ -38,4 +40,19 @@ public interface IOutboxStore
     /// Stops retrying an event that cannot be published; it stays visible for inspection and is never claimed again.
     /// </summary>
     Task DeadLetterAsync(Guid eventId, DateTimeOffset at, string error, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The tenant's dead-lettered events, most recently given up on first (L1: the failed-event view).
+    /// </summary>
+    /// <param name="tenantId">Whose events.</param>
+    /// <param name="maxCount">The most to return; at least 1.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    Task<IReadOnlyList<DeadLetteredOutboxEvent>> ListDeadLettersAsync(TenantId tenantId, int maxCount, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Puts one of the tenant's dead-lettered events back to be published at once, as if new (attempts reset, the last
+    /// error kept until it is published).
+    /// </summary>
+    /// <returns>Whether the tenant had that event dead-lettered.</returns>
+    Task<bool> RequeueAsync(TenantId tenantId, Guid eventId, CancellationToken cancellationToken);
 }

@@ -3404,6 +3404,106 @@
         ]
       }
     },
+    "/api/v1/failed-events": {
+      "get": {
+        "tags": [
+          "FailedEventEndpoints"
+        ],
+        "operationId": "FailedEvent.List",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FailedEventResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/failed-events/{eventId}/retry": {
+      "post": {
+        "tags": [
+          "FailedEventEndpoints"
+        ],
+        "operationId": "FailedEvent.Retry",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RetryFailedEventRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FailedEventRetriedResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/conversations": {
       "post": {
         "tags": [
@@ -5833,6 +5933,115 @@
         },
         "description": "A file uploaded as evidence for work, to complete it with."
       },
+      "FailedEventResponse": {
+        "required": [
+          "eventId",
+          "eventType",
+          "stage",
+          "handler",
+          "error",
+          "attempts",
+          "aggregateType",
+          "aggregateId",
+          "correlationId",
+          "recordedAt",
+          "failedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "The event.",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Its type, e.g. `HumanActionCompleted`."
+          },
+          "stage": {
+            "description": "Whether publishing or handling failed.",
+            "$ref": "#/components/schemas/FailedEventStage"
+          },
+          "handler": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a handling failure, the handler that failed, e.g. `guest-service.human-action-completed`."
+          },
+          "error": {
+            "type": "string",
+            "description": "The last failure, as the platform recorded it."
+          },
+          "attempts": {
+            "type": "integer",
+            "description": "How often it was tried.",
+            "format": "int32"
+          },
+          "aggregateType": {
+            "type": "string",
+            "description": "What changed, e.g. `HumanAction`."
+          },
+          "aggregateId": {
+            "type": "string",
+            "description": "Which one.",
+            "format": "uuid"
+          },
+          "correlationId": {
+            "type": "string",
+            "description": "The flow it belongs to, to find it in AI traces and logs.",
+            "format": "uuid"
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When the event happened.",
+            "format": "date-time"
+          },
+          "failedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was given up on, where known.",
+            "format": "date-time"
+          }
+        },
+        "description": "An event the platform gave up processing (spec §37, §42: failed event processing is visible): one the outbox could not\npublish, or one a handler kept failing on after every redelivery."
+      },
+      "FailedEventRetriedResponse": {
+        "required": [
+          "eventId",
+          "stage",
+          "handler"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "The event.",
+            "format": "uuid"
+          },
+          "stage": {
+            "description": "The failure retried.",
+            "$ref": "#/components/schemas/FailedEventStage"
+          },
+          "handler": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "For a handling failure, the handler."
+          }
+        },
+        "description": "A failed event sent to be processed again."
+      },
+      "FailedEventStage": {
+        "enum": [
+          "Publish",
+          "Handle"
+        ],
+        "description": "Where processing an event stopped."
+      },
       "FailWorkRequest": {
         "type": "object",
         "properties": {
@@ -7233,6 +7442,19 @@
           }
         },
         "description": "A restaurant, normalized (trimmed)."
+      },
+      "RetryFailedEventRequest": {
+        "type": "object",
+        "properties": {
+          "handler": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The handler whose failure to retry; omitted for a publish failure."
+          }
+        },
+        "description": "`POST /api/v1/failed-events/{eventId}/retry`: processes a failed event again: publishes it again, or, with a\n        handler, delivers it again (handlers that already handled it skip it). If it fails again it is listed again."
       },
       "ServiceCategory": {
         "enum": [
@@ -8827,6 +9049,9 @@
     },
     {
       "name": "AITraceEndpoints"
+    },
+    {
+      "name": "FailedEventEndpoints"
     },
     {
       "name": "ConversationEndpoints"

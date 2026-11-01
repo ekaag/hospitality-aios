@@ -29,4 +29,10 @@ public interface IEventTransport
     /// The events a subscription gave up on, oldest first.
     /// </summary>
     Task<IReadOnlyList<DeadLetteredEvent>> ReadDeadLettersAsync(string subscription, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a subscription's dead letters of one event, e.g. once it has been published again to be retried.
+    /// </summary>
+    /// <returns>Whether there was one.</returns>
+    Task<bool> RemoveDeadLetterAsync(string subscription, Guid eventId, CancellationToken cancellationToken);
 }

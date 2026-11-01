@@ -2,6 +2,7 @@ using HospitalityOS.Contracts.Events;
 using HospitalityOS.Eventing.Contracts;
 using HospitalityOS.Eventing.Dispatching;
 using HospitalityOS.Eventing.Envelopes;
+using HospitalityOS.Eventing.Failures;
 using HospitalityOS.Eventing.Handling;
 using HospitalityOS.Eventing.Observability;
 using HospitalityOS.Eventing.Replay;
@@ -39,6 +40,7 @@ public static class DependencyInjection
         services.TryAddSingleton<EventSerializer>();
         services.TryAddScoped<OperationContext>();
         services.TryAddScoped<IEventMessageFactory, EventMessageFactory>();
+        services.TryAddScoped<IFailedEvents, FailedEvents>();
 
         services.AddOptions<EventDispatcherOptions>()
             .Bind(configuration.GetSection(EventDispatcherOptions.SectionName))
