@@ -27,5 +27,10 @@ public interface IStayContextRepository
     /// <summary>
     /// Adds a new stay, persisted when the unit of work commits.
     /// </summary>
+    /// <summary>
+    /// The property's stays that are reserved or in house, by arrival.
+    /// </summary>
+    Task<IReadOnlyList<StayContext>> ListActiveForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken);
+
     Task AddAsync(StayContext stayContext, CancellationToken cancellationToken);
 }

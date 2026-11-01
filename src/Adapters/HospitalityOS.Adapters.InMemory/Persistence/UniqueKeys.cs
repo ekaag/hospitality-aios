@@ -1,4 +1,5 @@
 using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
+using HospitalityOS.Domain.Guests.GuestLinks;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Notifications;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
@@ -31,6 +32,7 @@ internal static class UniqueKeys
         Key<StaffAccess>("signIn", access => access is { SignInIssuer: { } issuer, SignInSubject: { } subject } ? (issuer, subject) : null),
         Key<StaffAccess>("inviteCodeHash", access => access.InviteCodeHash),
         Key<StaffAccess>("staffMemberId", access => access.StaffMemberId),
+        Key<GuestLink>("codeHash", link => link.CodeHash),
 
         // Only succeeded invocations hold their key, so a failed attempt can be retried with it.
         Key<CapabilityInvocation>(

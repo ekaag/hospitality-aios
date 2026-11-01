@@ -4,6 +4,7 @@ using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
+using HospitalityOS.Domain.Guests.GuestLinks;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
@@ -207,6 +208,9 @@ internal static class TestData
             new DateOnly(2026, 10, 27),
             Room412,
             Now).Value;
+
+    public static GuestLink GuestLink(TenantId tenantId, int seed, StayContext? stay = null, int? codeSeed = null) =>
+        Domain.Guests.GuestLinks.GuestLink.Create(new GuestLinkId(Id(26000 + seed)), stay ?? StayContext(tenantId, seed), $"{codeSeed ?? seed:x64}", Now).Value;
 
     public static Conversation Conversation(TenantId tenantId, int seed) =>
         Domain.Guests.Conversations.Conversation.Start(new ConversationId(Id(18000 + seed)), tenantId, PropertyId, ConversationChannel.Web, Now).Value;

@@ -11,6 +11,8 @@ using HospitalityOS.Domain.Dining.Restaurants.Events;
 using HospitalityOS.Domain.Guests.Conversations;
 using HospitalityOS.Domain.Guests.Conversations.Events;
 using HospitalityOS.Domain.Guests.GuestMessages;
+using HospitalityOS.Domain.Guests.GuestLinks;
+using HospitalityOS.Domain.Guests.GuestLinks.Events;
 using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests.Events;
 using HospitalityOS.Domain.Guests.Notifications;
@@ -83,6 +85,7 @@ public static class DomainEventSamples
     private static readonly ConversationId alexChat = new(Id(16));
     private static readonly GuestMessageId towelMessage = new(Id(17));
     private static readonly StaffAccessId mariaAccess = new(Id(32));
+    private static readonly GuestLinkId alexLink = new(Id(33));
 
     private static readonly PropertyDetails auroraDetails = new(
         "Aurora Grand",
@@ -118,6 +121,8 @@ public static class DomainEventSamples
     [
         new OrganizationCreated(auroraHotels, "Aurora Hotels", Now),
         new OrganizationUpdated(auroraHotels, "Aurora Hotels Group", Now),
+        new GuestLinkCreated(alexLink, alexStay, auroraGrand, Now),
+        new GuestLinkRevoked(alexLink, alexStay, Now),
         new StaffAccessGranted(mariaAccess, StaffRole.Worker, maria, Now),
         new StaffAccessLinked(mariaAccess, Now),
         new StaffAccessReinvited(mariaAccess, Now),

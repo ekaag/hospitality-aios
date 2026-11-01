@@ -4,6 +4,7 @@ using HospitalityOS.Domain.Capabilities.CapabilityInvocations;
 using HospitalityOS.Domain.Dining.Menus;
 using HospitalityOS.Domain.Dining.Restaurants;
 using HospitalityOS.Domain.Guests.Conversations;
+using HospitalityOS.Domain.Guests.GuestLinks;
 using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Guests;
 using HospitalityOS.Domain.Guests.StayContexts;
@@ -89,6 +90,9 @@ public static class AggregateCases
         new AggregateCase<StayContext, StayContextId, IStayContextRepository>(
             (tenant, seed) => TestData.StayContext(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.CheckIn(null, TestData.Now)),
+        new AggregateCase<GuestLink, GuestLinkId, IGuestLinkRepository>(
+            (tenant, seed) => TestData.GuestLink(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            a => a.Revoke(TestData.Now)),
         new AggregateCase<Conversation, ConversationId, IConversationRepository>(
             TestData.Conversation, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Close(TestData.Now)),

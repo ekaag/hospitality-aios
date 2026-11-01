@@ -13,6 +13,7 @@ using HospitalityOS.Domain.Capabilities.CapabilityInvocations.Events;
 using HospitalityOS.Domain.Dining.Menus.Events;
 using HospitalityOS.Domain.Dining.Restaurants.Events;
 using HospitalityOS.Domain.Guests.Conversations.Events;
+using HospitalityOS.Domain.Guests.GuestLinks.Events;
 using HospitalityOS.Domain.Guests.GuestMessages.Events;
 using HospitalityOS.Domain.Guests.Guests.Events;
 using HospitalityOS.Domain.Guests.Notifications.Events;
@@ -52,6 +53,8 @@ internal static class EventContractMapper
         {
             OrganizationCreated e => new(new OrganizationCreatedV1(e.OrganizationId, e.Name), e.OrganizationId),
             OrganizationUpdated e => new(new OrganizationUpdatedV1(e.OrganizationId, e.Name), e.OrganizationId),
+            GuestLinkCreated e => new(new GuestLinkCreatedV1(e.GuestLinkId.Value, e.StayContextId, e.PropertyId)),
+            GuestLinkRevoked e => new(new GuestLinkRevokedV1(e.GuestLinkId.Value, e.StayContextId)),
             StaffAccessGranted e => new(new StaffAccessGrantedV1(e.StaffAccessId.Value, e.Role.ToString(), e.StaffMemberId)),
             StaffAccessLinked e => new(new StaffAccessLinkedV1(e.StaffAccessId.Value)),
             StaffAccessReinvited e => new(new StaffAccessReinvitedV1(e.StaffAccessId.Value)),

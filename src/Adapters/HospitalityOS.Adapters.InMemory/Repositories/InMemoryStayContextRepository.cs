@@ -21,4 +21,12 @@ internal sealed class InMemoryStayContextRepository(InMemoryStore store, InMemor
             stay => stay.PropertyId == propertyId && stay.AccommodationUnitId == unitId && stay.Status == StayStatus.InHouse,
             cancellationToken);
     }
+
+    public Task<IReadOnlyList<StayContext>> ListActiveForPropertyAsync(PropertyId propertyId, CancellationToken cancellationToken) =>
+        QueryAsync(
+            stays => stays
+                .Where(stay => stay.PropertyId == propertyId && (stay.Status == StayStatus.Reserved || stay.Status == StayStatus.InHouse))
+                .OrderBy(stay => stay.Arrival)
+                .ThenBy(stay => stay.Id),
+            cancellationToken);
 }
