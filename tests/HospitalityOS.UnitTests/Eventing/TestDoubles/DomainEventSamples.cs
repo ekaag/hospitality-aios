@@ -25,6 +25,8 @@ using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Operations.HumanActions.Events;
 using HospitalityOS.Domain.Operations.StaffMembers;
 using HospitalityOS.Domain.Operations.StaffMembers.Events;
+using HospitalityOS.Domain.Organizations.Access;
+using HospitalityOS.Domain.Organizations.Access.Events;
 using HospitalityOS.Domain.Organizations.Organizations.Events;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
 using HospitalityOS.Domain.Properties.AccommodationTypes.Events;
@@ -47,6 +49,7 @@ using HospitalityOS.Domain.Services.ServiceRequests.Events;
 using HospitalityOS.Domain.Services.Services;
 using HospitalityOS.Domain.Services.Services.Events;
 using HospitalityOS.SharedKernel.Domain;
+using HospitalityOS.SharedKernel.Execution;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Locations;
 using HospitalityOS.SharedKernel.Pricing;
@@ -79,6 +82,7 @@ public static class DomainEventSamples
     private static readonly StayContextId alexStay = new(Id(15));
     private static readonly ConversationId alexChat = new(Id(16));
     private static readonly GuestMessageId towelMessage = new(Id(17));
+    private static readonly StaffAccessId mariaAccess = new(Id(32));
 
     private static readonly PropertyDetails auroraDetails = new(
         "Aurora Grand",
@@ -114,6 +118,10 @@ public static class DomainEventSamples
     [
         new OrganizationCreated(auroraHotels, "Aurora Hotels", Now),
         new OrganizationUpdated(auroraHotels, "Aurora Hotels Group", Now),
+        new StaffAccessGranted(mariaAccess, StaffRole.Worker, maria, Now),
+        new StaffAccessLinked(mariaAccess, Now),
+        new StaffAccessReinvited(mariaAccess, Now),
+        new StaffAccessRevoked(mariaAccess, Now),
 
         new PropertyCreated(auroraGrand, auroraHotels, auroraDetails, Now),
         new PropertyUpdated(auroraGrand, auroraDetails with { ContactPhone = null }, Now),

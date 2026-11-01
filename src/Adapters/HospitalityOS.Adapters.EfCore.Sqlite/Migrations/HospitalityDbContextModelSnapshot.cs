@@ -1015,6 +1015,68 @@ namespace HospitalityOS.Adapters.EfCore.Sqlite.Migrations
                     b.ToTable("StaffMembers", (string)null);
                 });
 
+            modelBuilder.Entity("HospitalityOS.Domain.Organizations.Access.StaffAccess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InviteCodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("InviteExpiresAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("LinkedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("RevokedAt")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SignInIssuer")
+                        .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SignInSubject")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("StaffMemberId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InviteCodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("StaffMemberId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("SignInIssuer", "SignInSubject")
+                        .IsUnique();
+
+                    b.ToTable("StaffAccess", (string)null);
+                });
+
             modelBuilder.Entity("HospitalityOS.Domain.Organizations.Organizations.Organization", b =>
                 {
                     b.Property<Guid>("Id")

@@ -10,6 +10,7 @@ using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
+using HospitalityOS.Domain.Organizations.Access;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
@@ -53,6 +54,18 @@ internal static class TestData
 
     public static Organization Organization(TenantId tenantId, int seed) =>
         Domain.Organizations.Organizations.Organization.Create(new OrganizationId(Id(1000 + seed)), tenantId, $"Aurora Hotels {seed}", Now).Value;
+
+    public static StaffAccess StaffAccess(TenantId tenantId, int seed, StaffMemberId? staffMemberId = null, int? inviteSeed = null) =>
+        Domain.Organizations.Access.StaffAccess.Create(
+            new StaffAccessId(Id(25000 + seed)),
+            tenantId,
+            $"Dana Reyes {seed}",
+            staffMemberId is null ? StaffRole.Manager : StaffRole.Worker,
+            staffMemberId,
+            Invite(inviteSeed ?? seed),
+            Now).Value;
+
+    public static StaffInvite Invite(int seed) => new($"{seed:x64}", Now.AddDays(7));
 
     public static Property Property(TenantId tenantId, int seed, OrganizationId? organizationId = null) =>
         Domain.Properties.Properties.Property.Create(

@@ -3,6 +3,7 @@ using HospitalityOS.Domain.Guests.GuestMessages;
 using HospitalityOS.Domain.Guests.Notifications;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
+using HospitalityOS.Domain.Organizations.Access;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
 using HospitalityOS.Domain.Properties.Hours;
 using HospitalityOS.Domain.Services.ServiceRequests;
@@ -27,6 +28,9 @@ internal static class UniqueKeys
         Key<GuestNotification>("key", notification => notification.Key),
         Key<IntegrationConfiguration>("kind", configuration => (configuration.PropertyId, configuration.Kind)),
         Key<ExternalReference>("externalId", reference => (reference.PropertyId, reference.ProviderName, reference.EntityType, reference.ExternalId)),
+        Key<StaffAccess>("signIn", access => access is { SignInIssuer: { } issuer, SignInSubject: { } subject } ? (issuer, subject) : null),
+        Key<StaffAccess>("inviteCodeHash", access => access.InviteCodeHash),
+        Key<StaffAccess>("staffMemberId", access => access.StaffMemberId),
 
         // Only succeeded invocations hold their key, so a failed attempt can be retried with it.
         Key<CapabilityInvocation>(

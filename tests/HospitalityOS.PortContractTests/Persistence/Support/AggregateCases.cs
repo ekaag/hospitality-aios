@@ -10,6 +10,7 @@ using HospitalityOS.Domain.Guests.StayContexts;
 using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
+using HospitalityOS.Domain.Organizations.Access;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
@@ -37,6 +38,9 @@ public static class AggregateCases
         new AggregateCase<Organization, OrganizationId, IOrganizationRepository>(
             TestData.Organization, id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Rename("Aurora Hotels Group", TestData.Now)),
+        new AggregateCase<StaffAccess, StaffAccessId, IStaffAccessRepository>(
+            (tenant, seed) => TestData.StaffAccess(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
+            a => a.Redeem(a.InviteCodeHash!, "https://issuer.example", $"subject-{a.Id}", TestData.Now)),
         new AggregateCase<Property, PropertyId, IPropertyRepository>(
             (tenant, seed) => TestData.Property(tenant, seed), id => new(id), (repository, a, ct) => repository.AddAsync(a, ct), (repository, id, ct) => repository.GetByIdAsync(id, ct),
             a => a.Update(a.Details with { ContactPhone = "+44 20 7946 0000" }, TestData.Now)),

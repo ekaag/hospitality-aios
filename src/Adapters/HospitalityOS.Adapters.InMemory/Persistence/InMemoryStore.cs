@@ -39,6 +39,18 @@ internal sealed class InMemoryStore
     }
 
     /// <summary>
+    /// Every tenant's committed aggregates of a type, for the one lookup made before the tenant is known
+    /// (<c>IStaffAccessDirectory</c>). Callers only read the snapshots.
+    /// </summary>
+    public IReadOnlyList<StoredAggregate> ListAllTenants(Type aggregateType)
+    {
+        lock (gate)
+        {
+            return [.. aggregates.Values.Where(stored => stored.Key.AggregateType == aggregateType)];
+        }
+    }
+
+    /// <summary>
     /// Saves the whole batch or none of it: checks versions and unique keys first, then applies.
     /// </summary>
     public Result Commit(CommitBatch batch)

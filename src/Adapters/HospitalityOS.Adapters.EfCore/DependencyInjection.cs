@@ -16,6 +16,7 @@ using HospitalityOS.Domain.Integrations.ExternalReferences;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Operations.StaffMembers;
+using HospitalityOS.Domain.Organizations.Access;
 using HospitalityOS.Domain.Organizations.Organizations;
 using HospitalityOS.Domain.Properties.AccommodationTypes;
 using HospitalityOS.Domain.Properties.AccommodationUnits;
@@ -56,6 +57,8 @@ public static class DependencyInjection
         services.TryAddScoped<IAuditLog, EfAuditLog>();
 
         services.TryAddScoped<IOrganizationRepository, EfOrganizationRepository>();
+        services.TryAddScoped<IStaffAccessRepository, EfStaffAccessRepository>();
+        services.TryAddScoped<IStaffAccessDirectory, EfStaffAccessDirectory>();
         services.TryAddScoped<IPropertyRepository, EfPropertyRepository>();
         services.TryAddScoped<ISpaceRepository, EfSpaceRepository>();
         services.TryAddScoped<IAccommodationTypeRepository, EfAccommodationTypeRepository>();

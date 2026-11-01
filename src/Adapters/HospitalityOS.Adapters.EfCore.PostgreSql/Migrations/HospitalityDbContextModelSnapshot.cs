@@ -1026,6 +1026,68 @@ namespace HospitalityOS.Adapters.EfCore.PostgreSql.Migrations
                     b.ToTable("StaffMembers", (string)null);
                 });
 
+            modelBuilder.Entity("HospitalityOS.Domain.Organizations.Access.StaffAccess", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("InviteCodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("InviteExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LinkedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SignInIssuer")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<string>("SignInSubject")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("StaffMemberId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InviteCodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("StaffMemberId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("SignInIssuer", "SignInSubject")
+                        .IsUnique();
+
+                    b.ToTable("StaffAccess", (string)null);
+                });
+
             modelBuilder.Entity("HospitalityOS.Domain.Organizations.Organizations.Organization", b =>
                 {
                     b.Property<Guid>("Id")

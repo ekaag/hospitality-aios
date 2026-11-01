@@ -21,6 +21,7 @@ using HospitalityOS.Domain.Integrations.ExternalReferences.Events;
 using HospitalityOS.Domain.Integrations.IntegrationConfigurations.Events;
 using HospitalityOS.Domain.Operations.HumanActions.Events;
 using HospitalityOS.Domain.Operations.StaffMembers.Events;
+using HospitalityOS.Domain.Organizations.Access.Events;
 using HospitalityOS.Domain.Organizations.Organizations.Events;
 using HospitalityOS.Domain.Properties.AccommodationTypes.Events;
 using HospitalityOS.Domain.Properties.AccommodationUnits.Events;
@@ -51,6 +52,10 @@ internal static class EventContractMapper
         {
             OrganizationCreated e => new(new OrganizationCreatedV1(e.OrganizationId, e.Name), e.OrganizationId),
             OrganizationUpdated e => new(new OrganizationUpdatedV1(e.OrganizationId, e.Name), e.OrganizationId),
+            StaffAccessGranted e => new(new StaffAccessGrantedV1(e.StaffAccessId.Value, e.Role.ToString(), e.StaffMemberId)),
+            StaffAccessLinked e => new(new StaffAccessLinkedV1(e.StaffAccessId.Value)),
+            StaffAccessReinvited e => new(new StaffAccessReinvitedV1(e.StaffAccessId.Value)),
+            StaffAccessRevoked e => new(new StaffAccessRevokedV1(e.StaffAccessId.Value)),
             PropertyCreated e => new(new PropertyCreatedV1(e.PropertyId, e.OrganizationId, ContractValues.Data(e.Details)), e.OrganizationId),
             PropertyUpdated e => new(new PropertyUpdatedV1(e.PropertyId, ContractValues.Data(e.Details))),
             SpaceCreated e => new(new SpaceCreatedV1(e.SpaceId, e.PropertyId, e.ParentSpaceId, ContractValues.Data(e.Details))),
