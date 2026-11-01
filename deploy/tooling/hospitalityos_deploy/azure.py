@@ -30,6 +30,12 @@ SEARCH_RESOURCE = "https://search.azure.com"
 # A role granted in the same deployment takes a few minutes to apply; index writes wait for it this long.
 _ROLE_WAIT_SECONDS = 600
 
+# Container Apps jobs (the migration step), through ARM: no CLI extension needed.
+JOBS_API_VERSION = "2024-03-01"
+# The job's own replica timeout is 30 minutes; it is given a little longer to start.
+_JOB_WAIT_SECONDS = 2100
+_JOB_FAILED = {"Failed", "Stopped", "Degraded"}
+
 
 def az(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
     """Runs the Azure CLI (az.cmd on Windows, found through PATHEXT)."""
@@ -216,6 +222,30 @@ class AzureDriver:
                 changes.append(f"Modify: index {definition['name']} fields")
 
         return changes
+
+    def run(self, target: Target, outputs: dict) -> None:
+        job = f"https://management.azure.com{outputs['jobId']}"
+        started = az_json("rest", "--method", "post", "--url", f"{job}/start?api-version={JOBS_API_VERSION}") or {}
+        execution = started.get("name")
+
+        if not execution:
+            raise PlanError([f"{target.placement.purpose}: starting job {target.name} returned no execution to follow."])
+
+        deadline = time.monotonic() + _JOB_WAIT_SECONDS
+
+        while True:
+            status = (az_json("rest", "--method", "get", "--url", f"{job}/executions/{execution}?api-version={JOBS_API_VERSION}") or {}).get("properties", {}).get("status")
+
+            if status == "Succeeded":
+                return
+
+            if status in _JOB_FAILED or time.monotonic() > deadline:
+                raise PlanError([
+                    f"{target.placement.purpose}: job {target.name} execution {execution} {(status or 'did not finish').lower()}; "
+                    "its output is in the logs workspace (ContainerAppConsoleLogs_CL)."
+                ])
+
+            time.sleep(10)
 
     def ensure_image(self, target: Target, registry: dict, repository: str, tag: str, project: str) -> None:
         name, server = registry["registryName"], registry["loginServer"]

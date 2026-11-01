@@ -111,6 +111,13 @@ builder.Services.AddRealtime(builder.Configuration);
 
 WebApplication app = builder.Build();
 
+// The deployment's migration step: apply the schema, seed where asked, and exit without serving.
+if (MigrationMode.Requested(args))
+{
+    await MigrationMode.RunAsync(app.Services, CancellationToken.None);
+    return;
+}
+
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationMiddleware>();
 app.UseAuthentication();

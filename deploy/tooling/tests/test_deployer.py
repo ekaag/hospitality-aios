@@ -15,6 +15,7 @@ class FakeCloud:
         self.deployed: dict[str, dict] = {}
         self.calls: list[tuple] = []
         self.drifted: dict[str, list[str]] = {}
+        self.failing: set[str] = set()
 
     def deploy(self, target: Target, parameters: dict) -> dict:
         self.calls.append(("deploy", target.placement.purpose, parameters))
@@ -35,6 +36,11 @@ class FakeCloud:
 
     def finish_removal(self, targets: list[Target]) -> None:
         self.calls.append(("finish", tuple(target.placement.purpose for target in targets)))
+
+    def run(self, target: Target, outputs: dict) -> None:
+        self.calls.append(("run", target.placement.purpose, outputs.get("jobId")))
+        if target.placement.purpose in self.failing:
+            raise PlanError([f"{target.placement.purpose}: job failed"])
 
     def ensure_image(self, target, registry, repository, tag, project) -> None:
         self.calls.append(("image", repository, tag, registry["loginServer"], project))
@@ -121,6 +127,33 @@ class DeployerTests(unittest.TestCase):
         self.assertEqual("sk-ant-test", given.calls[2][2]["anthropicApiKey"])
         self.assertEqual("", missing.calls[2][2]["anthropicApiKey"])
         self.assertNotIn("anthropicApiKey", given.calls[1][2])
+
+    def test_a_job_marked_to_run_finishes_before_what_depends_on_it_deploys_and_its_failure_stops_the_deployment(self):
+        migrating = plan()
+        migrate = Placement(
+            "migrate", "azure", "uksouth", "api", ("images", "identity-api", "secrets"), {"service": "caj", "type": "caj", "run": True},
+            image={"project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images"},
+        )
+        api = migrating.placements[3]
+        migrating.placements[3:] = [migrate, Placement(api.purpose, api.cloud, api.region, api.group, (*api.depends_on, "migrate"), api.service, image=api.image)]
+        cloud = FakeCloud({**ANSWERS, "migrate": {"jobId": "/jobs/migrate-dev-uksouth-caj"}})
+
+        Deployer(migrating, "dev", "hospitalityos", {"azure": cloud}, log=lambda _: None).up("abc123", smoke=False)
+
+        steps = [call[:2] for call in cloud.calls if call[0] in ("deploy", "run")]
+        self.assertEqual([("deploy", "migrate"), ("run", "migrate"), ("deploy", "api")], steps[-3:])
+        self.assertEqual(("run", "migrate", "/jobs/migrate-dev-uksouth-caj"), next(call for call in cloud.calls if call[0] == "run"))
+        self.assertEqual("hospitalityos-api:abc123", next(call for call in cloud.calls if call[:2] == ("deploy", "migrate"))[2]["image"])
+
+        failing = FakeCloud({**ANSWERS, "migrate": {"jobId": "/jobs/migrate-dev-uksouth-caj"}})
+        failing.failing.add("migrate")
+        with self.assertRaises(PlanError):
+            Deployer(migrating, "dev", "hospitalityos", {"azure": failing}, log=lambda _: None).up("abc123", smoke=False)
+        self.assertNotIn(("deploy", "api"), [call[:2] for call in failing.calls])
+
+        cloud.calls.clear()
+        Deployer(migrating, "dev", "hospitalityos", {"azure": cloud}, log=lambda _: None).drift()
+        self.assertNotIn("run", [call[0] for call in cloud.calls])
 
     def test_deploying_an_image_needs_the_commit(self):
         with self.assertRaises(PlanError):

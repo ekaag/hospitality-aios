@@ -2,6 +2,7 @@ using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Adapters.EfCore.PostgreSql.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace HospitalityOS.Adapters.EfCore.PostgreSql;
 
@@ -14,19 +15,45 @@ namespace HospitalityOS.Adapters.EfCore.PostgreSql;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers the unit of work and every repository over a PostgreSQL database. The host must also register
-    /// <c>ICurrentTenant</c>.
+    /// Registers the unit of work and every repository over a PostgreSQL database, signing in with the connection
+    /// string's password. The host must also register <c>ICurrentTenant</c>.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="connectionString">An Npgsql connection string, e.g.
     /// <c>Host=localhost;Database=hospitalityos;Username=app;Password=...</c>.</param>
-    public static IServiceCollection AddPostgreSqlPersistence(this IServiceCollection services, string connectionString)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+    public static IServiceCollection AddPostgreSqlPersistence(this IServiceCollection services, string connectionString) =>
+        services.AddPostgreSqlPersistence(new PostgreSqlOptions { ConnectionString = connectionString });
 
-        services.AddDbContext<HospitalityDbContext>(options => PostgreSqlDbContextOptions.Configure(options, connectionString));
+    /// <summary>
+    /// Registers the unit of work and every repository over a PostgreSQL database, as <paramref name="options"/> says to
+    /// reach it. The host must also register <c>ICurrentTenant</c>.
+    /// </summary>
+    public static IServiceCollection AddPostgreSqlPersistence(this IServiceCollection services, PostgreSqlOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.ConnectionString);
+
+        string connectionString = options.ConnectionString;
+
+        if (options.EntraSignIn)
+        {
+            services.TryAddSingleton(_ => PostgreSqlDataSources.Entra(connectionString));
+            services.AddDbContext<HospitalityDbContext>((provider, builder) => PostgreSqlDbContextOptions.Configure(builder, provider.GetRequiredService<NpgsqlDataSource>()));
+        }
+        else
+        {
+            services.AddDbContext<HospitalityDbContext>(builder => PostgreSqlDbContextOptions.Configure(builder, connectionString));
+        }
+
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IProviderModelConventions, PostgreSqlModelConventions>());
         services.TryAddSingleton<IDatabaseErrorClassifier, PostgreSqlErrorClassifier>();
+
+        if (options.AppRoleName is { } role)
+        {
+            PostgreSqlAppRoleAccess.Quote(role);
+            services.TryAddSingleton(new PostgreSqlConnection(connectionString, options.EntraSignIn, new PostgreSqlAppRole(role, options.AppRoleObjectId)));
+            services.TryAddEnumerable(ServiceDescriptor.Scoped<ISchemaAccess, PostgreSqlAppRoleAccess>());
+        }
 
         return services.AddEfCorePersistence();
     }

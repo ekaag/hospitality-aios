@@ -5,6 +5,7 @@
   "resources": {
     "logs": { "cloud": "azure", "region": "uksouth" },
     "identity-api": { "cloud": "azure", "region": "uksouth" },
+    "identity-data": { "cloud": "azure", "region": "uksouth" },
     "images": { "cloud": "azure", "region": "uksouth" },
     "secrets": { "cloud": "azure", "region": "uksouth" },
     "events": { "cloud": "azure", "region": "uksouth" },
@@ -15,6 +16,8 @@
     "inference-embed": { "cloud": "azure", "region": "uksouth" },
     "signin": { "cloud": "azure", "region": "uksouth" },
     "apps": { "cloud": "azure", "region": "uksouth" },
+    "data": { "cloud": "azure", "region": "uksouth" },
+    "migrate": { "cloud": "azure", "region": "uksouth" },
     "api": { "cloud": "azure", "region": "uksouth" }
   }
 }

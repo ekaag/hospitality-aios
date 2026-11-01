@@ -2,6 +2,7 @@ using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Ports.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Xunit;
 
 namespace HospitalityOS.IntegrationTests.Hosts.Api;
@@ -33,6 +34,46 @@ public sealed class PersistenceStartupTests
 
         Assert.Equal("EfUnitOfWork", scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetType().Name);
         Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", scope.ServiceProvider.GetRequiredService<HospitalityDbContext>().Database.ProviderName);
+    }
+
+    [Fact]
+    public void Start_WithPostgreSqlSigningInAsEntra_ConnectsThroughATokenDataSource_WithoutConnecting()
+    {
+        using WebApplicationFactory<Program> factory = WithSettings(
+            ("Persistence:Provider", "PostgreSql"),
+            ("Persistence:SignIn", "Entra"),
+            ("Persistence:ConnectionString", "Host=data-dev-uksouth-psql.postgres.database.azure.com;Database=hospitalityos;Username=identity-api-dev-uksouth-id;Ssl Mode=Require"));
+        using IServiceScope scope = factory.Services.CreateScope();
+
+        Assert.Equal("EfUnitOfWork", scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetType().Name);
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<NpgsqlDataSource>());
+        Assert.Equal("EfSchemaMigrator", scope.ServiceProvider.GetRequiredService<ISchemaMigrator>().GetType().Name);
+    }
+
+    [Theory]
+    [InlineData("Persistence:SignIn", "Kerberos", "Persistence:SignIn 'Kerberos' is unknown")]
+    [InlineData("Persistence:AppRole:Name", "identity-api-dev-uksouth-id", "Persistence:AppRole:ObjectId must be the role's Entra object ID")]
+    [InlineData("Persistence:AppRole:Name", "app\"; DROP TABLE x; --", "is not a role or database name")]
+    public void Start_WithPostgreSqlSignInOrAppRoleWrong_FailsBeforeServingRequests(string key, string value, string expected)
+    {
+        using WebApplicationFactory<Program> factory = WithSettings(
+            ("Persistence:Provider", "PostgreSql"),
+            ("Persistence:ConnectionString", "Host=localhost;Database=hospitalityos"),
+            ("Persistence:AppRole:ObjectId", key == "Persistence:AppRole:Name" && value.Contains("DROP", StringComparison.Ordinal) ? Guid.NewGuid().ToString() : ""),
+            (key, value));
+
+        Exception exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
+
+        Assert.Contains(expected, exception.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Start_WithInMemoryPersistence_HasNothingToMigrate()
+    {
+        using WebApplicationFactory<Program> factory = new();
+        using IServiceScope scope = factory.Services.CreateScope();
+
+        Assert.Equal("InMemorySchemaMigrator", scope.ServiceProvider.GetRequiredService<ISchemaMigrator>().GetType().Name);
     }
 
     [Fact]

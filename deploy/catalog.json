@@ -1,7 +1,7 @@
 {
   "$comment": "Every resource the product needs, by its job (the purpose), and the service each cloud offers for it. A deployment plan (plans/) chooses a cloud and region per resource; the orchestrator (tooling/) deploys a cloud's service through its module. A service without a module is known but not yet deployable; a resource marked planned is not yet needed by the app, so plans may leave it out.",
   "product": "hospitalityos",
-  "$environments": "Staging and production arrive with K6; their names must still fit each type's limit (secrets-staging-uksouth-kv is 26 characters, over Key Vault's 24).",
+  "$environments": "test and prod arrive with K6c (test rather than staging: secrets-staging-uksouth-kv would be 26 characters, over Key Vault's 24).",
   "environments": ["dev"],
   "clouds": {
     "azure": { "tool": "bicep", "status": "available" },
@@ -25,6 +25,16 @@
       "dependsOn": [],
       "services": {
         "azure": { "service": "User-assigned managed identity", "type": "id", "module": "azure/modules/identity-api.bicep" },
+        "aws": { "service": "IAM role" },
+        "gcp": { "service": "Service account" }
+      }
+    },
+    "identity-data": {
+      "job": "The database's administrator, which only the migration step signs in as, to change the schema and grant the API its tables.",
+      "group": "platform",
+      "dependsOn": [],
+      "services": {
+        "azure": { "service": "User-assigned managed identity", "type": "id", "module": "azure/modules/identity-data.bicep" },
         "aws": { "service": "IAM role" },
         "gcp": { "service": "Service account" }
       }
@@ -109,7 +119,7 @@
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin", "inference-chat", "inference-embed"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin", "inference-chat", "inference-embed", "data", "migrate"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {
@@ -129,15 +139,56 @@
       }
     },
     "data": {
-      "job": "The relational database, PostgreSQL on every cloud (the app adapter is EfCore.PostgreSql): records, outbox and inbox, audit (IUnitOfWork and repositories). Deployable with the migration step (K6).",
+      "job": "The relational database, PostgreSQL on every cloud (the app adapter is EfCore.PostgreSql): records, outbox and inbox, audit (IUnitOfWork and repositories). Its schema comes from the migration step (migrate); the API signs in as its own identity.",
       "group": "api",
-      "planned": "K6",
       "stateful": true,
-      "dependsOn": ["identity-api"],
+      "dependsOn": ["identity-api", "identity-data"],
       "services": {
-        "azure": { "service": "Azure Database for PostgreSQL flexible server" },
+        "azure": {
+          "service": "Azure Database for PostgreSQL flexible server",
+          "type": "psql",
+          "maxLength": 63,
+          "module": "azure/modules/data.bicep",
+          "inputs": { "adminPrincipalId": "identity-data.principalId", "adminName": "identity-data.name" },
+          "parameters": { "sku": { "dev": "Standard_B1ms" }, "tier": { "dev": "Burstable" } },
+          "appSettings": {
+            "Persistence__Provider": "PostgreSql",
+            "Persistence__SignIn": "Entra",
+            "Persistence__ConnectionString": "Host=${data.host};Database=${data.database};Username=${identity-api.name};Ssl Mode=Require"
+          }
+        },
         "aws": { "service": "RDS for PostgreSQL" },
         "gcp": { "service": "Cloud SQL for PostgreSQL" }
+      }
+    },
+    "migrate": {
+      "job": "The deployment's migration step: the API image in its migrate mode, run to completion before each API deployment. It applies the schema, grants the API's identity its tables, and seeds where the environment asks; every step is idempotent.",
+      "group": "api",
+      "dependsOn": ["apps", "images", "identity-api", "identity-data", "data", "secrets", "events", "blobs", "search-content", "realtime", "signin", "inference-chat", "inference-embed"],
+      "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
+      "services": {
+        "azure": {
+          "service": "Container Apps job",
+          "type": "caj",
+          "maxLength": 32,
+          "module": "azure/modules/migrate.bicep",
+          "run": true,
+          "inputs": {
+            "environmentId": "apps.environmentId",
+            "registryServer": "images.loginServer",
+            "pullIdentityId": "identity-api.identityId",
+            "identityId": "identity-data.identityId",
+            "identityClientId": "identity-data.clientId",
+            "identityName": "identity-data.name",
+            "appRoleName": "identity-api.name",
+            "appRoleObjectId": "identity-api.principalId",
+            "dataHost": "data.host",
+            "database": "data.database"
+          },
+          "parameters": { "seed": { "dev": true } }
+        },
+        "aws": { "service": "ECS task" },
+        "gcp": { "service": "Cloud Run job" }
       }
     },
     "events": {

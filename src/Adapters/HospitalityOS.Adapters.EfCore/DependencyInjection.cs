@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.TryAddScoped<IOutboxStore, EfOutboxStore>();
         services.TryAddScoped<IInboxStore, EfInboxStore>();
         services.TryAddScoped<IAuditLog, EfAuditLog>();
+        services.TryAddScoped<ISchemaMigrator, EfSchemaMigrator>();
 
         services.TryAddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.TryAddScoped<IStaffAccessRepository, EfStaffAccessRepository>();

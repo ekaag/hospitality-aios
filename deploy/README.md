@@ -90,6 +90,16 @@ key). The key rotates every 90 days; guest apps then open new sessions from the 
 address from `GuestLinks:BaseUrl`, which waits for the guest app's own deployment; until then the front desk gets the
 code only.
 
+## Database and migrations
+
+`data` is PostgreSQL with Entra sign-in only. Before each API deployment, `up` deploys the `migrate` job and runs it to
+completion: the API image in its `migrate` mode, signed in as `identity-data` (the server's administrator). It applies
+the schema, creates the API identity's database role and grants it the tables (never schema changes), and seeds the
+Aurora Grand where the catalog's `seed` parameter is true. A failed run stops the deployment before the API changes;
+its output is in the logs workspace (`ContainerAppConsoleLogs_CL`). Every step is idempotent, so re-running a
+deployment changes nothing. The server accepts connections from Azure services only, so there is no access from
+workstations; locally, run `dotnet run --project src/Hosts/HospitalityOS.Api -- migrate` against your own server.
+
 ## AI models
 
 `inference-chat` and `inference-embed` are Azure OpenAI resources in Microsoft Foundry, each with one deployment named

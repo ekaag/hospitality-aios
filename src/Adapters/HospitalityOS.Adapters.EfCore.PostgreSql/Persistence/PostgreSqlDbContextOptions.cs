@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace HospitalityOS.Adapters.EfCore.PostgreSql.Persistence;
 
@@ -10,6 +11,13 @@ internal static class PostgreSqlDbContextOptions
 {
     public static void Configure(DbContextOptionsBuilder options, string connectionString)
     {
-        options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(typeof(PostgreSqlDbContextOptions).Assembly.GetName().Name));
+        options.UseNpgsql(connectionString, npgsql => npgsql.MigrationsAssembly(MigrationsAssembly));
     }
+
+    public static void Configure(DbContextOptionsBuilder options, NpgsqlDataSource dataSource)
+    {
+        options.UseNpgsql(dataSource, npgsql => npgsql.MigrationsAssembly(MigrationsAssembly));
+    }
+
+    private static string? MigrationsAssembly => typeof(PostgreSqlDbContextOptions).Assembly.GetName().Name;
 }

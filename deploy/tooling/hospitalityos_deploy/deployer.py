@@ -61,6 +61,9 @@ class Driver(Protocol):
     def finish_removal(self, targets: list[Target]) -> None:
         """Cleans up what the removed resources leave, e.g. empty resource groups."""
 
+    def run(self, target: Target, outputs: dict) -> None:
+        """Runs a deployed job to completion, e.g. the migration step; raises PlanError if it fails."""
+
     def ensure_image(self, target: Target, registry: dict, repository: str, tag: str, project: str) -> None:
         """Builds and pushes the image unless the registry already has that tag."""
 
@@ -145,6 +148,11 @@ class Deployer:
             if definitions := index_definitions(placement):
                 self.log(f"indexes {placement.purpose:<15} {', '.join(path.stem for path in definitions)}")
                 self.driver(target).apply_indexes(target, outputs[placement.purpose], definitions)
+
+            # A job the catalog marks to run (the migration step) finishes before anything that depends on it deploys.
+            if placement.service.get("run"):
+                self.log(f"run     {placement.purpose:<15} {target.name}")
+                self.driver(target).run(target, outputs[placement.purpose])
 
         if smoke:
             for target in self.targets():
