@@ -78,6 +78,14 @@ python deploy/tooling/deploy.py grant-operator --env dev --email someone@example
 python deploy/tooling/deploy.py revoke-operator --env dev --email someone@example.com
 ```
 
+## Guest check-in links
+
+The API signs guests' stay tokens with the `stay-tokens` RSA key in the `secrets` vault, through Key Vault's sign
+operation (the API holds Key Vault Crypto User on that key only, so it can sign and verify but never read the private
+key). The key rotates every 90 days; guest apps then open new sessions from the same link. Links name the guest app's
+address from `GuestLinks:BaseUrl`, which waits for the guest app's own deployment; until then the front desk gets the
+code only.
+
 ## Per-environment settings
 
 A service's `parameters` set module parameters per environment, e.g. `"sku": { "dev": "free" }`; every environment
@@ -95,7 +103,7 @@ python deploy/tooling/deploy.py bootstrap --cloud azure --repo ekaag/hospitality
 
 It deploys the subscription deployment stack `hospitalityos-deploy`: `rg-hospitalityos-deploy` with the managed identity
 `deploy-shared-uksouth-id`, federated credentials trusting this repository's `main` branch, its pull requests, and its
-`dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, Azure
+`dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, Key Vault Crypto User, Azure
 Service Bus Data Sender and Data Receiver, Storage Blob Data Contributor, Search Index Data Contributor, SignalR App
 Server, and Search Service Contributor.
 `--github` sets the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` and creates

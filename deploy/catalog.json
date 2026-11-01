@@ -60,7 +60,10 @@
           "inputs": { "readerPrincipalId": "identity-api.principalId" },
           "appSettings": {
             "Bindings__SecretStore__Default__Adapter": "AzureKeyVault",
-            "Bindings__SecretStore__Default__Settings__VaultUri": "${secrets.vaultUri}"
+            "Bindings__SecretStore__Default__Settings__VaultUri": "${secrets.vaultUri}",
+            "Bindings__SigningKey__Default__Adapter": "AzureKeyVault",
+            "Bindings__SigningKey__Default__Settings__VaultUri": "${secrets.vaultUri}",
+            "Bindings__SigningKey__Default__Settings__KeyName": "${secrets.signingKeyName}"
           }
         },
         "aws": { "service": "Secrets Manager" },
