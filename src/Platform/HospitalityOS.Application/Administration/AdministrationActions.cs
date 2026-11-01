@@ -37,6 +37,11 @@ public static class AdministrationActions
     public const string StaffMemberCreate = "StaffMember.Create";
     public const string StaffMemberUpdate = "StaffMember.Update";
     public const string StaffMemberSetDuty = "StaffMember.SetDuty";
+    public const string StaffAccessGrant = "StaffAccess.Grant";
+    public const string StaffAccessReinvite = "StaffAccess.Reinvite";
+    public const string StaffAccessRevoke = "StaffAccess.Revoke";
+    public const string StaffAccessRedeem = "StaffAccess.Redeem";
+    public const string StaffAccessGrantFirstAdmin = "StaffAccess.GrantFirstAdmin";
     public const string AccommodationTypeCreate = "AccommodationType.Create";
     public const string AccommodationUnitCreate = "AccommodationUnit.Create";
 }

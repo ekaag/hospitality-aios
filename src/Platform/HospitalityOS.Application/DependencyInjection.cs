@@ -1,4 +1,5 @@
 using HospitalityOS.Application.Accommodations;
+using HospitalityOS.Application.Access;
 using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Amenities;
 using HospitalityOS.Application.Auditing;
@@ -56,6 +57,8 @@ public static class DependencyInjection
         services.TryAddScoped<IPropertyEventAdministration, PropertyEventAdministration>();
         services.TryAddScoped<IServiceAdministration, ServiceAdministration>();
         services.TryAddScoped<IStaffAdministration, StaffAdministration>();
+        services.TryAddScoped<IStaffAccessAdministration, StaffAccessAdministration>();
+        services.TryAddScoped<IStaffSignIns, StaffSignIns>();
         services.TryAddScoped<IAccommodationAdministration, AccommodationAdministration>();
         services.TryAddScoped<IGuestConversations, GuestConversations>();
         services.TryAddScoped<HumanActionEvidence>();
