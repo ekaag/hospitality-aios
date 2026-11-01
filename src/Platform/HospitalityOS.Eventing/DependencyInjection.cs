@@ -3,6 +3,7 @@ using HospitalityOS.Eventing.Contracts;
 using HospitalityOS.Eventing.Dispatching;
 using HospitalityOS.Eventing.Envelopes;
 using HospitalityOS.Eventing.Handling;
+using HospitalityOS.Eventing.Observability;
 using HospitalityOS.Eventing.Replay;
 using HospitalityOS.Eventing.Scheduling;
 using HospitalityOS.Eventing.Serialization;
@@ -49,6 +50,7 @@ public static class DependencyInjection
 
             return new DispatcherScope(scope.ServiceProvider.GetRequiredService<IOutboxStore>(), scope);
         });
+        services.TryAddSingleton<EventingMetrics>();
         services.TryAddSingleton<OutboxDispatcher>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, EventDispatcherService>());
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using HospitalityOS.Capabilities;
 using HospitalityOS.Capabilities.Execution;
@@ -17,6 +18,7 @@ using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Xunit;
 
 namespace HospitalityOS.IntegrationTests.Capabilities;
@@ -272,6 +274,33 @@ public sealed class CapabilityExecutorTests : IAsyncLifetime
         Assert.Equal(
             (AuditOutcome.Failed, CapabilityErrors.CrashedCode),
             (audit.Record.Outcome, (await LoadInvocationAsync(Guid.Parse(audit.Record.TargetId!))).ErrorCode));
+    }
+
+    [Fact]
+    public async Task Execute_IsMeasured_ByCapabilityAndOutcome_WithoutNamingCapabilitiesThatDoNotExist()
+    {
+        using MetricCollector<long> invocations = new(factory.Services.GetRequiredService<IMeterFactory>(), "HospitalityOS.Capabilities", "hospitalityos.capabilities.invocations");
+        using MetricCollector<double> durations = new(factory.Services.GetRequiredService<IMeterFactory>(), "HospitalityOS.Capabilities", "hospitalityos.capabilities.duration");
+        OrganizationId organization = await CreateOrganizationAsync("Aurora Hotels");
+
+        await ExecuteAsync(guest, Get(organization));
+        await ExecuteAsync(guest, Rename(organization, "Hijacked", "key-1"));
+        await ExecuteAsync(concierge, Notify("key-2", confirmed: false));
+        await ExecuteAsync(concierge, new CapabilityRequest("Organization.Invented", Json(new { })));
+        await ExecuteAsync(admin, Rename(organization, "Aurora Group", "key-3", failWith: "organization.rename_refused"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => ExecuteAsync(admin, Rename(organization, "Aurora Group", "key-4", failWith: "crash")));
+
+        Assert.Equal(
+            [
+                ("Organization.Get", "succeeded"),
+                ("Organization.Rename", "denied"),
+                (NotifyGuestCapability.Name, "denied"),
+                ("unknown", "denied"),
+                ("Organization.Rename", "failed"),
+                ("Organization.Rename", "failed"),
+            ],
+            invocations.GetMeasurementSnapshot().Select(measurement => ((string)measurement.Tags["capability"]!, (string)measurement.Tags["outcome"]!)));
+        Assert.Equal(6, durations.GetMeasurementSnapshot().Count);
     }
 
     [Fact]

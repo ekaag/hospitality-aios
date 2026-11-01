@@ -36,6 +36,7 @@ public static class DependencyInjection
     {
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<CapabilityRegistry>();
+        services.TryAddSingleton<CapabilityMetrics>();
         services.TryAddScoped<ICapabilityExecutor, CapabilityExecutor>();
         services.TryAddSingleton<Func<CapabilityScope>>(provider => () =>
         {

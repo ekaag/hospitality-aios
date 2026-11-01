@@ -10,7 +10,7 @@ namespace HospitalityOS.Bindings.Inference;
 /// the scope; with none (e.g. an evaluation run) the task's default route applies. Every attempt gets, and records, the
 /// task's prompt at the route's pinned version or else its latest.
 /// </summary>
-internal sealed class InferenceRouter(InferenceCatalog catalog, IPromptRegistry prompts, TenantContext tenant, TimeProvider timeProvider) : IInferenceRouter
+internal sealed class InferenceRouter(InferenceCatalog catalog, IPromptRegistry prompts, TenantContext tenant, TimeProvider timeProvider, InferenceMetrics metrics) : IInferenceRouter
 {
     public async Task<Result<InferenceOutcome<TResult>>> RunAsync<TPort, TResult>(
         string task,
@@ -45,13 +45,17 @@ internal sealed class InferenceRouter(InferenceCatalog catalog, IPromptRegistry 
             try
             {
                 TResult value = await call(port, new ModelSelection(target.Model, route.Parameters), prompt, cancellationToken).ConfigureAwait(false);
-                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, prompt?.Version, timeProvider.GetElapsedTime(started)));
+                TimeSpan elapsed = timeProvider.GetElapsedTime(started);
+                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, prompt?.Version, elapsed));
+                metrics.Attempted(new InferenceAttemptRecord(registration.Name, target.Provider, target.Model, Succeeded: true, elapsed));
 
                 return new InferenceOutcome<TResult>(value, ValueList.From(attempts));
             }
             catch (InferenceUnavailableException exception)
             {
-                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, prompt?.Version, timeProvider.GetElapsedTime(started), exception.Message));
+                TimeSpan elapsed = timeProvider.GetElapsedTime(started);
+                attempts.Add(new InferenceAttempt(registration.Name, target.Provider, target.Model, prompt?.Version, elapsed, exception.Message));
+                metrics.Attempted(new InferenceAttemptRecord(registration.Name, target.Provider, target.Model, Succeeded: false, elapsed));
             }
         }
 

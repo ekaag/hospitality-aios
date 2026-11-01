@@ -1,3 +1,4 @@
+using HospitalityOS.Eventing.Observability;
 using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Eventing;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ internal sealed partial class OutboxDispatcher(
     IBindingResolver<IEventTransport> transports,
     IOptions<EventDispatcherOptions> options,
     TimeProvider timeProvider,
+    EventingMetrics metrics,
     ILogger<OutboxDispatcher> logger)
 {
     private readonly EventDispatcherOptions settings = options.Value;
@@ -64,6 +66,7 @@ internal sealed partial class OutboxDispatcher(
         }
 
         await outbox.MarkDispatchedAsync(message.EventId, cancellationToken).ConfigureAwait(false);
+        metrics.Published(message.EventType);
         LogDispatched(message.EventId, message.EventType, message.CorrelationId);
     }
 
@@ -76,6 +79,7 @@ internal sealed partial class OutboxDispatcher(
         if (failedAttempts >= settings.MaxAttempts)
         {
             await outbox.DeadLetterAsync(message.EventId, now, reason, cancellationToken).ConfigureAwait(false);
+            metrics.PublishFailed(message.EventType, deadLettered: true);
             LogDeadLettered(exception, message.EventId, message.EventType, message.CorrelationId, failedAttempts);
 
             return;
@@ -83,6 +87,7 @@ internal sealed partial class OutboxDispatcher(
 
         DateTimeOffset retryAt = now + RetryDelay(failedAttempts);
         await outbox.ScheduleRetryAsync(message.EventId, retryAt, reason, cancellationToken).ConfigureAwait(false);
+        metrics.PublishFailed(message.EventType, deadLettered: false);
         LogRetryScheduled(exception, message.EventId, message.EventType, message.CorrelationId, failedAttempts, retryAt);
     }
 

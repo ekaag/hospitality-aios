@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -38,7 +39,8 @@ internal sealed class CapabilityExecutor(
     OperationContext operation,
     Func<CapabilityScope> scopes,
     IBindingResolver<IIdGenerator> idGenerators,
-    TimeProvider timeProvider) : ICapabilityExecutor
+    TimeProvider timeProvider,
+    CapabilityMetrics metrics) : ICapabilityExecutor
 {
     private const string InvocationTarget = "CapabilityInvocation";
     private const string UnknownCapabilityAction = "capability.unknown";
@@ -49,6 +51,40 @@ internal sealed class CapabilityExecutor(
         ArgumentNullException.ThrowIfNull(request.Name);
 
         CapabilityDefinition? definition = registry.Find(request.Name, request.Version);
+        string capability = definition?.Name ?? CapabilityMetrics.Unknown;
+        using Activity? activity = CapabilityMetrics.Source.StartActivity($"capability {capability}");
+        activity?.SetTag("capability", capability);
+        activity?.SetTag("correlation.id", operation.CorrelationId);
+        long started = timeProvider.GetTimestamp();
+
+        Result<CapabilityResponse> result;
+
+        try
+        {
+            result = await ExecuteAsync(request, definition, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            // A crash is recorded as the invocation's failure and rethrown; it counts as one too.
+            metrics.Invoked(capability, CapabilityMetrics.Failed, timeProvider.GetElapsedTime(started));
+            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            throw;
+        }
+
+        string outcome = CapabilityMetrics.Outcome(result);
+        metrics.Invoked(capability, outcome, timeProvider.GetElapsedTime(started));
+        activity?.SetTag("outcome", outcome);
+
+        if (result.IsFailure)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, result.Error.Code);
+        }
+
+        return result;
+    }
+
+    private async Task<Result<CapabilityResponse>> ExecuteAsync(CapabilityRequest request, CapabilityDefinition? definition, CancellationToken cancellationToken)
+    {
 
         if (definition is null)
         {

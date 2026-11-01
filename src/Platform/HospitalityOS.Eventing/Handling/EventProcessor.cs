@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using HospitalityOS.Contracts.Events;
+using HospitalityOS.Eventing.Observability;
 using HospitalityOS.Eventing.Serialization;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Persistence;
@@ -18,6 +20,7 @@ internal sealed partial class EventProcessor(
     Func<string, HandlerScope> createScope,
     EventSerializer serializer,
     TimeProvider timeProvider,
+    EventingMetrics metrics,
     ILogger<EventProcessor> logger)
 {
     public async Task<HandlingOutcome> ProcessAsync(EventHandlerRegistration registration, EventMessage message, CancellationToken cancellationToken)
@@ -30,6 +33,33 @@ internal sealed partial class EventProcessor(
             return HandlingOutcome.NotHandled;
         }
 
+        using Activity? activity = EventingMetrics.Source.StartActivity($"handle {message.EventType}", ActivityKind.Consumer);
+        activity?.SetTag("handler", registration.Name);
+        activity?.SetTag("event.id", message.EventId);
+        activity?.SetTag("correlation.id", message.CorrelationId);
+        long started = timeProvider.GetTimestamp();
+
+        try
+        {
+            HandlingOutcome outcome = await HandleAsync(registration, message, cancellationToken).ConfigureAwait(false);
+            Record(registration, message, outcome == HandlingOutcome.Duplicate ? EventingMetrics.DuplicateOutcome : EventingMetrics.HandledOutcome, started);
+
+            return outcome;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            // The transport redelivers and, in the end, dead-letters; each failed delivery counts.
+            Record(registration, message, EventingMetrics.FailedOutcome, started);
+            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            throw;
+        }
+    }
+
+    private void Record(EventHandlerRegistration registration, EventMessage message, string outcome, long started) =>
+        metrics.Handled(registration.Name, message.EventType, outcome, timeProvider.GetElapsedTime(started), timeProvider.GetUtcNow() - message.RecordedAt);
+
+    private async Task<HandlingOutcome> HandleAsync(EventHandlerRegistration registration, EventMessage message, CancellationToken cancellationToken)
+    {
         await using HandlerScope scope = createScope(registration.Name);
 
         if (await scope.Inbox.HasProcessedAsync(registration.Name, message.EventId, cancellationToken).ConfigureAwait(false))

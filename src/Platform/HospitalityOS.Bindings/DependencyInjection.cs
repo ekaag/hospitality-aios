@@ -85,6 +85,7 @@ public static class DependencyInjection
         AddInferencePort<IEmbeddingModel>(services);
         AddInferencePort<IReranker>(services);
         AddInferencePort<IEvaluationJudge>(services);
+        services.TryAddSingleton<InferenceMetrics>();
         services.TryAddScoped<IInferenceRouter, InferenceRouter>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<InferenceStartupCheck>, InferenceStartupValidator>());
         services.AddOptions<InferenceStartupCheck>().ValidateOnStart();

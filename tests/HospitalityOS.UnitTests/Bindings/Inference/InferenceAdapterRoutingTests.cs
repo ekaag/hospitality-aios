@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using HospitalityOS.Adapters.Anthropic;
 using HospitalityOS.Adapters.AzureOpenAI;
 using HospitalityOS.Adapters.Local;
@@ -7,6 +8,7 @@ using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Results;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -96,6 +98,7 @@ public sealed class InferenceAdapterRoutingTests
         };
         using ServiceProvider services = Build(settings);
         services.GetRequiredService<IStartupValidator>().Validate();
+        using MetricCollector<long> attempts = new(services.GetRequiredService<IMeterFactory>(), "HospitalityOS.Inference", "hospitalityos.inference.attempts");
         await using AsyncServiceScope scope = services.CreateAsyncScope();
 
         Result<InferenceOutcome<ChatCompletion>> answered = await scope.ServiceProvider.GetRequiredService<IInferenceRouter>().RunAsync<IChatModel, ChatCompletion>(
@@ -103,6 +106,9 @@ public sealed class InferenceAdapterRoutingTests
 
         Assert.Equal(["primary", "backup"], answered.Value.Attempts.Select(attempt => attempt.Provider));
         Assert.Equal(("fake-small", "Hello! You said: Hello"), (answered.Value.Value.Model, answered.Value.Value.Message.Text));
+        Assert.Equal(
+            [("concierge.answer", "primary", "fake-large", "unavailable"), ("concierge.answer", "backup", "fake-small", "succeeded")],
+            attempts.GetMeasurementSnapshot().Select(attempt => ((string)attempt.Tags["task"]!, (string)attempt.Tags["provider"]!, (string)attempt.Tags["model"]!, (string)attempt.Tags["outcome"]!)));
     }
 
     private static ServiceProvider Build(Dictionary<string, string?> settings)
@@ -110,6 +116,7 @@ public sealed class InferenceAdapterRoutingTests
         IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
 
         return new ServiceCollection()
+            .AddMetrics()
             .AddScoped<TenantContext>()
             .AddInference(configuration)
             .AddInferenceTask<IChatModel>("concierge.answer")

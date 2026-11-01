@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.Metrics;
 using HospitalityOS.Contracts.Events;
 using HospitalityOS.Contracts.Events.Organizations;
 using HospitalityOS.Domain.Organizations.Organizations;
@@ -16,6 +17,7 @@ using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Xunit;
 
 namespace HospitalityOS.IntegrationTests.Eventing;
@@ -83,6 +85,33 @@ public sealed class EventHandlingTests : IAsyncDisposable
         await SeenAsync("OrganizationUpdated", organization);
         Assert.Equal("Aurora Hotels!", await NameOfAsync(organization));
         Assert.Equal(3, Probe.RunsFor(organization.Value));
+    }
+
+    [Fact]
+    public async Task Processing_IsMeasured_PublishedHandledFailedAndDuplicate_ByHandlerAndEventType()
+    {
+        await StartAsync();
+        IMeterFactory meters = factory!.Services.GetRequiredService<IMeterFactory>();
+        using MetricCollector<long> published = new(meters, "HospitalityOS.Eventing", "hospitalityos.events.published");
+        using MetricCollector<long> handled = new(meters, "HospitalityOS.Eventing", "hospitalityos.events.handled");
+        using MetricCollector<double> delay = new(meters, "HospitalityOS.Eventing", "hospitalityos.events.delivery.delay");
+        OrganizationId organization = new(Guid.CreateVersion7());
+        Probe.FailNext(organization.Value, times: 2);
+
+        await CreateOrganizationAsync("Aurora Hotels", organization);
+        EventMessage created = await SeenAsync("OrganizationCreated", organization);
+        await SeenAsync("OrganizationUpdated", organization);
+        await Transport().PublishAsync(created, Cancellation);
+        await SeenAsync("OrganizationUpdated", await CreateOrganizationAsync("Marker"));
+
+        Assert.Contains(published.GetMeasurementSnapshot(), measurement => (string?)measurement.Tags["event.type"] == "OrganizationCreated");
+        Dictionary<string, int> outcomes = handled.GetMeasurementSnapshot()
+            .Where(measurement => (string?)measurement.Tags["handler"] == ExclaimHandler.Name && (string?)measurement.Tags["event.type"] == "OrganizationCreated")
+            .GroupBy(measurement => (string)measurement.Tags["outcome"]!)
+            .ToDictionary(group => group.Key, group => group.Count());
+        Assert.Equal((2, 2, 1), (outcomes.GetValueOrDefault("failed"), outcomes.GetValueOrDefault("handled"), outcomes.GetValueOrDefault("duplicate")));
+        Assert.Contains(delay.GetMeasurementSnapshot(), measurement => (string?)measurement.Tags["handler"] == ExclaimHandler.Name && measurement.Value >= 0);
+        Assert.DoesNotContain(handled.GetMeasurementSnapshot(), measurement => measurement.Tags.ContainsKey("tenant") || measurement.Tags.ContainsKey("event.id"));
     }
 
     [Fact]

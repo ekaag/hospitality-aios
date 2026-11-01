@@ -1,4 +1,5 @@
 using HospitalityOS.Eventing.Dispatching;
+using HospitalityOS.Eventing.Observability;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.SharedKernel.Tenancy;
 using HospitalityOS.UnitTests.Eventing.TestDoubles;
@@ -23,6 +24,7 @@ public sealed class OutboxDispatcherTests
     };
 
     private readonly RecordingTransport transport = new();
+    private readonly EventingMetrics metrics = new();
 
     [Fact]
     public async Task DispatchOnce_ClaimsOneBatchAtTheCurrentTimeWithTheConfiguredLease()
@@ -102,6 +104,7 @@ public sealed class OutboxDispatcherTests
         transport,
         Options.Create(options),
         new FakeTimeProvider(now),
+        metrics,
         NullLogger<OutboxDispatcher>.Instance);
 
     private sealed class NoOwner : IAsyncDisposable
