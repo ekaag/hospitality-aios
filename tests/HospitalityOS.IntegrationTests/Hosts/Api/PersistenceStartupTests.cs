@@ -1,3 +1,4 @@
+using HospitalityOS.Adapters.EfCore.Persistence;
 using HospitalityOS.Ports.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,17 @@ public sealed class PersistenceStartupTests
     }
 
     [Fact]
+    public void Start_WithPostgreSqlProvider_UsesEfCoreOnNpgsql()
+    {
+        // Resolving the unit of work opens no connection, so no server is needed.
+        using WebApplicationFactory<Program> factory = WithSettings(("Persistence:Provider", "PostgreSql"), ("Persistence:ConnectionString", "Host=localhost;Database=hospitalityos"));
+        using IServiceScope scope = factory.Services.CreateScope();
+
+        Assert.Equal("EfUnitOfWork", scope.ServiceProvider.GetRequiredService<IUnitOfWork>().GetType().Name);
+        Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", scope.ServiceProvider.GetRequiredService<HospitalityDbContext>().Database.ProviderName);
+    }
+
+    [Fact]
     public void Start_WithUnknownProvider_FailsBeforeServingRequests()
     {
         using WebApplicationFactory<Program> factory = WithSettings(("Persistence:Provider", "Cassandra"));
@@ -41,6 +53,16 @@ public sealed class PersistenceStartupTests
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreateClient());
 
         Assert.Contains("Persistence:ConnectionString is required", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Start_WithPostgreSqlAndNoConnectionString_FailsBeforeServingRequests()
+    {
+        using WebApplicationFactory<Program> factory = WithSettings(("Persistence:Provider", "PostgreSql"));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreateClient());
+
+        Assert.Contains("Persistence:ConnectionString is required for the PostgreSql provider", exception.Message, StringComparison.Ordinal);
     }
 
     private static WebApplicationFactory<Program> WithSettings(params (string Key, string Value)[] settings)

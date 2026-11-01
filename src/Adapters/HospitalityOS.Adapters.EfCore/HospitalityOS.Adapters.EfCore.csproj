@@ -20,6 +20,7 @@
   <ItemGroup>
     <!-- Provider projects plug in the database; tests reach the DbContext to apply migrations. -->
     <InternalsVisibleTo Include="HospitalityOS.Adapters.EfCore.Sqlite" />
+    <InternalsVisibleTo Include="HospitalityOS.Adapters.EfCore.PostgreSql" />
     <InternalsVisibleTo Include="HospitalityOS.PortContractTests" />
     <InternalsVisibleTo Include="HospitalityOS.IntegrationTests" />
   </ItemGroup>

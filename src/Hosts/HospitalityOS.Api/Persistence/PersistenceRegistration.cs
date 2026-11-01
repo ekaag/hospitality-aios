@@ -1,3 +1,4 @@
+using HospitalityOS.Adapters.EfCore.PostgreSql;
 using HospitalityOS.Adapters.EfCore.Sqlite;
 using HospitalityOS.Adapters.InMemory;
 
@@ -20,11 +21,14 @@ internal static class PersistenceRegistration
         return provider.ToUpperInvariant() switch
         {
             "INMEMORY" => services.AddInMemoryPersistence(),
-            "SQLITE" => services.AddSqlitePersistence(
-                section["ConnectionString"] is { Length: > 0 } connectionString
-                    ? connectionString
-                    : throw new InvalidOperationException($"{SectionName}:ConnectionString is required for the Sqlite provider.")),
-            _ => throw new InvalidOperationException($"{SectionName}:Provider '{provider}' is unknown; use InMemory or Sqlite."),
+            "SQLITE" => services.AddSqlitePersistence(ConnectionString(section, "Sqlite")),
+            "POSTGRESQL" => services.AddPostgreSqlPersistence(ConnectionString(section, "PostgreSql")),
+            _ => throw new InvalidOperationException($"{SectionName}:Provider '{provider}' is unknown; use InMemory, Sqlite, or PostgreSql."),
         };
     }
+
+    private static string ConnectionString(IConfigurationSection section, string provider) =>
+        section["ConnectionString"] is { Length: > 0 } connectionString
+            ? connectionString
+            : throw new InvalidOperationException($"{SectionName}:ConnectionString is required for the {provider} provider.");
 }
