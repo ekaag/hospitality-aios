@@ -27,12 +27,16 @@ function hotel() {
     calls: [] as string[],
     posted: [] as { text: string; clientMessageId: string }[],
     failNextPost: false,
+    /** While set, starting the conversation waits for it, as a slow network would. */
+    starting: undefined as Promise<void> | undefined,
   };
   const respond = async (request: Request): Promise<Response> => {
     const path = new URL(request.url).pathname;
     state.calls.push(`${request.method} ${path}`);
 
     if (request.method === "POST" && path === "/api/v1/conversations") {
+      await state.starting;
+
       return json({ id: "c1", propertyId: "p", stayContextId: "s", status: "Open", startedAt: "2026-10-31T10:00:00Z" }, 201);
     }
 
@@ -94,6 +98,29 @@ beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
 describe("Stay", () => {
+  it("lets the guest send only once the conversation has started, losing nothing typed meanwhile", async () => {
+    const { state, client } = hotel();
+    let started: () => void = () => undefined;
+    state.starting = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    render(<Stay client={client} token="t" persona="guest-alex" newId={() => "id-1"} connect={hub().connect} />);
+
+    const box = screen.getByRole("textbox", { name: "Message" });
+    fireEvent.change(box, { target: { value: "What time does the pool close?" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+
+    expect(screen.getByRole("button", { name: "Send" })).toHaveProperty("disabled", true);
+    expect(box).toHaveProperty("value", "What time does the pool close?");
+    expect(state.posted).toEqual([]);
+
+    await act(async () => started());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).toHaveProperty("disabled", false));
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => expect(state.posted).toEqual([{ text: "What time does the pool close?", clientMessageId: "id-1" }]));
+  });
+
   it("chats with the hotel: the reply arrives when the stay changes", async () => {
     const { state, client } = hotel();
     const live = hub();

@@ -120,6 +120,7 @@ export function Stay({ client, token, persona, newId = () => crypto.randomUUID()
         messages={messages}
         pending={pending}
         waiting={pending.length === 0 && last?.sender === "Guest"}
+        ready={conversation !== undefined}
         onSend={(text) => post({ clientMessageId: newId(), text })}
         onRetry={post}
       />

@@ -11,6 +11,7 @@ using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Capabilities;
 using HospitalityOS.Api.Content;
 using HospitalityOS.Api.Conversations;
+using HospitalityOS.Api.Demo;
 using HospitalityOS.Api.Eventing;
 using HospitalityOS.Api.Events;
 using HospitalityOS.Api.Execution;
@@ -62,6 +63,8 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateScopes = true;
 });
 
+// A fixed starting time for demos and browser tests (Development only).
+builder.Services.AddDemoClock(builder.Configuration, builder.Environment);
 builder.Services.AddBindings(builder.Configuration);
 builder.Services.AddLocalAdapters();
 builder.Services.AddAnthropicAdapters();

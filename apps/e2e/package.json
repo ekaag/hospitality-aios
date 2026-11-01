@@ -1,0 +1,15 @@
+{
+  "name": "@hospitalityos/e2e",
+  "private": true,
+  "description": "The spec §43 demo in the browser (L2): the guest and staff apps against a running API.",
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "typecheck": "tsc --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "typescript": "5.9.3"
+  }
+}

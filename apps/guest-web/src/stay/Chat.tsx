@@ -17,6 +17,8 @@ export interface ChatProps {
   pending: Pending[];
   /** Whether a reply is on its way: the guest has the last word. */
   waiting: boolean;
+  /** Whether there is a conversation to send to yet; until there is, nothing can be sent, so nothing typed is lost. */
+  ready?: boolean;
   onSend: (text: string) => Promise<void>;
   onRetry: (message: Pending) => Promise<void>;
 }
@@ -42,14 +44,14 @@ const senders: Record<Schema<"MessageSender">, string> = {
  * The guest's conversation with the hotel: their messages and the hotel's, newest last, and a box to write in. The guest
  * never needs to know which department answers (spec §33).
  */
-export function Chat({ messages, pending, waiting, onSend, onRetry }: ChatProps) {
+export function Chat({ messages, pending, waiting, ready = true, onSend, onRetry }: ChatProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
   async function send(said: string) {
     const trimmed = said.trim();
 
-    if (!trimmed || sending) {
+    if (!trimmed || sending || !ready) {
       return;
     }
 
@@ -121,7 +123,7 @@ export function Chat({ messages, pending, waiting, onSend, onRetry }: ChatProps)
       <form onSubmit={submit} className="composer">
         <label htmlFor="message">Message</label>
         <textarea id="message" rows={2} value={text} maxLength={4000} onChange={(event) => setText(event.target.value)} onKeyDown={keyDown} />
-        <button type="submit" disabled={!text.trim() || sending}>
+        <button type="submit" disabled={!text.trim() || sending || !ready}>
           Send
         </button>
       </form>

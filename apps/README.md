@@ -47,3 +47,20 @@ CI checks both steps were done.
 ## Checks
 
 `pnpm check` runs what CI runs: `lint`, `typecheck`, `test` (Vitest), and `build`.
+
+## The demo in the browser (L2)
+
+`e2e/` plays the Phase 1 demo script (spec §43) through the real guest and staff apps against the real API: Alex asks
+about the pool, the gym policy, vegetarian food, and tonight's events, then asks for two towels; housekeeping sees
+"Room 412", accepts, starts, and completes it; Alex is told. The API runs with the Aurora Grand seeded, the Fake models
+playing their local script, dev sign-in, and a demo clock (`Demo:Clock:Start`, Development only) set to 17:00 UTC today,
+so tonight's events are always ahead.
+
+```sh
+pnpm --filter @hospitalityos/e2e exec playwright install chromium   # once
+pnpm --filter @hospitalityos/e2e e2e
+```
+
+It builds and starts its own API (into `artifacts/e2e`) and apps on ports 5280, 5273, and 5274, so the dev servers on
+5080, 5173, 5174, and 5175 keep running. CI runs it in the "Demo in the browser" job; a failure keeps the report and
+traces. Running it against an environment in Azure waits for the web apps to be hosted and for test sign-ins there.

@@ -50,6 +50,25 @@ describe("Chat", () => {
     expect((box as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("sends nothing until there is a conversation, keeping what the guest typed", () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    const { rerender } = render(<Chat messages={[]} pending={[]} waiting={false} ready={false} onSend={onSend} onRetry={vi.fn()} />);
+
+    const box = screen.getByRole("textbox", { name: "Message" });
+    fireEvent.change(box, { target: { value: "What time does the pool close?" } });
+    fireEvent.keyDown(box, { key: "Enter" });
+    fireEvent.click(screen.getByRole("button", { name: "What time does the pool close?" }));
+
+    expect(onSend).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Send" })).toHaveProperty("disabled", true);
+    expect(box).toHaveProperty("value", "What time does the pool close?");
+
+    rerender(<Chat messages={[]} pending={[]} waiting={false} ready onSend={onSend} onRetry={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(onSend).toHaveBeenCalledWith("What time does the pool close?");
+  });
+
   it("shows that a reply is on its way", () => {
     render(<Chat messages={[said("1", "Guest", "Hi")]} pending={[]} waiting onSend={vi.fn()} onRetry={vi.fn()} />);
 

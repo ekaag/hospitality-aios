@@ -2,4 +2,5 @@ packages:
   - guest-web
   - staff-web
   - admin-web
+  - e2e
   - packages/*
