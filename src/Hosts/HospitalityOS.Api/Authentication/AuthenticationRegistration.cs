@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace HospitalityOS.Api.Authentication;
 
@@ -14,9 +15,11 @@ namespace HospitalityOS.Api.Authentication;
 /// <item><c>Authentication:Schemes:StaffSignIn</c> (<c>Authority</c>, <c>Audience</c>, <c>ValidIssuer</c>): staff
 /// signed in through Microsoft Entra External ID, who act as the access their sign-in is linked to
 /// (<see cref="SignInClaims"/>).</item>
+/// <item><see cref="StayTokens.Scheme"/>: the stay tokens the API issues guests from check-in links, checked with the
+/// bound signing key; nothing to configure.</item>
 /// </list>
-/// A token goes to the sign-in scheme when its issuer is that scheme's, otherwise to the bearer scheme. Without
-/// configuration every token is refused.
+/// A token goes to the scheme whose issuer it names, otherwise to the bearer scheme. Without configuration every token
+/// but the API's own stay tokens is refused.
 /// </summary>
 internal static class AuthenticationRegistration
 {
@@ -28,11 +31,17 @@ internal static class AuthenticationRegistration
         services.AddAuthentication(CallerScheme)
             .AddJwtBearer()
             .AddJwtBearer(SignInClaims.Scheme, _ => { })
+            .AddJwtBearer(StayTokens.Scheme, _ => { })
             .AddPolicyScheme(CallerScheme, CallerScheme, options => options.ForwardDefaultSelector = context =>
             {
+                string? issuer = IssuerOf(TokenOf(context));
                 JwtBearerOptions signIn = context.RequestServices.GetRequiredService<IOptionsMonitor<JwtBearerOptions>>().Get(SignInClaims.Scheme);
-                return SignInClaims.IsProviderToken(TokenOf(context), signIn) ? SignInClaims.Scheme : JwtBearerDefaults.AuthenticationScheme;
+
+                return StayTokens.IsStayToken(issuer) ? StayTokens.Scheme
+                    : SignInClaims.IsProviderIssuer(issuer, signIn) ? SignInClaims.Scheme
+                    : JwtBearerDefaults.AuthenticationScheme;
             });
+        services.AddSingleton<StayTokenKeys>();
 
         // After configuration binding, so the claim rules hold whatever the configuration says.
         services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
@@ -57,6 +66,11 @@ internal static class AuthenticationRegistration
         {
             ConfigureCommon(options);
             options.Events.OnTokenValidated = SignInClaims.OnTokenValidatedAsync;
+        });
+        services.AddOptions<JwtBearerOptions>(StayTokens.Scheme).PostConfigure<StayTokenKeys>((options, keys) =>
+        {
+            ConfigureCommon(options);
+            StayTokens.Configure(options, () => keys.Current);
         });
         services.AddOptions<JwtBearerOptions>(SignInClaims.Scheme)
             .Validate(
@@ -89,6 +103,12 @@ internal static class AuthenticationRegistration
 
             return Task.CompletedTask;
         };
+    }
+
+    private static string? IssuerOf(string? token)
+    {
+        JsonWebTokenHandler handler = new();
+        return !string.IsNullOrEmpty(token) && handler.CanReadToken(token) ? handler.ReadJsonWebToken(token).Issuer : null;
     }
 
     private static string? TokenOf(HttpContext context)

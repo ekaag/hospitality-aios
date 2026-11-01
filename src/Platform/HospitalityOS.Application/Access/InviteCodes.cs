@@ -4,7 +4,7 @@ using System.Text;
 namespace HospitalityOS.Application.Access;
 
 /// <summary>
-/// One-time invite codes: 20 Crockford base32 characters (100 random bits) shown in groups of five, e.g.
+/// Access codes, for staff invites and guests' check-in links: 20 Crockford base32 characters (100 random bits) shown in groups of five, e.g.
 /// <c>K7QF3-MZP9A-4WX2C-H8RTD</c>. Only the SHA-256 hash of the normalized code is stored, so the code works once and is
 /// never readable afterwards. Normalizing drops hyphens and spaces, ignores case, and reads O as 0 and I or L as 1, so
 /// a code read aloud or retyped still matches.

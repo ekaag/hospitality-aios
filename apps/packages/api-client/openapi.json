@@ -6,6 +6,46 @@
     "version": "v1"
   },
   "paths": {
+    "/api/v1/guest-sessions": {
+      "post": {
+        "tags": [
+          "Stays"
+        ],
+        "operationId": "GuestSession.Open",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenGuestSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StayTokenResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/capabilities": {
       "get": {
         "tags": [
@@ -3088,6 +3128,145 @@
         ]
       }
     },
+    "/api/v1/stays": {
+      "get": {
+        "tags": [
+          "Stays"
+        ],
+        "operationId": "Stay.List",
+        "parameters": [
+          {
+            "name": "propertyId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StayResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stays/{id}/guest-link": {
+      "post": {
+        "tags": [
+          "Stays"
+        ],
+        "operationId": "GuestLink.Create",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestLinkResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Stays"
+        ],
+        "operationId": "GuestLink.Revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StayResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ai/traces": {
       "get": {
         "tags": [
@@ -5763,6 +5942,36 @@
         },
         "description": "How a grounded answer's replies were checked."
       },
+      "GuestId": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "GuestLinkResponse": {
+        "required": [
+          "stayId",
+          "code",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "stayId": {
+            "description": "The stay.",
+            "$ref": "#/components/schemas/StayContextId"
+          },
+          "code": {
+            "type": "string",
+            "description": "The code the link carries."
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The guest app's address with the code, when the API knows where the guest app is."
+          }
+        },
+        "description": "A stay's new check-in link: shown this once (only its code's hash is kept), to give the guest as a link or a QR code.\nIt works on any device until the stay checks out or the link is replaced."
+      },
       "GuestMessageId": {
         "type": "string",
         "format": "uuid"
@@ -6354,6 +6563,19 @@
           }
         },
         "description": "An amount in one currency. The AI quotes prices only from these canonical values (spec Journey 7)."
+      },
+      "OpenGuestSessionRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The code the link carries."
+          }
+        },
+        "description": "Opens a guest session from a stay's check-in link."
       },
       "OpeningInterval": {
         "type": "object",
@@ -7519,6 +7741,88 @@
         "type": "string",
         "format": "uuid"
       },
+      "StayResponse": {
+        "required": [
+          "id",
+          "guestId",
+          "guestName",
+          "unitNumber",
+          "arrival",
+          "departure",
+          "status",
+          "hasGuestLink"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The stay.",
+            "$ref": "#/components/schemas/StayContextId"
+          },
+          "guestId": {
+            "description": "The guest.",
+            "$ref": "#/components/schemas/GuestId"
+          },
+          "guestName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "How the guest is addressed, if known."
+          },
+          "unitNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The room, once assigned."
+          },
+          "arrival": {
+            "type": "string",
+            "description": "The arrival date.",
+            "format": "date"
+          },
+          "departure": {
+            "type": "string",
+            "description": "The departure date.",
+            "format": "date"
+          },
+          "status": {
+            "description": "Where the stay is.",
+            "$ref": "#/components/schemas/StayStatus"
+          },
+          "hasGuestLink": {
+            "type": "boolean",
+            "description": "Whether it has an open check-in link."
+          }
+        },
+        "description": "A stay that is reserved or in house, as the front desk sees it."
+      },
+      "StayStatus": {
+        "enum": [
+          "Reserved",
+          "InHouse"
+        ],
+        "description": "Where a stay is."
+      },
+      "StayTokenResponse": {
+        "required": [
+          "accessToken",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "The token."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When it stops working.",
+            "format": "date-time"
+          }
+        },
+        "description": "A stay token: the guest's bearer token for the guest-facing endpoints, until it expires; the guest app then opens a\nsession again with the same link."
+      },
       "SubjectKind": {
         "enum": [
           "Property",
@@ -8476,6 +8780,9 @@
     }
   },
   "tags": [
+    {
+      "name": "Stays"
+    },
     {
       "name": "CapabilityEndpoints"
     },

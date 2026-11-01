@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/v1/guest-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["GuestSession.Open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capabilities": {
         parameters: {
             query?: never;
@@ -639,6 +655,38 @@ export interface paths {
         put?: never;
         post: operations["StaffAccess.GrantFirstAdmin"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stays": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Stay.List"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stays/{id}/guest-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["GuestLink.Create"];
+        delete: operations["GuestLink.Revoke"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1650,6 +1698,20 @@ export interface components {
             replies: components["schemas"]["ValueListOfReplyVerdict"];
         };
         /** Format: uuid */
+        GuestId: string;
+        /**
+         * @description A stay's new check-in link: shown this once (only its code's hash is kept), to give the guest as a link or a QR code.
+         *     It works on any device until the stay checks out or the link is replaced.
+         */
+        GuestLinkResponse: {
+            /** @description The stay. */
+            stayId: components["schemas"]["StayContextId"];
+            /** @description The code the link carries. */
+            code: string;
+            /** @description The guest app's address with the code, when the API knows where the guest app is. */
+            url: null | string;
+        };
+        /** Format: uuid */
         GuestMessageId: string;
         /** @description One message in a conversation. */
         GuestMessageResponse: {
@@ -1893,6 +1955,11 @@ export interface components {
             amount: number;
             /** @description ISO 4217 code, upper case, e.g. `USD`. */
             currencyCode: string;
+        };
+        /** @description Opens a guest session from a stay's check-in link. */
+        OpenGuestSessionRequest: {
+            /** @description The code the link carries. */
+            code?: null | string;
         };
         /**
          * @description Open from Opens to Closes, property-local. Closing at or before opening means
@@ -2412,6 +2479,49 @@ export interface components {
         StaffRole: "Worker" | "Manager" | "Admin" | null;
         /** Format: uuid */
         StayContextId: string;
+        /** @description A stay that is reserved or in house, as the front desk sees it. */
+        StayResponse: {
+            /** @description The stay. */
+            id: components["schemas"]["StayContextId"];
+            /** @description The guest. */
+            guestId: components["schemas"]["GuestId"];
+            /** @description How the guest is addressed, if known. */
+            guestName: null | string;
+            /** @description The room, once assigned. */
+            unitNumber: null | string;
+            /**
+             * Format: date
+             * @description The arrival date.
+             */
+            arrival: string;
+            /**
+             * Format: date
+             * @description The departure date.
+             */
+            departure: string;
+            /** @description Where the stay is. */
+            status: components["schemas"]["StayStatus"];
+            /** @description Whether it has an open check-in link. */
+            hasGuestLink: boolean;
+        };
+        /**
+         * @description Where a stay is.
+         * @enum {unknown}
+         */
+        StayStatus: "Reserved" | "InHouse";
+        /**
+         * @description A stay token: the guest's bearer token for the guest-facing endpoints, until it expires; the guest app then opens a
+         *     session again with the same link.
+         */
+        StayTokenResponse: {
+            /** @description The token. */
+            accessToken: string;
+            /**
+             * Format: date-time
+             * @description When it stops working.
+             */
+            expiresAt: string;
+        };
         /** @enum {unknown} */
         SubjectKind: "Property" | "Space" | "Amenity" | "Restaurant" | "Service" | null;
         /**
@@ -2743,6 +2853,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    "GuestSession.Open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenGuestSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StayTokenResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
     "Capability.List": {
         parameters: {
             query?: never;
@@ -4835,6 +4978,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffInviteResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "Stay.List": {
+        parameters: {
+            query: {
+                propertyId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StayResponse"][];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "GuestLink.Create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuestLinkResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "GuestLink.Revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StayResponse"];
                 };
             };
             /** @description The request failed; the problem says why. */

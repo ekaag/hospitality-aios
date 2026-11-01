@@ -25,6 +25,7 @@ public sealed class BindingStartupTests
     [InlineData("BlobStore", "AzureBlobStorage", "exactly one of ServiceUri")]
     [InlineData("BlobStore", "FileSystem", "Root must name the folder")]
     [InlineData("SecretStore", "AzureKeyVault", "VaultUri must be the vault's https URL")]
+    [InlineData("SigningKey", "AzureKeyVault", "VaultUri must be the vault's https URL")]
     [InlineData("SearchIndex", "AzureAISearch", "Endpoint must be the search service's https URL")]
     [InlineData("VectorStore", "AzureAISearch", "Endpoint must be the search service's https URL")]
     [InlineData("RealtimeNotifier", "AzureSignalR", "Endpoint must be the Azure SignalR Service's https URL")]

@@ -9,6 +9,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "Seed__AuroraGrand__Enabled": "true",
         "Authentication__DevTokens__Enabled": "true",
+        "GuestLinks__BaseUrl": "http://localhost:5173",
         "Inference__Providers__fake__Settings__Script": "aurora-grand"
       }
     }

@@ -7,6 +7,7 @@ using HospitalityOS.Application.Content;
 using HospitalityOS.Application.Conversations;
 using HospitalityOS.Application.Events;
 using HospitalityOS.Application.Evidence;
+using HospitalityOS.Application.GuestLinks;
 using HospitalityOS.Application.Hours;
 using HospitalityOS.Application.Menus;
 using HospitalityOS.Application.Organizations;
@@ -59,6 +60,8 @@ public static class DependencyInjection
         services.TryAddScoped<IStaffAdministration, StaffAdministration>();
         services.TryAddScoped<IStaffAccessAdministration, StaffAccessAdministration>();
         services.TryAddScoped<IStaffSignIns, StaffSignIns>();
+        services.TryAddScoped<IGuestLinks, FrontDeskGuestLinks>();
+        services.TryAddScoped<IGuestSessions, GuestSessions>();
         services.TryAddScoped<IAccommodationAdministration, AccommodationAdministration>();
         services.TryAddScoped<IGuestConversations, GuestConversations>();
         services.TryAddScoped<HumanActionEvidence>();

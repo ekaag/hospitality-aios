@@ -42,6 +42,8 @@ public static class AdministrationActions
     public const string StaffAccessRevoke = "StaffAccess.Revoke";
     public const string StaffAccessRedeem = "StaffAccess.Redeem";
     public const string StaffAccessGrantFirstAdmin = "StaffAccess.GrantFirstAdmin";
+    public const string GuestLinkCreate = "GuestLink.Create";
+    public const string GuestLinkRevoke = "GuestLink.Revoke";
     public const string AccommodationTypeCreate = "AccommodationType.Create";
     public const string AccommodationUnitCreate = "AccommodationUnit.Create";
 }

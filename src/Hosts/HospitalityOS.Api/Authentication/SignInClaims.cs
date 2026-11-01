@@ -80,24 +80,16 @@ internal static class SignInClaims
     }
 
     /// <summary>
-    /// Whether a bearer token was issued by the identity provider rather than a staff or stay token issuer, read without
-    /// validating it (the chosen scheme validates it).
+    /// Whether a bearer token's issuer, read without validating it (the chosen scheme validates it), is the identity
+    /// provider's rather than a staff or stay token issuer's.
     /// </summary>
-    public static bool IsProviderToken(string? token, JwtBearerOptions signIn)
+    public static bool IsProviderIssuer(string? issuer, JwtBearerOptions signIn)
     {
-        if (string.IsNullOrEmpty(token))
+        if (string.IsNullOrEmpty(issuer))
         {
             return false;
         }
 
-        JsonWebTokenHandler handler = new();
-
-        if (!handler.CanReadToken(token))
-        {
-            return false;
-        }
-
-        string issuer = handler.ReadJsonWebToken(token).Issuer;
         IEnumerable<string> issuers = [.. signIn.TokenValidationParameters.ValidIssuers ?? [], .. signIn.TokenValidationParameters.ValidIssuer is { } one ? [one] : Array.Empty<string>()];
         return issuers.Contains(issuer, StringComparer.Ordinal);
     }
