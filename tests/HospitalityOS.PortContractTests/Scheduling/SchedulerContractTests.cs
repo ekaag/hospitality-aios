@@ -6,18 +6,19 @@ namespace HospitalityOS.PortContractTests.Scheduling;
 
 /// <summary>
 /// What every <see cref="IScheduler"/> adapter must do: deliver a message once it is due and never before, at once when
-/// it is already due, and messages that fell due before anyone subscribed once someone does.
+/// it is already due, and messages that fell due before anyone subscribed once someone does. Times are fractions of
+/// <see cref="Lead"/>, so an adapter on a fake clock and one on a broker's real clock run the same checks.
 /// </summary>
-public abstract class SchedulerContractTests : IDisposable
+public abstract class SchedulerContractTests : IAsyncDisposable
 {
     private static readonly TimeSpan timeout = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan quiet = TimeSpan.FromMilliseconds(300);
 
-    private readonly Lazy<(IScheduler Scheduler, IDisposable Owner)> created;
+    private readonly Lazy<(IScheduler Scheduler, IAsyncDisposable Owner)> created;
 
     protected SchedulerContractTests()
     {
-        created = new Lazy<(IScheduler, IDisposable)>(CreateScheduler);
+        created = new Lazy<(IScheduler, IAsyncDisposable)>(CreateScheduler);
     }
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -29,13 +30,13 @@ public abstract class SchedulerContractTests : IDisposable
     {
         TaskCompletionSource<ScheduledMessage> delivered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         await using IAsyncDisposable subscription = await Scheduler.SubscribeAsync((message, _) => Deliver(delivered, message), Cancellation);
-        ScheduledMessage due = Message(Now + TimeSpan.FromMinutes(10));
+        ScheduledMessage due = Message(Now + Lead);
 
         await Scheduler.ScheduleAsync(due, Cancellation);
-        Advance(TimeSpan.FromMinutes(9));
+        await PassAsync(Lead / 2);
         await Task.Delay(quiet, Cancellation);
         bool early = delivered.Task.IsCompleted;
-        Advance(TimeSpan.FromMinutes(1));
+        await PassAsync(Lead / 2);
 
         Assert.False(early);
         Assert.Equal(due, await delivered.Task.WaitAsync(timeout, Cancellation));
@@ -46,7 +47,7 @@ public abstract class SchedulerContractTests : IDisposable
     {
         TaskCompletionSource<ScheduledMessage> delivered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         await using IAsyncDisposable subscription = await Scheduler.SubscribeAsync((message, _) => Deliver(delivered, message), Cancellation);
-        ScheduledMessage due = Message(Now - TimeSpan.FromMinutes(1));
+        ScheduledMessage due = Message(Now - (Lead / 10));
 
         await Scheduler.ScheduleAsync(due, Cancellation);
 
@@ -56,9 +57,9 @@ public abstract class SchedulerContractTests : IDisposable
     [Fact]
     public async Task AMessageDueBeforeAnyoneSubscribed_IsDeliveredOnSubscribing()
     {
-        ScheduledMessage due = Message(Now + TimeSpan.FromMinutes(1));
+        ScheduledMessage due = Message(Now + (Lead / 10));
         await Scheduler.ScheduleAsync(due, Cancellation);
-        Advance(TimeSpan.FromMinutes(2));
+        await PassAsync(Lead / 5);
         TaskCompletionSource<ScheduledMessage> delivered = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         await using IAsyncDisposable subscription = await Scheduler.SubscribeAsync((message, _) => Deliver(delivered, message), Cancellation);
@@ -66,20 +67,21 @@ public abstract class SchedulerContractTests : IDisposable
         Assert.Equal(due, await delivered.Task.WaitAsync(timeout, Cancellation));
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (created.IsValueCreated)
         {
-            created.Value.Owner.Dispose();
+            await created.Value.Owner.DisposeAsync();
         }
 
         GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// The adapter under test, on a clock the test moves with <see cref="Advance"/>, and what disposes it.
+    /// The adapter under test, on a clock that <see cref="PassAsync"/> moves on, and what disposes it. Called on first use
+    /// in a test, so it may skip the test.
     /// </summary>
-    protected abstract (IScheduler Scheduler, IDisposable Owner) CreateScheduler();
+    protected abstract (IScheduler Scheduler, IAsyncDisposable Owner) CreateScheduler();
 
     /// <summary>
     /// Where the adapter's clock stands.
@@ -87,9 +89,14 @@ public abstract class SchedulerContractTests : IDisposable
     protected abstract DateTimeOffset Now { get; }
 
     /// <summary>
-    /// Moves the adapter's clock on.
+    /// How far ahead the tests schedule: minutes on a fake clock, a few seconds on a real one.
     /// </summary>
-    protected abstract void Advance(TimeSpan by);
+    protected virtual TimeSpan Lead => TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Lets time pass on the adapter's clock: moves a fake clock on, or waits.
+    /// </summary>
+    protected abstract Task PassAsync(TimeSpan time);
 
     private static ScheduledMessage Message(DateTimeOffset dueAt) =>
         new(Guid.CreateVersion7(), "humanaction.reroute_unaccepted", new TenantId(Guid.CreateVersion7()), Guid.CreateVersion7(), null, """{"humanActionId":"x"}""", dueAt);

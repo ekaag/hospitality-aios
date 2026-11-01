@@ -81,7 +81,7 @@
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {
@@ -114,12 +114,26 @@
       }
     },
     "events": {
-      "job": "Events between parts of the app and scheduled deliveries (IEventTransport, IScheduler).",
+      "job": "Events between parts of the app and scheduled deliveries (IEventTransport, IScheduler): one topic with a subscription per event handler, and a queue for scheduled work, as events.json lists them.",
       "group": "platform",
-      "planned": "K2",
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Service Bus" },
+        "azure": {
+          "service": "Service Bus",
+          "type": "sbns",
+          "maxLength": 50,
+          "module": "azure/modules/events.bicep",
+          "inputs": { "principalId": "identity-api.principalId" },
+          "appSettings": {
+            "Bindings__EventTransport__Default__Adapter": "AzureServiceBus",
+            "Bindings__EventTransport__Default__Settings__Namespace": "${events.namespaceHost}",
+            "Bindings__EventTransport__Default__Settings__Topic": "${events.topic}",
+            "Bindings__EventTransport__Default__Settings__MaxDeliveryCount": "${events.maxDeliveryCount}",
+            "Bindings__Scheduler__Default__Adapter": "AzureServiceBus",
+            "Bindings__Scheduler__Default__Settings__Namespace": "${events.namespaceHost}",
+            "Bindings__Scheduler__Default__Settings__Queue": "${events.queue}"
+          }
+        },
         "aws": { "service": "SQS + SNS + EventBridge Scheduler" },
         "gcp": { "service": "Pub/Sub + Cloud Tasks" }
       }

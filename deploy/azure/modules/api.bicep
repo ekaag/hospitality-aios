@@ -1,5 +1,6 @@
-// api: the API host as a container app, pulling its image by identity and answering /health. While persistence and
-// eventing are in memory (until K1 and K2), it must run as exactly one replica, since that state is per process.
+// api: the API host as a container app, pulling its image by identity and answering /health. Events travel through
+// Service Bus (K2), but records are still in memory until the database is deployed (K6), so it must run as exactly one
+// replica: that state is per process.
 
 @description('The container app name, at most 32 characters, e.g. api-dev-uksouth-ca.')
 @maxLength(32)

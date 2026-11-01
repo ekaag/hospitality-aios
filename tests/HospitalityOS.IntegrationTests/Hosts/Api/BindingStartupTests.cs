@@ -16,4 +16,17 @@ public sealed class BindingStartupTests
 
         Assert.Contains(exception.Failures, failure => failure.Contains("'Bindings:NoSuchPort' configures an unknown port", StringComparison.Ordinal));
     }
+
+    [Theory]
+    [InlineData("EventTransport")]
+    [InlineData("Scheduler")]
+    public void Start_WithServiceBusBindingThatCannotConnect_FailsBeforeServingRequests(string port)
+    {
+        using WebApplicationFactory<Program> factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder => builder.UseSetting($"Bindings:{port}:Default:Adapter", "AzureServiceBus"));
+
+        OptionsValidationException exception = Assert.Throws<OptionsValidationException>(() => factory.CreateClient());
+
+        Assert.Contains(exception.Failures, failure => failure.Contains("exactly one of Namespace", StringComparison.Ordinal));
+    }
 }

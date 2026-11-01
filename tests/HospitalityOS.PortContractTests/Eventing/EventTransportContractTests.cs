@@ -9,7 +9,7 @@ namespace HospitalityOS.PortContractTests.Eventing;
 /// gets redeliveries and then a dead letter, without blocking later events. Waits are bounded and signal-driven,
 /// never sleeps.
 /// </summary>
-public abstract class EventTransportContractTests : IDisposable
+public abstract class EventTransportContractTests : IAsyncDisposable
 {
     /// <summary>
     /// Deliveries per event before it is dead-lettered, as configured by <see cref="CreateTransport"/>.
@@ -18,11 +18,11 @@ public abstract class EventTransportContractTests : IDisposable
 
     private static readonly TimeSpan timeout = TimeSpan.FromSeconds(10);
 
-    private readonly Lazy<(IEventTransport Transport, IDisposable Owner)> created;
+    private readonly Lazy<(IEventTransport Transport, IAsyncDisposable Owner)> created;
 
     protected EventTransportContractTests()
     {
-        created = new Lazy<(IEventTransport, IDisposable)>(CreateTransport);
+        created = new Lazy<(IEventTransport, IAsyncDisposable)>(CreateTransport);
     }
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
@@ -140,11 +140,11 @@ public abstract class EventTransportContractTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() => SubscribeAsync("single", _ => { }));
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (created.IsValueCreated)
         {
-            created.Value.Owner.Dispose();
+            await created.Value.Owner.DisposeAsync();
         }
 
         GC.SuppressFinalize(this);
@@ -152,9 +152,9 @@ public abstract class EventTransportContractTests : IDisposable
 
     /// <summary>
     /// Creates the transport under test with <see cref="MaxDeliveryCount"/> deliveries and no redelivery delay, and
-    /// whatever owns it (disposed after the test).
+    /// whatever owns it (disposed after the test). Called on first use in a test, so it may skip the test.
     /// </summary>
-    protected abstract (IEventTransport Transport, IDisposable Owner) CreateTransport();
+    protected abstract (IEventTransport Transport, IAsyncDisposable Owner) CreateTransport();
 
     private Task<IAsyncDisposable> SubscribeAsync(string name, Action<EventMessage> onMessage) =>
         Transport.SubscribeAsync(name, (message, _) =>

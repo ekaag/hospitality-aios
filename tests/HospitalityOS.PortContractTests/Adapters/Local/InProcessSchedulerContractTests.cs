@@ -17,7 +17,7 @@ public sealed class InProcessSchedulerContractTests : SchedulerContractTests
 
     protected override DateTimeOffset Now => clock.GetUtcNow();
 
-    protected override (IScheduler Scheduler, IDisposable Owner) CreateScheduler()
+    protected override (IScheduler Scheduler, IAsyncDisposable Owner) CreateScheduler()
     {
         ServiceProvider services = new ServiceCollection().AddSingleton<TimeProvider>(clock).AddLocalAdapters().BuildServiceProvider();
         IAdapterFactory<IScheduler> factory = services.GetServices<IAdapterFactory<IScheduler>>().Single(candidate => candidate.AdapterName == "InProcess");
@@ -26,14 +26,19 @@ public sealed class InProcessSchedulerContractTests : SchedulerContractTests
         return (scheduler, new Owner(scheduler, services));
     }
 
-    protected override void Advance(TimeSpan by) => clock.Advance(by);
-
-    private sealed class Owner(IScheduler scheduler, ServiceProvider services) : IDisposable
+    protected override Task PassAsync(TimeSpan time)
     {
-        public void Dispose()
+        clock.Advance(time);
+
+        return Task.CompletedTask;
+    }
+
+    private sealed class Owner(IScheduler scheduler, ServiceProvider services) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
         {
             (scheduler as IDisposable)?.Dispose();
-            services.Dispose();
+            await services.DisposeAsync();
         }
     }
 }

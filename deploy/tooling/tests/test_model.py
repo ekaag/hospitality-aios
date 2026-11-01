@@ -7,6 +7,7 @@ from pathlib import Path
 
 from hospitalityos_deploy.model import (
     DEFAULT_PLAN,
+    DEPLOY,
     Placement,
     PlanError,
     app_settings,
@@ -140,6 +141,25 @@ class RepositoryTests(unittest.TestCase):
         for env in load_catalog()["environments"]:
             with self.subTest(env=env):
                 self.assertEqual("azure-only", load_plan(DEFAULT_PLAN, env).name)
+
+    def test_app_settings_use_only_outputs_their_modules_declare(self):
+        import re
+
+        catalog = load_catalog()
+        modules = {
+            purpose: entry["services"]["azure"]["module"]
+            for purpose, entry in catalog["resources"].items()
+            if "module" in entry["services"].get("azure", {})
+        }
+
+        for purpose, entry in catalog["resources"].items():
+            for key, template in entry["services"].get("azure", {}).get("appSettings", {}).items():
+                for source, output in re.findall(r"\$\{([a-z0-9-]+)\.([A-Za-z0-9]+)\}", template):
+                    with self.subTest(setting=key):
+                        self.assertIn(source, modules, f"{purpose}: {key} reads {source}, which has no Azure module.")
+                        text = (DEPLOY / modules[source]).read_text(encoding="utf-8")
+                        declared = re.search(rf"(?m)^output {output} ", text) is not None
+                        self.assertTrue(declared, f"{purpose}: {key} reads {source}.{output}, which its module does not output.")
 
 
 def placement(purpose: str, depends_on=(), **service) -> Placement:

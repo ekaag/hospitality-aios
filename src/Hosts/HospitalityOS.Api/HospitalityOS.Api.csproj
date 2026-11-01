@@ -16,6 +16,7 @@
     <ProjectReference Include="../../Platform/HospitalityOS.Seeding/HospitalityOS.Seeding.csproj" />
     <ProjectReference Include="../../Platform/HospitalityOS.Workflows/HospitalityOS.Workflows.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
+    <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Azure/HospitalityOS.Adapters.Azure.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.SignalR/HospitalityOS.Adapters.SignalR.csproj" />
     <ProjectReference Include="../../Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />

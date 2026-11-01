@@ -45,9 +45,11 @@ jobs:
   dotnet:
     name: Build and test
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     # The PostgreSQL adapter's contract and migration tests (K1) run against a real server; each test makes and drops its
-    # own database. The password guards nothing: the server lives only for this job.
+    # own database. The Service Bus adapter's (K2) run against the emulator, started below once the repository (and its
+    # emulator configuration) is checked out; each test makes and deletes its own topic or queue. The passwords guard
+    # nothing: the servers live only for this job.
     services:
       postgres:
         image: postgres@sha256:31ba9c94a03ada9988f2bb493a22a75eef3a185884533e5cdbcd498ea835b08f # postgres:17 on 2026-10-31
@@ -62,12 +64,22 @@ jobs:
           --health-retries 10
     env:
       HOSPITALITYOS_POSTGRES: Host=localhost;Port=5432;Username=postgres;Password=postgres
-      # Here the server must be there: its tests fail rather than skip.
+      HOSPITALITYOS_SERVICEBUS: Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+      HOSPITALITYOS_SERVICEBUS_ADMIN: Endpoint=sb://localhost:5300;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+      # Here the servers must be there: their tests fail rather than skip.
       HOSPITALITYOS_POSTGRES_REQUIRED: "true"
+      HOSPITALITYOS_SERVICEBUS_REQUIRED: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # Started first so it boots while .NET builds; the tests wait for it to answer.
+      - name: Start the Service Bus emulator
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Ci-only-throwaway-1
+        run: docker compose -f tests/emulators/servicebus/compose.yaml up -d
 
       - name: Set up .NET (version from global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -91,8 +103,27 @@ jobs:
       - name: Verify formatting
         run: dotnet format --no-restore --verify-no-changes
 
-      - name: Test (architecture, unit, port contract on InMemory, SQLite, and PostgreSQL, integration, AI evals on the Fake model)
+      - name: Wait for the Service Bus emulator
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:5300/health > /dev/null 2>&1; then
+              echo "Emulator ready after ${attempt} checks."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::The Service Bus emulator did not become healthy."
+          exit 1
+
+      - name: Test (architecture, unit, port contract on InMemory, SQLite, PostgreSQL, and Service Bus, integration, AI evals on the Fake model)
         run: dotnet test --no-build --configuration Release --report-xunit-trx --results-directory TestResults
+
+      - name: Service Bus emulator logs
+        if: failure()
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Ci-only-throwaway-1
+        run: docker compose -f tests/emulators/servicebus/compose.yaml logs emulator
 
       - name: Upload test results
         if: failure()

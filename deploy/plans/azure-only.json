@@ -7,6 +7,7 @@
     "identity-api": { "cloud": "azure", "region": "uksouth" },
     "images": { "cloud": "azure", "region": "uksouth" },
     "secrets": { "cloud": "azure", "region": "uksouth" },
+    "events": { "cloud": "azure", "region": "uksouth" },
     "apps": { "cloud": "azure", "region": "uksouth" },
     "api": { "cloud": "azure", "region": "uksouth" }
   }

@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Messaging.ServiceBus" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
@@ -15,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.InMemory/HospitalityOS.Adapters.InMemory.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Azure/HospitalityOS.Adapters.Azure.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore.PostgreSql/HospitalityOS.Adapters.EfCore.PostgreSql.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />

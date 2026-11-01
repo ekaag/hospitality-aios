@@ -8,7 +8,7 @@ namespace HospitalityOS.Bindings;
 /// Resolves <typeparamref name="TPort"/> from configuration and caches one adapter instance per binding.
 /// Configuration is read once; changes require a restart.
 /// </summary>
-internal sealed class BindingResolver<TPort> : IBindingResolver<TPort>, IDisposable
+internal sealed class BindingResolver<TPort> : IBindingResolver<TPort>, IDisposable, IAsyncDisposable
     where TPort : class
 {
     private readonly IServiceProvider services;
@@ -57,12 +57,43 @@ internal sealed class BindingResolver<TPort> : IBindingResolver<TPort>, IDisposa
 
     public void Dispose()
     {
-        foreach (Lazy<TPort> instance in instances.Values.Where(instance => instance.IsValueCreated))
+        foreach (TPort instance in TakeCreated())
         {
-            (instance.Value as IDisposable)?.Dispose();
+            switch (instance)
+            {
+                case IDisposable disposable:
+                    disposable.Dispose();
+                    break;
+                case IAsyncDisposable asyncDisposable:
+                    // Only a host disposed synchronously gets here; adapters with network clients dispose asynchronously.
+                    asyncDisposable.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                    break;
+            }
         }
+    }
 
+    public async ValueTask DisposeAsync()
+    {
+        foreach (TPort instance in TakeCreated())
+        {
+            switch (instance)
+            {
+                case IAsyncDisposable asyncDisposable:
+                    await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                    break;
+                case IDisposable disposable:
+                    disposable.Dispose();
+                    break;
+            }
+        }
+    }
+
+    private List<TPort> TakeCreated()
+    {
+        List<TPort> created = [.. instances.Values.Where(instance => instance.IsValueCreated).Select(instance => instance.Value)];
         instances.Clear();
+
+        return created;
     }
 
     private TPort Create(AdapterBinding binding)

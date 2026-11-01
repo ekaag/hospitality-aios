@@ -12,7 +12,7 @@ namespace HospitalityOS.PortContractTests.Adapters.Local;
 /// </summary>
 public sealed class InMemoryEventTransportContractTests : EventTransportContractTests
 {
-    protected override (IEventTransport Transport, IDisposable Owner) CreateTransport()
+    protected override (IEventTransport Transport, IAsyncDisposable Owner) CreateTransport()
     {
         ServiceProvider services = new ServiceCollection().AddLocalAdapters().BuildServiceProvider();
         IConfiguration settings = new ConfigurationBuilder()
@@ -28,12 +28,12 @@ public sealed class InMemoryEventTransportContractTests : EventTransportContract
         return (transport, new Owner(transport, services));
     }
 
-    private sealed class Owner(IEventTransport transport, ServiceProvider services) : IDisposable
+    private sealed class Owner(IEventTransport transport, ServiceProvider services) : IAsyncDisposable
     {
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             (transport as IDisposable)?.Dispose();
-            services.Dispose();
+            await services.DisposeAsync();
         }
     }
 }
