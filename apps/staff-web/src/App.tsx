@@ -2,6 +2,7 @@ import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Guests } from "./guests/Guests";
 import { Board } from "./work/Board";
 
 const roles = ["Worker", "Manager"] as const;
@@ -46,11 +47,13 @@ export function App() {
 }
 
 /**
- * The board for the caller's property: the tenant's first, as Phase 1 runs one property per tenant.
+ * The board for the caller's property (the tenant's first, as Phase 1 runs one property per tenant), and for managers the
+ * guests' check-in links.
  */
 function Signed({ client, session }: { client: ApiClient; session: DevSession }) {
   const [propertyId, setPropertyId] = useState<string | undefined>();
   const [problem, setProblem] = useState<string | undefined>();
+  const [area, setArea] = useState<"work" | "guests">("work");
 
   useEffect(() => {
     let current = true;
@@ -78,9 +81,29 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
     return <p role="alert">{problem}</p>;
   }
 
-  return propertyId ? (
-    <Board client={client} token={session.token} propertyId={propertyId} oversees={session.persona.role !== "Worker"} />
-  ) : (
-    <p>Loading…</p>
+  if (!propertyId) {
+    return <p>Loading…</p>;
+  }
+
+  const oversees = session.persona.role !== "Worker";
+
+  return (
+    <>
+      {oversees && (
+        <nav aria-label="Areas">
+          <button type="button" aria-pressed={area === "work"} onClick={() => setArea("work")}>
+            Work
+          </button>{" "}
+          <button type="button" aria-pressed={area === "guests"} onClick={() => setArea("guests")}>
+            Guests
+          </button>
+        </nav>
+      )}
+      {oversees && area === "guests" ? (
+        <Guests client={client} propertyId={propertyId} />
+      ) : (
+        <Board client={client} token={session.token} propertyId={propertyId} oversees={oversees} />
+      )}
+    </>
   );
 }
