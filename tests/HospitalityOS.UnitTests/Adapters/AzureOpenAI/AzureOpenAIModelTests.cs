@@ -1,6 +1,7 @@
 using System.ClientModel;
 using System.Net;
 using System.Text.Json;
+using HospitalityOS.Adapters.AzureOpenAI;
 using HospitalityOS.Ports.Inference;
 using Xunit;
 
@@ -138,6 +139,17 @@ public sealed class AzureOpenAIModelTests : IDisposable
 
         await api.Model().CompleteAsync(new ChatRequest(null, [ChatMessage.User("When does the pool close?")], null, open), mini, Cancellation);
         Assert.False(api.LastBody.GetProperty("response_format").GetProperty("json_schema").GetProperty("strict").GetBoolean());
+    }
+
+    [Theory]
+    [InlineData("""{"type":"object","properties":{"a":{"type":"string"}},"required":["a"],"additionalProperties":false}""", true)]
+    [InlineData("""{"type":"object","properties":{"a":{"type":"string"},"b":{"type":"string"}},"required":["a"],"additionalProperties":false}""", false)]
+    [InlineData("""{"type":"object","properties":{"a":{"type":"string"}},"required":["a"]}""", false)]
+    [InlineData("""{"type":"object","properties":{"a":{"type":"object","properties":{"b":{"type":"string"}},"required":["b"]}},"required":["a"],"additionalProperties":false}""", false)]
+    [InlineData("""{"type":"object","properties":{"a":{"type":"array","items":{"type":"object","properties":{"b":{"type":"string"}},"required":["b"],"additionalProperties":false}}},"required":["a"],"additionalProperties":false}""", true)]
+    public void IsStrict_OnlyWhenEveryObjectIsClosedAndRequiresAllItsProperties(string schema, bool strict)
+    {
+        Assert.Equal(strict, AzureOpenAIMessages.IsStrict(JsonDocument.Parse(schema).RootElement));
     }
 
     [Fact]
