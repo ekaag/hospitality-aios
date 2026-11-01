@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -17,6 +18,8 @@ DEPLOYER = "deployer"
 deployment's own later steps (such as applying search indexes) may act; not a resource."""
 
 _SEGMENT = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+_VARIABLE = re.compile(r"^[A-Z][A-Z0-9_]*$")
+_OUTPUT = re.compile(r"^([a-z0-9-]+)\.([A-Za-z0-9]+)$")
 
 
 class PlanError(Exception):
@@ -151,6 +154,14 @@ def load_plan(name: str, env: str, catalog: dict | None = None, deploy: Path = D
             if not (deploy / definition).exists():
                 problems.append(f"{purpose}: its index definition {definition} is missing.")
 
+        for parameter, variable in service.get("secureInputs", {}).items():
+            if not _VARIABLE.match(variable):
+                problems.append(f"{purpose}: secure input {parameter} must name an environment variable, e.g. ANTHROPIC_API_KEY, not '{variable}'.")
+
+        for condition in service.get("appSettingsWhen", {}):
+            if not _OUTPUT.match(condition):
+                problems.append(f"{purpose}: app settings are applied when an output is true, named purpose.output, not '{condition}'.")
+
         if not region or not _SEGMENT.match(region):
             problems.append(f"{purpose}: needs a lowercase region, e.g. uksouth.")
             continue
@@ -253,16 +264,37 @@ def uses_deployer(placement: Placement) -> bool:
     return any(source.split(".", 1)[0] == DEPLOYER for source in placement.service.get("inputs", {}).values())
 
 
+def secure_inputs(placement: Placement, environ: Mapping[str, str]) -> dict[str, str]:
+    """The module's secure parameters, each from the environment variable the catalog names (empty when it is not set),
+    e.g. a repository secret the deploy workflow passes. They are never logged or written anywhere but the parameters file."""
+    return {parameter: environ.get(variable, "") for parameter, variable in placement.service.get("secureInputs", {}).items()}
+
+
+def _holds(outputs: dict[str, dict], condition: str) -> bool:
+    purpose, output = condition.split(".", 1)
+
+    return outputs.get(purpose, {}).get(output) in (True, "true", "True")
+
+
 def app_settings(plan: Plan, outputs: dict[str, dict]) -> dict[str, str]:
-    """The app's binding settings the plan implies: each placed service's `appSettings`, with `${purpose.output}` filled in."""
+    """The app's binding settings the plan implies: each placed service's `appSettings`, then those of its
+    `appSettingsWhen` whose condition (an output, e.g. `secrets.anthropicKeySet`) is true, with `${purpose.output}` filled in."""
     settings: dict[str, str] = {}
+
+    def fill(template: str) -> str:
+        return re.sub(
+            r"\$\{([a-z0-9-]+)\.([A-Za-z0-9]+)\}",
+            lambda match: str(outputs.get(match.group(1), {}).get(match.group(2), "")),
+            template,
+        )
 
     for placement in plan.placements:
         for key, template in placement.service.get("appSettings", {}).items():
-            settings[key] = re.sub(
-                r"\$\{([a-z0-9-]+)\.([A-Za-z0-9]+)\}",
-                lambda match: str(outputs.get(match.group(1), {}).get(match.group(2), "")),
-                template,
-            )
+            settings[key] = fill(template)
+
+        for condition, overrides in placement.service.get("appSettingsWhen", {}).items():
+            if _holds(outputs, condition):
+                for key, template in overrides.items():
+                    settings[key] = fill(template)
 
     return settings

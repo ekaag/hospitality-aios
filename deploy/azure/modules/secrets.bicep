@@ -1,7 +1,9 @@
 // secrets: the Key Vault the app reads secrets from by reference, with RBAC rather than access policies; the API's
 // identity may read secrets. It also holds the RSA key the API signs guests' stay tokens with (K4c), which the API may
-// only sign and verify with: the private key never leaves the vault. Purge protection is on wherever an environment
-// protects its stateful resources (P12).
+// only sign and verify with: the private key never leaves the vault. When the deployment is given the Anthropic API key
+// (the repository secret ANTHROPIC_API_KEY, K5), it is kept here as anthropic-api-key; without it there is no such
+// secret, and the catalog routes the AI tasks to Azure OpenAI instead of Claude. Purge protection is on wherever an
+// environment protects its stateful resources (P12).
 
 @description('The vault name, at most 24 characters, e.g. secrets-dev-uksouth-kv.')
 @maxLength(24)
@@ -19,6 +21,13 @@ param protect bool
 
 @description('The stay token signing key\'s name.')
 param signingKeyName string = 'stay-tokens'
+
+@description('The Anthropic API key, or empty for none.')
+@secure()
+param anthropicApiKey string = ''
+
+@description('The name of the secret holding the Anthropic API key, as the anthropic inference provider names it.')
+param anthropicKeyName string = 'anthropic-api-key'
 
 resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: name
@@ -96,7 +105,20 @@ resource sign 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
+resource anthropicKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(anthropicApiKey)) {
+  parent: vault
+  name: anthropicKeyName
+  tags: tags
+  properties: {
+    value: anthropicApiKey
+    contentType: 'Anthropic API key'
+  }
+}
+
 output vaultId string = vault.id
 output vaultUri string = vault.properties.vaultUri
 output vaultName string = vault.name
 output signingKeyName string = signingKey.name
+@description('Whether the vault holds the Anthropic API key, so the AI tasks may use Claude.')
+#disable-next-line outputs-should-not-contain-secrets // Only whether a key was given, never the key.
+output anthropicKeySet bool = !empty(anthropicApiKey)

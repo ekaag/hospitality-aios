@@ -109,6 +109,19 @@ class DeployerTests(unittest.TestCase):
         self.assertFalse(self.cloud.calls[2][2]["protect"])
         self.assertTrue(production.drivers["azure"].calls[2][2]["protect"])
 
+    def test_secure_inputs_come_from_the_environment_and_are_empty_when_it_has_none(self):
+        secured = plan()
+        secured.placements[2] = Placement("secrets", "azure", "uksouth", "platform", ("identity-api",), {"service": "kv", "type": "kv", "secureInputs": {"anthropicApiKey": "ANTHROPIC_API_KEY"}}, stateful=True)
+
+        given = FakeCloud(ANSWERS)
+        Deployer(secured, "dev", "hospitalityos", {"azure": given}, log=lambda _: None, environ={"ANTHROPIC_API_KEY": "sk-ant-test"}).up("abc123", smoke=False)
+        missing = FakeCloud(ANSWERS)
+        Deployer(secured, "dev", "hospitalityos", {"azure": missing}, log=lambda _: None, environ={}).up("abc123", smoke=False)
+
+        self.assertEqual("sk-ant-test", given.calls[2][2]["anthropicApiKey"])
+        self.assertEqual("", missing.calls[2][2]["anthropicApiKey"])
+        self.assertNotIn("anthropicApiKey", given.calls[1][2])
+
     def test_deploying_an_image_needs_the_commit(self):
         with self.assertRaises(PlanError):
             self.deployer.up(None, smoke=False)

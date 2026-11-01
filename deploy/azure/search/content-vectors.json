@@ -12,7 +12,7 @@
       "searchable": true,
       "retrievable": false,
       "stored": false,
-      "dimensions": 64,
+      "dimensions": 1536,
       "vectorSearchProfile": "cosine"
     }
   ],

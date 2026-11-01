@@ -164,6 +164,11 @@ class AzureDriver:
             if deleted and not deleted[0].get("properties", {}).get("purgeProtectionEnabled"):
                 az("keyvault", "purge", "--name", target.name, "--location", target.placement.region)
 
+        # A deleted Azure OpenAI (Foundry) resource is kept for 48 days, holding its name and subdomain; it keeps no data
+        # of its own, so it is always purged.
+        if target.placement.service.get("type") == "oai":
+            az("cognitiveservices", "account", "purge", "--name", target.name, "--resource-group", target.group, "--location", target.placement.region, check=False)
+
     def finish_removal(self, targets: list[Target]) -> None:
         for group in sorted({target.group for target in targets}):
             exists = az("group", "exists", "--name", group, check=False).stdout.strip() == "true"

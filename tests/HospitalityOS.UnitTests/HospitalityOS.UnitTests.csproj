@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
+    <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.AzureOpenAI/HospitalityOS.Adapters.AzureOpenAI.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Azure/HospitalityOS.Adapters.Azure.csproj" />
     <ProjectReference Include="../../src/Adapters/HospitalityOS.Adapters.Local/HospitalityOS.Adapters.Local.csproj" />
     <ProjectReference Include="../../src/Core/HospitalityOS.IntegrationContracts/HospitalityOS.IntegrationContracts.csproj" />

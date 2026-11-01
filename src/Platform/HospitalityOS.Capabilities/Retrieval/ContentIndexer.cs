@@ -7,6 +7,7 @@ using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
 using HospitalityOS.SharedKernel.Tenancy;
+using Microsoft.Extensions.Options;
 
 namespace HospitalityOS.Capabilities.Retrieval;
 
@@ -19,7 +20,8 @@ internal sealed class ContentIndexer(
     IBindingResolver<ISearchIndex> searchIndexes,
     IBindingResolver<IVectorStore> vectorStores,
     IInferenceRouter router,
-    TenantContext tenant) : IContentIndexer
+    TenantContext tenant,
+    IOptions<ContentSearchOptions> options) : IContentIndexer
 {
     public async Task<Result> IndexAsync(ContentItemId id, CancellationToken cancellationToken)
     {
@@ -61,7 +63,7 @@ internal sealed class ContentIndexer(
     {
         Result<InferenceOutcome<Embeddings>> embedded = await router.RunAsync<IEmbeddingModel, Embeddings>(
             ContentIndex.EmbeddingTask,
-            (model, selection, _, token) => model.EmbedAsync(new EmbeddingRequest(ValueList.From(items.Select(item => ContentIndex.Text(item.Details)))), selection, token),
+            (model, selection, _, token) => model.EmbedAsync(new EmbeddingRequest(ValueList.From(items.Select(item => ContentIndex.Text(item.Details))), options.Value.Dimensions), selection, token),
             cancellationToken).ConfigureAwait(false);
 
         if (embedded.IsFailure)

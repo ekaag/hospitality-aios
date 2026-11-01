@@ -1,5 +1,6 @@
 using HospitalityOS.Adapters.Anthropic;
 using HospitalityOS.Adapters.Azure;
+using HospitalityOS.Adapters.AzureOpenAI;
 using HospitalityOS.Adapters.Local;
 using HospitalityOS.Ai;
 using HospitalityOS.Ai.Tracing;
@@ -62,6 +63,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 builder.Services.AddBindings(builder.Configuration);
 builder.Services.AddLocalAdapters();
 builder.Services.AddAnthropicAdapters();
+builder.Services.AddAzureOpenAIAdapters();
 builder.Services.AddAzureAdapters();
 builder.Services.AddPortBinding<IIdGenerator>();
 builder.Services.AddPortBinding<IEventTransport>();

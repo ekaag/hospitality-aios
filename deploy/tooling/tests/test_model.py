@@ -151,6 +151,34 @@ class RepositoryTests(unittest.TestCase):
                     with self.subTest(resource=purpose, parameter=parameter, env=env):
                         self.assertIn(env, values)
 
+    def test_secure_inputs_name_environment_variables_and_conditions_name_outputs(self):
+        catalog = load_catalog()
+        azure = catalog["resources"]["secrets"]["services"]["azure"]
+        azure["secureInputs"] = {"anthropicApiKey": "sk-ant-not-a-variable"}
+        catalog["resources"]["realtime"]["services"]["azure"]["appSettingsWhen"] = {"anthropicKeySet": {"X": "y"}}
+
+        with self.assertRaises(PlanError) as raised:
+            load_plan(DEFAULT_PLAN, "dev", catalog)
+
+        self.assertEqual(
+            [
+                "secrets: secure input anthropicApiKey must name an environment variable, e.g. ANTHROPIC_API_KEY, not 'sk-ant-not-a-variable'.",
+                "realtime: app settings are applied when an output is true, named purpose.output, not 'anthropicKeySet'.",
+            ],
+            raised.exception.problems,
+        )
+
+    def test_the_deployment_identity_may_grant_every_role_the_modules_grant(self):
+        import re
+
+        bootstrap = (DEPLOY / "azure" / "bootstrap" / "main.bicep").read_text(encoding="utf-8")
+        grantable = set(re.search(r"(?m)^var grantable = '([^']*)'", bootstrap).group(1).replace(" ", "").split(","))
+
+        for module in sorted((DEPLOY / "azure" / "modules").glob("*.bicep")):
+            for role in re.findall(r"roleDefinitions', '([0-9a-f-]{36})'", module.read_text(encoding="utf-8")):
+                with self.subTest(module=module.name, role=role):
+                    self.assertIn(role, grantable, f"{module.name} grants {role}, which the bootstrap does not let the deployment grant.")
+
     def test_app_settings_use_only_outputs_their_modules_declare(self):
         import re
 
@@ -165,7 +193,13 @@ class RepositoryTests(unittest.TestCase):
         drivers = {purpose: entry["services"].get("azure", {}).get("driver", "azure") for purpose, entry in catalog["resources"].items()}
 
         for purpose, entry in catalog["resources"].items():
-            for key, template in entry["services"].get("azure", {}).get("appSettings", {}).items():
+            azure = entry["services"].get("azure", {})
+            templates = dict(azure.get("appSettings", {}))
+            for condition, overrides in azure.get("appSettingsWhen", {}).items():
+                templates[f"when {condition}"] = "${" + condition + "}"
+                templates.update({f"{key} (when {condition})": value for key, value in overrides.items()})
+
+            for key, template in templates.items():
                 for source, output in re.findall(r"\$\{([a-z0-9-]+)\.([A-Za-z0-9]+)\}", template):
                     with self.subTest(setting=key):
                         self.assertIn(source, modules, f"{purpose}: {key} reads {source}, which has no Azure module.")
@@ -198,6 +232,35 @@ class OrderTests(unittest.TestCase):
 
         with self.assertRaises(PlanError):
             resolve_inputs(api, {"images": {}})
+
+    def test_conditional_app_settings_apply_only_when_their_output_is_true(self):
+        from hospitalityos_deploy.model import Plan
+
+        chat = placement(
+            "inference-chat",
+            appSettings={"Inference__Tasks__concierge.answer__Provider": "azure-chat", "Inference__Tasks__concierge.answer__Model": "${inference-chat.chatDeployment}"},
+            appSettingsWhen={
+                "secrets.anthropicKeySet": {
+                    "Inference__Tasks__concierge.answer__Provider": "anthropic",
+                    "Inference__Tasks__concierge.answer__Fallback__0": "azure-chat:${inference-chat.chatDeployment}",
+                }
+            },
+        )
+        deployed = Plan("p", "", [chat])
+
+        self.assertEqual(
+            {"Inference__Tasks__concierge.answer__Provider": "azure-chat", "Inference__Tasks__concierge.answer__Model": "gpt-5-mini"},
+            app_settings(deployed, {"inference-chat": {"chatDeployment": "gpt-5-mini"}, "secrets": {"anthropicKeySet": False}}),
+        )
+        self.assertEqual(
+            {
+                "Inference__Tasks__concierge.answer__Provider": "anthropic",
+                "Inference__Tasks__concierge.answer__Model": "gpt-5-mini",
+                "Inference__Tasks__concierge.answer__Fallback__0": "azure-chat:gpt-5-mini",
+            },
+            app_settings(deployed, {"inference-chat": {"chatDeployment": "gpt-5-mini"}, "secrets": {"anthropicKeySet": True}}),
+        )
+        self.assertEqual("azure-chat", app_settings(deployed, {"inference-chat": {"chatDeployment": "gpt-5-mini"}})["Inference__Tasks__concierge.answer__Provider"])
 
     def test_app_settings_are_filled_from_outputs(self):
         from hospitalityos_deploy.model import Plan

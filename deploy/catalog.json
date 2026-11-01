@@ -58,6 +58,7 @@
           "maxLength": 24,
           "module": "azure/modules/secrets.bicep",
           "inputs": { "readerPrincipalId": "identity-api.principalId" },
+          "secureInputs": { "anthropicApiKey": "ANTHROPIC_API_KEY" },
           "appSettings": {
             "Bindings__SecretStore__Default__Adapter": "AzureKeyVault",
             "Bindings__SecretStore__Default__Settings__VaultUri": "${secrets.vaultUri}",
@@ -108,7 +109,7 @@
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin", "inference-chat", "inference-embed"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {
@@ -244,23 +245,64 @@
       }
     },
     "inference-chat": {
-      "job": "Chat, classification, extraction, and judging models (IChatModel, IClassifier, IStructuredExtractor, IEvaluationJudge).",
+      "job": "Chat, classification, extraction, and judging models (IChatModel, IClassifier, IStructuredExtractor, IEvaluationJudge). The AI tasks use Claude (the anthropic provider, its key in the secrets vault) with these models as the fallback, or these models alone when no Anthropic key is set.",
       "group": "platform",
-      "planned": "K5",
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Azure OpenAI / Foundry" },
+        "azure": {
+          "service": "Azure OpenAI in Microsoft Foundry",
+          "type": "oai",
+          "maxLength": 64,
+          "module": "azure/modules/inference-chat.bicep",
+          "inputs": { "principalId": "identity-api.principalId" },
+          "parameters": { "capacity": { "dev": 50 } },
+          "appSettings": {
+            "Inference__Providers__azure-chat__Adapter": "AzureOpenAI",
+            "Inference__Providers__azure-chat__Settings__Endpoint": "${inference-chat.endpoint}",
+            "Inference__Tasks__concierge.answer__Provider": "azure-chat",
+            "Inference__Tasks__concierge.answer__Model": "${inference-chat.chatDeployment}",
+            "Inference__Tasks__intent.classify__Provider": "azure-chat",
+            "Inference__Tasks__intent.classify__Model": "${inference-chat.chatDeployment}",
+            "Inference__Tasks__guestservice.extract__Provider": "azure-chat",
+            "Inference__Tasks__guestservice.extract__Model": "${inference-chat.chatDeployment}"
+          },
+          "appSettingsWhen": {
+            "secrets.anthropicKeySet": {
+              "Inference__Tasks__concierge.answer__Provider": "anthropic",
+              "Inference__Tasks__concierge.answer__Model": "claude-sonnet-5-5",
+              "Inference__Tasks__concierge.answer__Fallback__0": "azure-chat:${inference-chat.chatDeployment}",
+              "Inference__Tasks__intent.classify__Provider": "anthropic",
+              "Inference__Tasks__intent.classify__Model": "claude-haiku-5-5",
+              "Inference__Tasks__intent.classify__Fallback__0": "azure-chat:${inference-chat.chatDeployment}",
+              "Inference__Tasks__guestservice.extract__Provider": "anthropic",
+              "Inference__Tasks__guestservice.extract__Model": "claude-haiku-5-5",
+              "Inference__Tasks__guestservice.extract__Fallback__0": "azure-chat:${inference-chat.chatDeployment}"
+            }
+          }
+        },
         "aws": { "service": "Bedrock" },
         "gcp": { "service": "Vertex AI" }
       }
     },
     "inference-embed": {
-      "job": "Embedding models for content search (IEmbeddingModel).",
+      "job": "Embedding models for content search (IEmbeddingModel). Its vectors' width is the content-vectors index's.",
       "group": "platform",
-      "planned": "K5",
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Azure OpenAI / Foundry" },
+        "azure": {
+          "service": "Azure OpenAI in Microsoft Foundry",
+          "type": "oai",
+          "maxLength": 64,
+          "module": "azure/modules/inference-embed.bicep",
+          "inputs": { "principalId": "identity-api.principalId" },
+          "parameters": { "capacity": { "dev": 50 } },
+          "appSettings": {
+            "Inference__Providers__azure-embed__Adapter": "AzureOpenAI",
+            "Inference__Providers__azure-embed__Settings__Endpoint": "${inference-embed.endpoint}",
+            "Inference__Tasks__content.embed__Provider": "azure-embed",
+            "Inference__Tasks__content.embed__Model": "${inference-embed.embeddingDeployment}"
+          }
+        },
         "aws": { "service": "Bedrock" },
         "gcp": { "service": "Vertex AI" }
       }

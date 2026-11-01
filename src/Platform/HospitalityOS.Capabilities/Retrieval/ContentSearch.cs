@@ -75,7 +75,7 @@ internal sealed class ContentSearch(
     {
         Result<InferenceOutcome<Embeddings>> embedded = await router.RunAsync<IEmbeddingModel, Embeddings>(
             ContentIndex.EmbeddingTask,
-            (model, selection, _, token) => model.EmbedAsync(new EmbeddingRequest(ValueList.From([query])), selection, token),
+            (model, selection, _, token) => model.EmbedAsync(new EmbeddingRequest(ValueList.From([query]), options.Value.Dimensions), selection, token),
             cancellationToken).ConfigureAwait(false);
 
         if (embedded.IsFailure)

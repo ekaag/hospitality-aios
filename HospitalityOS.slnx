@@ -2,6 +2,7 @@
   <Folder Name="/src/" />
   <Folder Name="/src/Adapters/">
     <Project Path="src/Adapters/HospitalityOS.Adapters.Anthropic/HospitalityOS.Adapters.Anthropic.csproj" />
+    <Project Path="src/Adapters/HospitalityOS.Adapters.AzureOpenAI/HospitalityOS.Adapters.AzureOpenAI.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.Azure/HospitalityOS.Adapters.Azure.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore.PostgreSql/HospitalityOS.Adapters.EfCore.PostgreSql.csproj" />
     <Project Path="src/Adapters/HospitalityOS.Adapters.EfCore.Sqlite/HospitalityOS.Adapters.EfCore.Sqlite.csproj" />

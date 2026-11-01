@@ -1,9 +1,11 @@
 using System.Text.Json;
+using HospitalityOS.Capabilities.Retrieval;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Results;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace HospitalityOS.IntegrationTests.Hosts.Api;
@@ -11,7 +13,8 @@ namespace HospitalityOS.IntegrationTests.Hosts.Api;
 /// <summary>
 /// The search indexes the deployment creates (<c>deploy/azure/search/</c>) fit the API as it is deployed: one keyword
 /// index and one vector index per logical index the app writes, and the vector width is what <c>content.embed</c>
-/// produces with the API's own configuration, since a vector index's width is fixed when it is created.
+/// produces at the width the API asks for (<c>Search:Content:Dimensions</c>), since a vector index's width is fixed when
+/// it is created.
 /// </summary>
 public sealed class SearchInfrastructureTests
 {
@@ -23,9 +26,11 @@ public sealed class SearchInfrastructureTests
         using WebApplicationFactory<Program> factory = new();
         await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
 
+        int dimensions = scope.ServiceProvider.GetRequiredService<IOptions<ContentSearchOptions>>().Value.Dimensions;
+
         Result<InferenceOutcome<Embeddings>> embedded = await scope.ServiceProvider.GetRequiredService<IInferenceRouter>().RunAsync<IEmbeddingModel, Embeddings>(
             "content.embed",
-            (model, selection, _, token) => model.EmbedAsync(new EmbeddingRequest(ValueList.From(["Wi-Fi: join Aurora-Guest."])), selection, token),
+            (model, selection, _, token) => model.EmbedAsync(new EmbeddingRequest(ValueList.From(["Wi-Fi: join Aurora-Guest."]), dimensions), selection, token),
             Cancellation);
 
         Assert.True(embedded.IsSuccess);

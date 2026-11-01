@@ -1,4 +1,5 @@
 using HospitalityOS.Adapters.Anthropic;
+using HospitalityOS.Adapters.AzureOpenAI;
 using HospitalityOS.Adapters.Local;
 using HospitalityOS.Bindings;
 using HospitalityOS.Ports.Inference;
@@ -40,6 +41,46 @@ public sealed class InferenceAdapterRoutingTests
     }
 
     [Fact]
+    public void Startup_AcceptsClaudeForChat_WithAzureOpenAIForEmbeddingsAndAsTheFallback()
+    {
+        Dictionary<string, string?> settings = new()
+        {
+            ["Inference:Providers:anthropic:Adapter"] = "Anthropic",
+            ["Inference:Providers:anthropic:Settings:ApiKeySecret"] = "anthropic-api-key",
+            ["Inference:Providers:azure-chat:Adapter"] = "AzureOpenAI",
+            ["Inference:Providers:azure-chat:Settings:Endpoint"] = "https://inference-chat-dev-uksouth-oai.openai.azure.com/",
+            ["Inference:Providers:azure-embed:Adapter"] = "AzureOpenAI",
+            ["Inference:Providers:azure-embed:Settings:Endpoint"] = "https://inference-embed-dev-uksouth-oai.openai.azure.com/",
+            ["Inference:Tasks:concierge.answer:Provider"] = "anthropic",
+            ["Inference:Tasks:concierge.answer:Model"] = "claude-sonnet-5-5",
+            ["Inference:Tasks:concierge.answer:Fallback:0"] = "azure-chat:gpt-5-mini",
+            ["Inference:Tasks:content.embed:Provider"] = "azure-embed",
+            ["Inference:Tasks:content.embed:Model"] = "text-embedding-3-small",
+        };
+        using ServiceProvider services = Build(settings);
+
+        services.GetRequiredService<IStartupValidator>().Validate();
+    }
+
+    [Fact]
+    public void Startup_RejectsAnAzureOpenAIProvider_WithoutItsResourcesEndpoint()
+    {
+        Dictionary<string, string?> settings = new()
+        {
+            ["Inference:Providers:azure:Adapter"] = "AzureOpenAI",
+            ["Inference:Tasks:concierge.answer:Provider"] = "azure",
+            ["Inference:Tasks:concierge.answer:Model"] = "gpt-5-mini",
+            ["Inference:Tasks:content.embed:Provider"] = "azure",
+            ["Inference:Tasks:content.embed:Model"] = "text-embedding-3-small",
+        };
+        using ServiceProvider services = Build(settings);
+
+        OptionsValidationException exception = Assert.Throws<OptionsValidationException>(() => services.GetRequiredService<IStartupValidator>().Validate());
+
+        Assert.Contains(exception.Failures, failure => failure.Contains("Endpoint must be the Azure OpenAI resource's https URL", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Run_WhenTheConfiguredProviderIsDown_FallsBackToTheNext_ByConfigurationAlone()
     {
         Dictionary<string, string?> settings = new()
@@ -75,6 +116,7 @@ public sealed class InferenceAdapterRoutingTests
             .AddInferenceTask<IEmbeddingModel>("content.embed")
             .AddLocalAdapters()
             .AddAnthropicAdapters()
+            .AddAzureOpenAIAdapters()
             .BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 }

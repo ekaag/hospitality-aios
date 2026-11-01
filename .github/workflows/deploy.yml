@@ -20,6 +20,10 @@ on:
         description: The commit to deploy.
         required: true
         type: string
+    secrets:
+      ANTHROPIC_API_KEY:
+        description: The Anthropic API key, kept in the secrets vault for the AI tasks to use Claude; optional.
+        required: false
 
 permissions:
   contents: read
@@ -66,4 +70,6 @@ jobs:
           HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars[format('SIGNIN_TENANT_ID_{0}', inputs.environment)] }}
           HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars[format('SIGNIN_DOMAIN_{0}', inputs.environment)] }}
           HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars[format('SIGNIN_CLIENT_ID_{0}', inputs.environment)] }}
+          # The Anthropic API key (repository secret), kept in the secrets vault; without it the AI tasks use Azure OpenAI (K5).
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 deploy/tooling/deploy.py up --env "${ENVIRONMENT}" --plan "${PLAN}" --sha "${SHA}"

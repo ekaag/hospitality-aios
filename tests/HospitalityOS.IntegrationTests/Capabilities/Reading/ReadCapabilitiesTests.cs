@@ -19,6 +19,7 @@ using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Xunit;
 
@@ -183,6 +184,7 @@ public sealed class ReadCapabilitiesTests : IAsyncLifetime
         string scopeId = aurora.PropertyId.Value.ToString();
         IVectorStore vectors = scope.ServiceProvider.GetRequiredService<IBindingResolver<IVectorStore>>().Resolve(binding);
         ISearchIndex keywords = scope.ServiceProvider.GetRequiredService<IBindingResolver<ISearchIndex>>().Resolve(binding);
+        int width = scope.ServiceProvider.GetRequiredService<IOptions<ContentSearchOptions>>().Value.Dimensions;
         Assert.Contains(await keywords.SearchAsync("content", new KeywordQuery(aurora.TenantId, scopeId, "wifi", null, 5), Cancellation), hit => hit.Id == aurora.WiFi.Id.Value.ToString());
 
         Result indexed = await scope.ServiceProvider.GetRequiredService<IContentIndexer>().IndexAsync(aurora.WiFi.Id, Cancellation);
@@ -190,10 +192,10 @@ public sealed class ReadCapabilitiesTests : IAsyncLifetime
         Assert.True(indexed.IsSuccess);
         Assert.DoesNotContain(await keywords.SearchAsync("content", new KeywordQuery(aurora.TenantId, scopeId, "wifi", null, 5), Cancellation), hit => hit.Id == aurora.WiFi.Id.Value.ToString());
         Assert.DoesNotContain(
-            await vectors.SearchAsync("content", new VectorQuery(aurora.TenantId, scopeId, new float[64], null, 5, -1), Cancellation),
+            await vectors.SearchAsync("content", new VectorQuery(aurora.TenantId, scopeId, new float[width], null, 5, -1), Cancellation),
             hit => hit.Id == aurora.WiFi.Id.Value.ToString());
         Assert.Contains(
-            await vectors.SearchAsync("content", new VectorQuery(aurora.TenantId, scopeId, new float[64], null, 5, -1), Cancellation),
+            await vectors.SearchAsync("content", new VectorQuery(aurora.TenantId, scopeId, new float[width], null, 5, -1), Cancellation),
             hit => hit.Id == aurora.Parking.Id.Value.ToString());
     }
 

@@ -44,6 +44,8 @@ jobs:
           HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars.SIGNIN_TENANT_ID_DEV }}
           HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars.SIGNIN_DOMAIN_DEV }}
           HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars.SIGNIN_CLIENT_ID_DEV }}
+          # The Anthropic API key (repository secret), kept in the secrets vault; without it the AI tasks use Azure OpenAI (K5).
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 deploy/tooling/deploy.py drift --env dev --plan "${PLAN}" --report "${RUNNER_TEMP}/drift.md"
 
       - name: Open an issue

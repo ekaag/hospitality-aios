@@ -67,7 +67,7 @@ def show(arguments: argparse.Namespace) -> int:
 
     for target in planned.targets():
         placement = target.placement
-        print(f"  {placement.purpose:<14} {placement.cloud:<6} {placement.region:<12} {target.name:<32} {target.group}")
+        print(f"  {placement.purpose:<15} {placement.cloud:<6} {placement.region:<12} {target.name:<32} {target.group}")
 
     return 0
 

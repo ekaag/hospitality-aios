@@ -15,4 +15,11 @@ public sealed class ContentSearchOptions
     /// depends on the embedding model: set it with the <c>content.embed</c> route. Default 0.3.
     /// </summary>
     public double MinSimilarity { get; set; } = 0.3;
+
+    /// <summary>
+    /// How wide the vectors are: content and queries are embedded at this width, whichever model <c>content.embed</c> is
+    /// bound to, so they fit the vector index, whose width is fixed when it is created (the deployment's is
+    /// <c>deploy/azure/search/content-vectors.json</c>). Default 1536, text-embedding-3-small's own width.
+    /// </summary>
+    public int Dimensions { get; set; } = 1536;
 }

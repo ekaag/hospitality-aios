@@ -43,6 +43,10 @@ outputs); the API is deployed with all of them. `events` binds the event transpo
 way, as `blobs` binds the blob store and `secrets` the secret store, so the plan, not the image, decides where events,
 files, and secrets go.
 
+`appSettingsWhen` adds settings only when an output is true, e.g. `secrets.anthropicKeySet`, and they replace the
+entry's own settings of the same name. `secureInputs` passes a module parameter from an environment variable (empty
+when unset), e.g. a repository secret the workflow hands the deployment; it goes only into the parameters file.
+
 ## Events
 
 The cloud transports send and receive but may not create topics, subscriptions, or queues: those come from `events.json`.
@@ -85,6 +89,19 @@ operation (the API holds Key Vault Crypto User on that key only, so it can sign 
 key). The key rotates every 90 days; guest apps then open new sessions from the same link. Links name the guest app's
 address from `GuestLinks:BaseUrl`, which waits for the guest app's own deployment; until then the front desk gets the
 code only.
+
+## AI models
+
+`inference-chat` and `inference-embed` are Azure OpenAI resources in Microsoft Foundry, each with one deployment named
+after its model (`gpt-5-mini`, `text-embedding-3-small`); keys are off and the API calls them as its identity. Content
+embeddings always use `inference-embed`. The concierge, intent classification, and request extraction use Claude, with
+`inference-chat` as the fallback, when the repository has the secret `ANTHROPIC_API_KEY`: the deployment keeps it in the
+`secrets` vault as `anthropic-api-key`. Without that secret they use `inference-chat` alone. To switch to Claude, add the
+secret and run `deploy-dev` again; to switch back after removing it, purge the soft-deleted vault secret before adding it
+again. Teardown purges the deleted Foundry resources, which would otherwise keep their names for 48 days.
+
+The `content-vectors` index is 1536 wide, and the API asks every embedding model for that width
+(`Search:Content:Dimensions`); changing it means recreating the index.
 
 ## Per-environment settings
 

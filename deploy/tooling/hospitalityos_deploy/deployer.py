@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import os
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import Callable, Protocol
 
 from pathlib import Path
 
-from .model import DEPLOY, DEPLOYER, Placement, Plan, PlanError, app_settings, environment_parameters, group_name, resolve_inputs, resource_name, tags, uses_deployer
+from .model import DEPLOY, DEPLOYER, Placement, Plan, PlanError, app_settings, environment_parameters, group_name, resolve_inputs, resource_name, secure_inputs, tags, uses_deployer
 
 
 @dataclass(frozen=True)
@@ -89,6 +91,7 @@ class Deployer:
     product: str
     drivers: dict[str, Driver]
     log: Callable[[str], None] = print
+    environ: Mapping[str, str] = field(default_factory=lambda: os.environ)
 
     def targets(self) -> list[Target]:
         return [Target(placement, self.env, self.product) for placement in self.plan.placements]
@@ -108,6 +111,7 @@ class Deployer:
             "tags": target.tags,
             **environment_parameters(placement, self.env),
             **resolve_inputs(placement, outputs),
+            **secure_inputs(placement, self.environ),
         }
 
         if placement.stateful:
@@ -135,11 +139,11 @@ class Deployer:
                 self.log(f"image   {placement.image['repository']}:{sha} in {registry.get('loginServer')}")
                 self.driver(target).ensure_image(target, registry, placement.image["repository"], sha, placement.image["project"])
 
-            self.log(f"deploy  {placement.purpose:<14} {placement.cloud}/{placement.region}  {target.name}")
+            self.log(f"deploy  {placement.purpose:<15} {placement.cloud}/{placement.region}  {target.name}")
             outputs[placement.purpose] = self.driver(target).deploy(target, parameters)
 
             if definitions := index_definitions(placement):
-                self.log(f"indexes {placement.purpose:<14} {', '.join(path.stem for path in definitions)}")
+                self.log(f"indexes {placement.purpose:<15} {', '.join(path.stem for path in definitions)}")
                 self.driver(target).apply_indexes(target, outputs[placement.purpose], definitions)
 
         if smoke:
@@ -183,11 +187,11 @@ class Deployer:
 
         for target in reversed(self.targets()):
             if target.placement.stateful and not include_stateful:
-                self.log(f"keep    {target.placement.purpose:<14} stateful; tear down with --include-stateful")
+                self.log(f"keep    {target.placement.purpose:<15} stateful; tear down with --include-stateful")
                 kept.append(target.placement.purpose)
                 continue
 
-            self.log(f"remove  {target.placement.purpose:<14} {target.name}")
+            self.log(f"remove  {target.placement.purpose:<15} {target.name}")
             self.driver(target).remove(target)
             removed.append(target)
 
