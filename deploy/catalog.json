@@ -102,13 +102,13 @@
       }
     },
     "data": {
-      "job": "The relational database: records, outbox and inbox, audit (IUnitOfWork and repositories).",
+      "job": "The relational database, PostgreSQL on every cloud (the app adapter is EfCore.PostgreSql): records, outbox and inbox, audit (IUnitOfWork and repositories). Deployable with the migration step (K6).",
       "group": "api",
-      "planned": "K1",
+      "planned": "K6",
       "stateful": true,
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Azure SQL Database" },
+        "azure": { "service": "Azure Database for PostgreSQL flexible server" },
         "aws": { "service": "RDS for PostgreSQL" },
         "gcp": { "service": "Cloud SQL for PostgreSQL" }
       }
