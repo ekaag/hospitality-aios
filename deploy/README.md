@@ -120,10 +120,16 @@ again. Teardown purges the deleted Foundry resources, which would otherwise keep
 The `content-vectors` index is 1536 wide, and the API asks every embedding model for that width
 (`Search:Content:Dimensions`); changing it means recreating the index.
 
-## Per-environment settings
+## Environments
 
-A service's `parameters` set module parameters per environment, e.g. `"sku": { "dev": "free" }`; every environment
-needs a value.
+`dev`, `test`, and `prod` deploy the same plan; a service's `parameters` set what differs, e.g.
+`"sku": { "dev": "free", "test": "basic", "prod": "basic" }`, and every environment needs a value. Outside dev, services
+take their smallest paid tier (a subscription has one free AI Search service and one free SignalR unit). `test` is
+seeded with the Aurora Grand; `prod` never is. Only `prod` protects its stateful resources: vault purge protection and
+geo-redundant database backups.
+
+Images are built once, for `dev`. Promotion (`deploy.py up --promote-from dev`) copies the tested image into the next
+environment's registry unchanged and refuses one that was never deployed there.
 
 ## Bootstrapping a cloud (once)
 
@@ -132,16 +138,18 @@ assign roles. For Azure:
 
 ```sh
 az login
-python deploy/tooling/deploy.py bootstrap --cloud azure --repo ekaag/hospitality-aios --environments dev --github
+python deploy/tooling/deploy.py bootstrap --cloud azure --repo ekaag/hospitality-aios --github
 ```
 
 It deploys the subscription deployment stack `hospitalityos-deploy`: `rg-hospitalityos-deploy` with the managed identity
 `deploy-shared-uksouth-id`, federated credentials trusting this repository's `main` branch, its pull requests, and its
-`dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, Key Vault Crypto User, Azure
-Service Bus Data Sender and Data Receiver, Storage Blob Data Contributor, Search Index Data Contributor, SignalR App
-Server, and Search Service Contributor.
+`dev`, `test`, and `prod` environments (every environment in the catalog, unless `--environments` names fewer),
+Contributor on the subscription, and permission to grant only the roles the modules grant (`var grantable` in
+`azure/bootstrap/main.bicep`, which a test keeps in step with the modules).
 `--github` sets the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` and creates
-the `dev` environment with `gh`. Running it again changes nothing; `bootstrap-down` removes it all.
+the deployment environments with `gh`: `dev` deploys from any branch, `test` and `prod` only from `main`, and every
+`prod` deployment waits for its reviewer (the repository's owner, or `--reviewer <login>`). Running it again changes
+nothing; `bootstrap-down` removes it all.
 
 Each environment's External ID tenant is bootstrapped once too, by someone who may create resources in the subscription:
 
@@ -159,7 +167,8 @@ EventListener.ReadWrite.All, User.Read.All). `--github` sets `SIGNIN_TENANT_ID_D
 `SIGNIN_CLIENT_ID_DEV`, repository variables (not environment-scoped) so drift checks and pull request previews read them
 too. Running it again changes nothing. `bootstrap-signin-down --env dev --tenant <id> --confirm dev` removes the
 deployment app and the tenant; Azure refuses to delete a tenant that still has users or apps, so tear the `signin`
-resource down first and remove staff accounts in the Entra admin center.
+resource down first and remove staff accounts in the Entra admin center. Each environment has its own tenant: run it
+again with `--env test --domain hospitalityostest` and `--env prod --domain hospitalityosprod`.
 
 ## Workflows
 
@@ -168,7 +177,9 @@ resource down first and remove staff accounts in the Entra admin center.
 | `iac-validate.yml` | PRs and pushes touching `deploy/` | Orchestrator tests, every plan validated, every module built and linted; a what-if comment on PRs |
 | `deploy-dev.yml` | After CI passes on `main`, or on demand with a plan | `deploy.yml` for `dev` |
 | `deploy.yml` | Reused | `deploy.py up` for one environment and plan |
+| `promote.yml` | On demand, from `main` | A commit that passed CI and deployed to `dev` (the last one by default): `test` with dev's image, then the live AI evals on test's models, then `prod` with test's image once the evals pass and its reviewer approves |
+| `ai-evals-live.yml` | On demand, and from `promote.yml` | The AI evals against an environment's own models (the routing it is deployed with, from `deploy.py settings`) |
 | `drift-detection.yml` | Daily | `deploy.py drift` for `dev`; opens an issue on drift |
-| `teardown.yml` | On demand, environment typed again | `deploy.py down` |
+| `teardown.yml` | On demand, environment typed again | `deploy.py down`, under the environment's protection rules (prod waits for its reviewer) |
 
 The deploying workflows skip themselves until the bootstrap has set the variables.

@@ -42,6 +42,9 @@ class FakeCloud:
         if target.placement.purpose in self.failing:
             raise PlanError([f"{target.placement.purpose}: job failed"])
 
+    def promote_image(self, target, registry, source_registry, repository, tag) -> None:
+        self.calls.append(("promote", repository, tag, source_registry, registry["loginServer"]))
+
     def ensure_image(self, target, registry, repository, tag, project) -> None:
         self.calls.append(("image", repository, tag, registry["loginServer"], project))
 
@@ -155,6 +158,26 @@ class DeployerTests(unittest.TestCase):
         Deployer(migrating, "dev", "hospitalityos", {"azure": cloud}, log=lambda _: None).drift()
         self.assertNotIn("run", [call[0] for call in cloud.calls])
 
+    def test_promoting_copies_the_image_the_source_environment_ran_instead_of_building_it(self):
+        cloud = FakeCloud({**ANSWERS, "images": {"loginServer": "imagestestuksouthacr.azurecr.io", "registryName": "imagestestuksouthacr"}})
+
+        Deployer(plan(), "test", "hospitalityos", {"azure": cloud}, log=lambda _: None, promote_from="dev").up("abc123", smoke=False)
+
+        self.assertIn(("promote", "hospitalityos-api", "abc123", "imagesdevuksouthacr", "imagestestuksouthacr.azurecr.io"), cloud.calls)
+        self.assertNotIn("image", [call[0] for call in cloud.calls])
+
+    def test_deployed_settings_are_what_the_deployed_resources_imply(self):
+        settings_plan = plan()
+        secrets = settings_plan.placements[2]
+        settings_plan.placements[2] = Placement(secrets.purpose, secrets.cloud, secrets.region, secrets.group, secrets.depends_on,
+                                                {**secrets.service, "appSettings": {"Bindings__SecretStore__Default__Settings__VaultUri": "${secrets.vaultUri}"}}, stateful=True)
+        deployer = Deployer(settings_plan, "dev", "hospitalityos", {"azure": self.cloud}, log=lambda _: None)
+
+        self.assertEqual({"Bindings__SecretStore__Default__Settings__VaultUri": ""}, deployer.deployed_settings())
+
+        deployer.up("abc123", smoke=False)
+        self.assertEqual({"Bindings__SecretStore__Default__Settings__VaultUri": "https://secrets-dev-uksouth-kv.vault.azure.net/"}, deployer.deployed_settings())
+
     def test_deploying_an_image_needs_the_commit(self):
         with self.assertRaises(PlanError):
             self.deployer.up(None, smoke=False)
@@ -230,6 +253,33 @@ class PlanChoiceTests(unittest.TestCase):
 
     def test_unattended_runs_use_the_default(self):
         self.assertEqual("azure-only", choose_plan(None, interactive=False))
+
+
+class GitHubEnvironmentTests(unittest.TestCase):
+    def test_dev_deploys_from_any_branch_test_from_main_and_prod_from_main_with_its_reviewers_approval(self):
+        from hospitalityos_deploy.cli import environment_settings
+
+        self.assertEqual({"deployment_branch_policy": None}, environment_settings("dev", 7))
+        self.assertEqual({"deployment_branch_policy": {"protected_branches": False, "custom_branch_policies": True}}, environment_settings("test", 7))
+        self.assertEqual(
+            {
+                "deployment_branch_policy": {"protected_branches": False, "custom_branch_policies": True},
+                "reviewers": [{"type": "User", "id": 7}],
+                "prevent_self_review": False,
+            },
+            environment_settings("prod", 7),
+        )
+
+        with self.assertRaises(PlanError):
+            environment_settings("prod", None)
+
+    def test_promoting_names_another_of_the_catalogs_environments(self):
+        from hospitalityos_deploy.cli import deployer
+
+        self.assertEqual("dev", deployer("test", "azure-only", "dev").promote_from)
+        for source in ("test", "staging"):
+            with self.subTest(source=source), self.assertRaises(PlanError):
+                deployer("test", "azure-only", source)
 
 
 class TeardownGuardTests(unittest.TestCase):

@@ -64,6 +64,9 @@ class Driver(Protocol):
     def run(self, target: Target, outputs: dict) -> None:
         """Runs a deployed job to completion, e.g. the migration step; raises PlanError if it fails."""
 
+    def promote_image(self, target: Target, registry: dict, source_registry: str, repository: str, tag: str) -> None:
+        """Copies an image already tested in another environment's registry, unchanged; raises PlanError if it is not there."""
+
     def ensure_image(self, target: Target, registry: dict, repository: str, tag: str, project: str) -> None:
         """Builds and pushes the image unless the registry already has that tag."""
 
@@ -94,6 +97,8 @@ class Deployer:
     product: str
     drivers: dict[str, Driver]
     log: Callable[[str], None] = print
+    promote_from: str | None = None
+    """An environment whose images to copy instead of building them (promotion: what reaches prod is what test ran)."""
     environ: Mapping[str, str] = field(default_factory=lambda: os.environ)
 
     def targets(self) -> list[Target]:
@@ -139,8 +144,14 @@ class Deployer:
 
             if placement.image and sha:
                 registry = outputs[placement.image["registry"]]
-                self.log(f"image   {placement.image['repository']}:{sha} in {registry.get('loginServer')}")
-                self.driver(target).ensure_image(target, registry, placement.image["repository"], sha, placement.image["project"])
+
+                if self.promote_from:
+                    source = self.source_registry(placement)
+                    self.log(f"image   {placement.image['repository']}:{sha} from {source} to {registry.get('loginServer')}")
+                    self.driver(target).promote_image(target, registry, source, placement.image["repository"], sha)
+                else:
+                    self.log(f"image   {placement.image['repository']}:{sha} in {registry.get('loginServer')}")
+                    self.driver(target).ensure_image(target, registry, placement.image["repository"], sha, placement.image["project"])
 
             self.log(f"deploy  {placement.purpose:<15} {placement.cloud}/{placement.region}  {target.name}")
             outputs[placement.purpose] = self.driver(target).deploy(target, parameters)
@@ -161,6 +172,18 @@ class Deployer:
                     self.healthy(f"{url}/health")
 
         return outputs
+
+    def source_registry(self, placement: Placement) -> str:
+        """The name of the registry the image is promoted from: the same registry resource in the source environment."""
+        registry = self.plan.by_purpose()[placement.image["registry"]]
+
+        return resource_name(registry.purpose, self.promote_from, registry.region, registry.service["type"], registry.service.get("compact", False))
+
+    def deployed_settings(self) -> dict[str, str]:
+        """The app settings the deployed environment runs with, from its resources' current outputs."""
+        outputs = {target.placement.purpose: current for target in self.targets() if (current := self.driver(target).outputs(target)) is not None}
+
+        return app_settings(self.plan, outputs)
 
     def drift(self) -> dict[str, list[str]]:
         """What deploying the plan again would change, per resource, with each deployed image kept as it is."""

@@ -1,0 +1,7 @@
+{
+  "Inference": {
+    "Tasks": {
+      "eval.judge": { "Provider": "azure-chat", "Model": "gpt-5-mini", "Parameters": { "Effort": "Medium" } }
+    }
+  }
+}

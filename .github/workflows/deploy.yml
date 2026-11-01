@@ -20,6 +20,11 @@ on:
         description: The commit to deploy.
         required: true
         type: string
+      promote-from:
+        description: The environment whose image to copy instead of building one (promotion), e.g. dev.
+        required: false
+        type: string
+        default: ""
     secrets:
       ANTHROPIC_API_KEY:
         description: The Anthropic API key, kept in the secrets vault for the AI tasks to use Claude; optional.
@@ -66,10 +71,11 @@ jobs:
           ENVIRONMENT: ${{ inputs.environment }}
           PLAN: ${{ inputs.plan }}
           SHA: ${{ inputs.sha }}
+          PROMOTE_FROM: ${{ inputs.promote-from }}
           # The environment's External ID tenant (deploy bootstrap-signin), which the signin resource deploys into.
           HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars[format('SIGNIN_TENANT_ID_{0}', inputs.environment)] }}
           HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars[format('SIGNIN_DOMAIN_{0}', inputs.environment)] }}
           HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars[format('SIGNIN_CLIENT_ID_{0}', inputs.environment)] }}
           # The Anthropic API key (repository secret), kept in the secrets vault; without it the AI tasks use Azure OpenAI (K5).
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python3 deploy/tooling/deploy.py up --env "${ENVIRONMENT}" --plan "${PLAN}" --sha "${SHA}"
+        run: python3 deploy/tooling/deploy.py up --env "${ENVIRONMENT}" --plan "${PLAN}" --sha "${SHA}" ${PROMOTE_FROM:+--promote-from "${PROMOTE_FROM}"}

@@ -1,0 +1,107 @@
+# Runs the AI evals (tests/HospitalityOS.AiEvals) against an environment's own models: the inference routing it is
+# deployed with (deploy.py settings), so Claude with Azure OpenAI as the fallback when the Anthropic key is set, else Azure
+# OpenAI alone, and a judge on the same provider. CI runs the same scenarios against the Fake model; this run costs money,
+# so it runs only when asked, and before every promotion to prod (promote.yml), which a failure stops.
+name: ai-evals-live
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: The environment whose models to evaluate.
+        required: true
+        type: choice
+        options: [dev, test, prod]
+        default: test
+      plan:
+        description: The deployment plan it was deployed with.
+        required: false
+        default: azure-only
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      plan:
+        required: false
+        type: string
+        default: azure-only
+      sha:
+        description: The commit whose scenarios to run.
+        required: true
+        type: string
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    name: AI evals on ${{ inputs.environment }}'s models
+    if: vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up .NET (version from global.json)
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      # The models are called as the deployment identity, which the inference modules let call them.
+      - name: Sign in to Azure (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bind the evals to the environment's models
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PLAN: ${{ inputs.plan }}
+          HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars[format('SIGNIN_TENANT_ID_{0}', inputs.environment)] }}
+          HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars[format('SIGNIN_DOMAIN_{0}', inputs.environment)] }}
+          HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars[format('SIGNIN_CLIENT_ID_{0}', inputs.environment)] }}
+          HAS_ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          python3 deploy/tooling/deploy.py settings --env "${ENVIRONMENT}" --plan "${PLAN}" --prefix Inference__ --json > "${RUNNER_TEMP}/routing.json"
+          judge=azure
+          if [ "${HAS_ANTHROPIC_KEY}" = "true" ]; then judge=anthropic; fi
+          python3 - "${RUNNER_TEMP}/routing.json" "tests/HospitalityOS.AiEvals/Settings/judge-${judge}.json" "${RUNNER_TEMP}/evals.json" <<'PY'
+          import json, sys
+          routing, judge = (json.load(open(path, encoding="utf-8")) for path in sys.argv[1:3])
+          routing["Inference"].setdefault("Tasks", {}).update(judge["Inference"]["Tasks"])
+          json.dump(routing, open(sys.argv[3], "w", encoding="utf-8"), indent=2)
+          PY
+          echo "HOSPITALITYOS_EVALS_SETTINGS=${RUNNER_TEMP}/evals.json" >> "${GITHUB_ENV}"
+          echo "Judged by ${judge}." >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Run the AI evals
+        env:
+          # The anthropic provider reads its key as the secret anthropic-api-key, an environment variable here.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: >-
+          dotnet test --project tests/HospitalityOS.AiEvals --configuration Release
+          -- --report-trx --results-directory "${RUNNER_TEMP}/evals"
+
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ai-evals-${{ inputs.environment }}
+          path: ${{ runner.temp }}/evals
+          if-no-files-found: ignore

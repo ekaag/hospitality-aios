@@ -4,6 +4,7 @@ drift, and tear down. Workflows and people run the same commands."""
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -11,7 +12,7 @@ from typing import Callable
 
 from . import azure, graph
 from .deployer import Deployer
-from .model import DEFAULT_PLAN, PlanError, load_catalog, load_plan, plan_names
+from .model import DEFAULT_PLAN, PlanError, configuration, load_catalog, load_plan, plan_names
 
 DRIVERS: dict[str, Callable[[], object]] = {"azure": azure.AzureDriver, "graph": graph.GraphDriver}
 
@@ -34,11 +35,14 @@ def choose_plan(given: str | None, ask: Callable[[str], str] = input, interactiv
     return answer or DEFAULT_PLAN
 
 
-def deployer(env: str, plan_name: str) -> Deployer:
+def deployer(env: str, plan_name: str, promote_from: str | None = None) -> Deployer:
     catalog = load_catalog()
     plan = load_plan(plan_name, env, catalog)
 
-    return Deployer(plan, env, catalog["product"], {driver: DRIVERS[driver]() for driver in plan.drivers()})
+    if promote_from is not None and (promote_from == env or promote_from not in catalog.get("environments", [])):
+        raise PlanError([f"Promote from another of the catalog's environments ({', '.join(catalog.get('environments', []))}), not '{promote_from}'."])
+
+    return Deployer(plan, env, catalog["product"], {driver: DRIVERS[driver]() for driver in plan.drivers()}, promote_from=promote_from)
 
 
 def validate(arguments: argparse.Namespace) -> int:
@@ -89,7 +93,7 @@ def bootstrap(arguments: argparse.Namespace) -> int:
         print(f"  {key}={value}")
 
     if arguments.github:
-        github(arguments.repo, values, arguments.environments)
+        github(arguments.repo, values, arguments.environments, arguments.reviewer)
 
     return 0
 
@@ -161,20 +165,61 @@ def operator(arguments: argparse.Namespace) -> int:
     return 0
 
 
-def github(repository: str, values: dict[str, str], environments: list[str]) -> None:
-    """Sets the repository variables the workflows sign in with, and creates the deployment environments."""
+# Environments only main may deploy to, and those a reviewer must approve each deployment to.
+MAIN_ONLY = {"test", "prod"}
+REVIEWED = {"prod"}
+
+
+def environment_settings(environment: str, reviewer_id: int | None) -> dict:
+    """A GitHub deployment environment's protection: test and prod only from main; prod waits for its reviewer."""
+    body: dict = {"deployment_branch_policy": None}
+
+    if environment in MAIN_ONLY:
+        body["deployment_branch_policy"] = {"protected_branches": False, "custom_branch_policies": True}
+
+    if environment in REVIEWED:
+        if reviewer_id is None:
+            raise PlanError([f"{environment} needs a reviewer to approve its deployments."])
+        body["reviewers"] = [{"type": "User", "id": reviewer_id}]
+        body["prevent_self_review"] = False
+
+    return body
+
+
+def github(repository: str, values: dict[str, str], environments: list[str], reviewer: str | None = None) -> None:
+    """Sets the repository variables the workflows sign in with, and creates the deployment environments with their
+    protection rules (the reviewer, by default the repository's owner, approves prod)."""
     if not shutil.which("gh"):
         raise PlanError(["The GitHub CLI (gh) is needed to set the repository variables."])
 
     for key, value in values.items():
         subprocess.run(["gh", "variable", "set", key, "--body", value, "--repo", repository], check=True)
 
+    login = reviewer or repository.split("/", 1)[0]
+    reviewer_id = None
+    if REVIEWED & set(environments):
+        reviewer_id = int(subprocess.run(["gh", "api", f"users/{login}", "--jq", ".id"], check=True, capture_output=True, text=True).stdout.strip())
+
     for environment in environments:
-        subprocess.run(["gh", "api", "--method", "PUT", f"repos/{repository}/environments/{environment}", "--silent"], check=True)
+        subprocess.run(
+            ["gh", "api", "--method", "PUT", f"repos/{repository}/environments/{environment}", "--input", "-", "--silent"],
+            input=json.dumps(environment_settings(environment, reviewer_id)), text=True, check=True,
+        )
+
+        if environment in MAIN_ONLY:
+            policies = subprocess.run(
+                ["gh", "api", f"repos/{repository}/environments/{environment}/deployment-branch-policies", "--jq", "[.branch_policies[].name]"],
+                check=True, capture_output=True, text=True,
+            ).stdout
+            if "main" not in json.loads(policies or "[]"):
+                subprocess.run(
+                    ["gh", "api", "--method", "POST", f"repos/{repository}/environments/{environment}/deployment-branch-policies", "-f", "name=main", "-f", "type=branch", "--silent"],
+                    check=True,
+                )
 
 
 def up(arguments: argparse.Namespace) -> int:
-    outputs = deployer(arguments.env, choose_plan(arguments.plan)).up(arguments.sha, smoke=not arguments.no_smoke)
+    outputs = deployer(arguments.env, choose_plan(arguments.plan), arguments.promote_from).up(arguments.sha, smoke=not arguments.no_smoke)
     api = outputs.get("api", {})
 
     if api.get("url"):
@@ -199,6 +244,21 @@ def drift(arguments: argparse.Namespace) -> int:
             file.write("\n".join(lines) + "\n")
 
     return 1 if drifted else 0
+
+
+def settings(arguments: argparse.Namespace) -> int:
+    """Prints the deployed environment's app settings starting with the prefix: NAME=value lines, or with --json an
+    appsettings.json document (the live AI evals bind the environment's models with it)."""
+    deployed = deployer(arguments.env, choose_plan(arguments.plan)).deployed_settings()
+    chosen = {key: value for key, value in sorted(deployed.items()) if key.startswith(arguments.prefix)}
+
+    if not chosen:
+        print(f"{arguments.env} has no deployed app settings starting with {arguments.prefix}.", file=sys.stderr)
+        return 1
+
+    print(json.dumps(configuration(chosen), indent=2) if arguments.json else "\n".join(f"{key}={value}" for key, value in chosen.items()))
+
+    return 0
 
 
 def down(arguments: argparse.Namespace) -> int:
@@ -234,6 +294,11 @@ def parser() -> argparse.ArgumentParser:
     deploy_up = planned("up", "Deploys a plan (idempotent: the same SHA again changes nothing).", up)
     deploy_up.add_argument("--sha", required=True, help="The commit the images are built from and tagged with.")
     deploy_up.add_argument("--no-smoke", action="store_true", help="Skip the health check after deploying.")
+    deploy_up.add_argument("--promote-from", help="Copy the images from this environment's registry instead of building them.")
+
+    deploy_settings = planned("settings", "Prints a deployed environment's app settings with a prefix, e.g. Inference__.", settings)
+    deploy_settings.add_argument("--prefix", required=True)
+    deploy_settings.add_argument("--json", action="store_true", help="Print an appsettings.json document instead of NAME=value lines.")
 
     deploy_drift = planned("drift", "Reports what deploying again would change; exits 1 on drift.", drift)
     deploy_drift.add_argument("--report", help="Also write the report to this file.")
@@ -250,8 +315,9 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--cloud", default="azure")
         command.add_argument("--repo", required=True, help="The GitHub repository, owner/name.")
         command.add_argument("--region", default="uksouth")
-        command.add_argument("--environments", nargs="+", default=["dev"])
-        command.add_argument("--github", action="store_true", help="Also set (or remove) the repository variables with gh.")
+        command.add_argument("--environments", nargs="+", default=load_catalog().get("environments", ["dev"]))
+        command.add_argument("--github", action="store_true", help="Also set (or remove) the repository variables with gh, and create the deployment environments.")
+        command.add_argument("--reviewer", help="Who approves prod deployments (a GitHub login); the repository's owner by default.")
         command.set_defaults(handler=handler)
 
     signin = commands.add_parser("bootstrap-signin", help="Creates an environment's Entra External ID tenant and its deployment app (run once, as an administrator).")

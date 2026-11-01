@@ -264,6 +264,22 @@ def uses_deployer(placement: Placement) -> bool:
     return any(source.split(".", 1)[0] == DEPLOYER for source in placement.service.get("inputs", {}).values())
 
 
+def configuration(settings: dict[str, str]) -> dict:
+    """App settings (environment-variable names, `__` between levels) as an appsettings.json document, which .NET reads the
+    same way: `Inference__Tasks__concierge.answer__Fallback__0` becomes `{"Inference": {"Tasks": {"concierge.answer":
+    {"Fallback": {"0": ...}}}}}`."""
+    document: dict = {}
+
+    for key, value in settings.items():
+        *parents, leaf = key.split("__")
+        level = document
+        for parent in parents:
+            level = level.setdefault(parent, {})
+        level[leaf] = value
+
+    return document
+
+
 def secure_inputs(placement: Placement, environ: Mapping[str, str]) -> dict[str, str]:
     """The module's secure parameters, each from the environment variable the catalog names (empty when it is not set),
     e.g. a repository secret the deploy workflow passes. They are never logged or written anywhere but the parameters file."""

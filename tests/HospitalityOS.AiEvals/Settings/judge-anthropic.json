@@ -1,0 +1,7 @@
+{
+  "Inference": {
+    "Tasks": {
+      "eval.judge": { "Provider": "anthropic", "Model": "claude-opus-5-5" }
+    }
+  }
+}

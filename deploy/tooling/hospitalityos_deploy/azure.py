@@ -247,6 +247,18 @@ class AzureDriver:
 
             time.sleep(10)
 
+    def promote_image(self, target: Target, registry: dict, source_registry: str, repository: str, tag: str) -> None:
+        name = registry["registryName"]
+
+        if tag in (az_json("acr", "repository", "show-tags", "--name", name, "--repository", repository, check=False) or []):
+            return
+
+        source = az_json("acr", "show", "--name", source_registry, check=False)
+        if not source or tag not in (az_json("acr", "repository", "show-tags", "--name", source_registry, "--repository", repository, check=False) or []):
+            raise PlanError([f"{target.placement.purpose}: {repository}:{tag} is not in {source_registry}, so it has not been deployed there to promote."])
+
+        az("acr", "import", "--name", name, "--source", f"{repository}:{tag}", "--registry", source["id"], "--image", f"{repository}:{tag}")
+
     def ensure_image(self, target: Target, registry: dict, repository: str, tag: str, project: str) -> None:
         name, server = registry["registryName"], registry["loginServer"]
         existing = az_json("acr", "repository", "show-tags", "--name", name, "--repository", repository, check=False) or []

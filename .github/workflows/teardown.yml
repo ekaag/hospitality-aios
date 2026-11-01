@@ -10,7 +10,7 @@ on:
         description: The environment to tear down.
         required: true
         type: choice
-        options: [dev]
+        options: [dev, test, prod]
       confirm:
         description: Type the environment name again.
         required: true

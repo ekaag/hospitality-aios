@@ -1,0 +1,98 @@
+# Promotes a commit from dev to test to prod (implementation plan §5.1, K6c). Only a commit that passed CI on main and
+# was deployed to dev may be promoted. Its image is copied from the environment before, never rebuilt, so prod runs
+# exactly what test ran. After test deploys, the AI evals run against test's own models (ai-evals-live.yml), and prod
+# waits for them to pass and for its reviewer's approval (the prod environment's protection rule, set by the bootstrap).
+name: promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: The commit to promote; by default the one dev last deployed.
+        required: false
+      plan:
+        description: The deployment plan.
+        required: false
+        default: azure-only
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  choose:
+    name: Choose the commit
+    if: github.ref == 'refs/heads/main' && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          GIVEN: ${{ inputs.sha }}
+        run: |
+          sha="${GIVEN}"
+          if [ -z "${sha}" ]; then
+            sha=$(gh run list --repo "${REPOSITORY}" --workflow deploy-dev.yml --status success --limit 1 --json headSha --jq '.[0].headSha')
+          fi
+          if [ -z "${sha}" ]; then
+            echo "::error::dev has not been deployed, so there is nothing to promote."
+            exit 1
+          fi
+          for workflow in ci.yml deploy-dev.yml; do
+            passed=$(gh run list --repo "${REPOSITORY}" --workflow "${workflow}" --branch main --status success --limit 200 --json headSha --jq "[.[] | select(.headSha == \"${sha}\")] | length")
+            if [ "${passed}" = "0" ]; then
+              echo "::error::${sha} has no successful ${workflow} run on main, so it may not be promoted."
+              exit 1
+            fi
+          done
+          echo "sha=${sha}" >> "${GITHUB_OUTPUT}"
+          echo "Promoting ${sha}." >> "${GITHUB_STEP_SUMMARY}"
+
+  test:
+    needs: choose
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: test
+      plan: ${{ inputs.plan || 'azure-only' }}
+      sha: ${{ needs.choose.outputs.sha }}
+      promote-from: dev
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  evals:
+    needs: [choose, test]
+    uses: ./.github/workflows/ai-evals-live.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: test
+      plan: ${{ inputs.plan || 'azure-only' }}
+      sha: ${{ needs.choose.outputs.sha }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  prod:
+    needs: [choose, evals]
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: prod
+      plan: ${{ inputs.plan || 'azure-only' }}
+      sha: ${{ needs.choose.outputs.sha }}
+      promote-from: test
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

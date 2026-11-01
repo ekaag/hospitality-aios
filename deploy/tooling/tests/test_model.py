@@ -274,6 +274,18 @@ class OrderTests(unittest.TestCase):
         )
         self.assertEqual("azure-chat", app_settings(deployed, {"inference-chat": {"chatDeployment": "gpt-5-mini"}})["Inference__Tasks__concierge.answer__Provider"])
 
+    def test_app_settings_read_as_configuration_the_way_dotnet_reads_environment_variables(self):
+        from hospitalityos_deploy.model import configuration
+
+        self.assertEqual(
+            {"Inference": {"Tasks": {"concierge.answer": {"Provider": "anthropic", "Fallback": {"0": "azure-chat:gpt-5-mini"}}}, "Providers": {"azure-chat": {"Adapter": "AzureOpenAI"}}}},
+            configuration({
+                "Inference__Tasks__concierge.answer__Provider": "anthropic",
+                "Inference__Tasks__concierge.answer__Fallback__0": "azure-chat:gpt-5-mini",
+                "Inference__Providers__azure-chat__Adapter": "AzureOpenAI",
+            }),
+        )
+
     def test_app_settings_are_filled_from_outputs(self):
         from hospitalityos_deploy.model import Plan
 

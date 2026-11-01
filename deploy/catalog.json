@@ -1,8 +1,8 @@
 {
   "$comment": "Every resource the product needs, by its job (the purpose), and the service each cloud offers for it. A deployment plan (plans/) chooses a cloud and region per resource; the orchestrator (tooling/) deploys a cloud's service through its module. A service without a module is known but not yet deployable; a resource marked planned is not yet needed by the app, so plans may leave it out.",
   "product": "hospitalityos",
-  "$environments": "test and prod arrive with K6c (test rather than staging: secrets-staging-uksouth-kv would be 26 characters, over Key Vault's 24).",
-  "environments": ["dev"],
+  "$environments": "dev, test, and prod (test rather than staging: secrets-staging-uksouth-kv would be 26 characters, over Key Vault's 24). Outside dev, services take their smallest paid tier, since a subscription has only one free AI Search service and one free SignalR unit. prod alone protects its stateful resources.",
+  "environments": ["dev", "test", "prod"],
   "clouds": {
     "azure": { "tool": "bicep", "status": "available" },
     "aws": { "tool": "cloudformation", "status": "planned" },
@@ -169,7 +169,10 @@
           "maxLength": 63,
           "module": "azure/modules/data.bicep",
           "inputs": { "adminPrincipalId": "identity-data.principalId", "adminName": "identity-data.name" },
-          "parameters": { "sku": { "dev": "Standard_B1ms" }, "tier": { "dev": "Burstable" } },
+          "parameters": {
+            "sku": { "dev": "Standard_B1ms", "test": "Standard_B1ms", "prod": "Standard_B1ms" },
+            "tier": { "dev": "Burstable", "test": "Burstable", "prod": "Burstable" }
+          },
           "appSettings": {
             "Persistence__Provider": "PostgreSql",
             "Persistence__SignIn": "Entra",
@@ -204,7 +207,7 @@
             "dataHost": "data.host",
             "database": "data.database"
           },
-          "parameters": { "seed": { "dev": true } }
+          "parameters": { "seed": { "dev": true, "test": true, "prod": false } }
         },
         "aws": { "service": "ECS task" },
         "gcp": { "service": "Cloud Run job" }
@@ -280,7 +283,7 @@
           "maxLength": 60,
           "module": "azure/modules/search-content.bicep",
           "inputs": { "principalId": "identity-api.principalId", "deployerPrincipalId": "deployer.principalId" },
-          "parameters": { "sku": { "dev": "free" } },
+          "parameters": { "sku": { "dev": "free", "test": "basic", "prod": "basic" } },
           "indexes": ["azure/search/content.json", "azure/search/content-vectors.json"],
           "appSettings": {
             "Bindings__SearchIndex__Default__Adapter": "AzureAISearch",
@@ -304,7 +307,7 @@
           "maxLength": 63,
           "module": "azure/modules/realtime.bicep",
           "inputs": { "principalId": "identity-api.principalId" },
-          "parameters": { "sku": { "dev": "Free_F1" } },
+          "parameters": { "sku": { "dev": "Free_F1", "test": "Standard_S1", "prod": "Standard_S1" } },
           "appSettings": {
             "Bindings__RealtimeNotifier__Default__Adapter": "AzureSignalR",
             "Bindings__RealtimeNotifier__Default__Settings__Endpoint": "${realtime.endpoint}"
@@ -324,8 +327,8 @@
           "type": "oai",
           "maxLength": 64,
           "module": "azure/modules/inference-chat.bicep",
-          "inputs": { "principalId": "identity-api.principalId" },
-          "parameters": { "capacity": { "dev": 50 } },
+          "inputs": { "principalId": "identity-api.principalId", "deployerPrincipalId": "deployer.principalId" },
+          "parameters": { "capacity": { "dev": 50, "test": 50, "prod": 100 } },
           "appSettings": {
             "Inference__Providers__azure-chat__Adapter": "AzureOpenAI",
             "Inference__Providers__azure-chat__Settings__Endpoint": "${inference-chat.endpoint}",
@@ -364,8 +367,8 @@
           "type": "oai",
           "maxLength": 64,
           "module": "azure/modules/inference-embed.bicep",
-          "inputs": { "principalId": "identity-api.principalId" },
-          "parameters": { "capacity": { "dev": 50 } },
+          "inputs": { "principalId": "identity-api.principalId", "deployerPrincipalId": "deployer.principalId" },
+          "parameters": { "capacity": { "dev": 50, "test": 50, "prod": 100 } },
           "appSettings": {
             "Inference__Providers__azure-embed__Adapter": "AzureOpenAI",
             "Inference__Providers__azure-embed__Settings__Endpoint": "${inference-embed.endpoint}",

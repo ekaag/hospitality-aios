@@ -16,6 +16,9 @@ param tags object
 @description('The principal that calls the models: the API identity.')
 param principalId string
 
+@description('The principal running the deployment, which runs the live AI evals against these models.')
+param deployerPrincipalId string
+
 @description('Thousands of tokens a minute the deployment may use.')
 @minValue(1)
 param capacity int
@@ -68,6 +71,15 @@ resource use 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     roleDefinitionId: openAIUser
     principalId: principalId
     principalType: 'ServicePrincipal'
+  }
+}
+
+resource evaluate 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(account.id, deployerPrincipalId, openAIUser)
+  scope: account
+  properties: {
+    roleDefinitionId: openAIUser
+    principalId: deployerPrincipalId
   }
 }
 
