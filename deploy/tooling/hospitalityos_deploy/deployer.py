@@ -15,6 +15,9 @@ from pathlib import Path
 from .model import DEPLOY, DEPLOYER, Placement, Plan, PlanError, app_settings, environment_parameters, group_name, resolve_inputs, resource_name, secure_inputs, tags, uses_deployer
 
 
+NOT_DEPLOYED = "not deployed"
+
+
 @dataclass(frozen=True)
 class Target:
     """Where one resource goes, in its cloud's terms."""
@@ -194,7 +197,7 @@ class Deployer:
             current = self.driver(target).outputs(target)
 
             if current is None:
-                drifted[target.placement.purpose] = ["not deployed"]
+                drifted[target.placement.purpose] = [NOT_DEPLOYED]
                 continue
 
             deployed_image = current.get("image")
@@ -210,6 +213,10 @@ class Deployer:
             outputs[target.placement.purpose] = current
 
         return drifted
+
+    def nothing_deployed(self, drifted: dict[str, list[str]]) -> bool:
+        """Whether a drift report says only that no resource of the plan is deployed yet (an environment never deployed)."""
+        return len(drifted) == len(self.plan.placements) and all(changes == [NOT_DEPLOYED] for changes in drifted.values())
 
     def down(self, include_stateful: bool = False) -> list[str]:
         """Removes the plan's resources in reverse order; stateful ones only when asked. Returns what was kept."""

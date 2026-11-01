@@ -76,7 +76,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
       }
     },
     "/api/v1/capabilities/{name}": {
@@ -127,7 +132,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
       }
     },
     "/api/v1/organizations": {

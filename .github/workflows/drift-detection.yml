@@ -1,6 +1,7 @@
-# Daily drift detection (implementation plan §5.1, P12): a what-if of dev's plan against what is deployed, keeping the
-# deployed image. Any change means something was altered outside the pipeline, or the templates moved on and were not
-# deployed; the run fails and opens an issue.
+# Daily drift detection (implementation plan §5.1, P12): a what-if of each environment's plan against what is deployed,
+# keeping the deployed image. Any change means something was altered outside the pipeline, or the templates moved on and
+# were not deployed; that environment's job fails and opens an issue. An environment not deployed yet (test and prod until
+# their first promotion) passes.
 name: drift-detection
 
 on:
@@ -17,9 +18,13 @@ permissions:
   contents: read
 
 jobs:
-  dev:
-    name: Drift (dev)
+  drift:
+    name: Drift (${{ matrix.env }})
     if: vars.AZURE_CLIENT_ID != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, test, prod]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -41,15 +46,17 @@ jobs:
       - name: What-if against what is deployed
         env:
           PLAN: ${{ inputs.plan || 'azure-only' }}
-          HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars.SIGNIN_TENANT_ID_DEV }}
-          HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars.SIGNIN_DOMAIN_DEV }}
-          HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars.SIGNIN_CLIENT_ID_DEV }}
+          ENVIRONMENT: ${{ matrix.env }}
+          HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars[format('SIGNIN_TENANT_ID_{0}', matrix.env)] }}
+          HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars[format('SIGNIN_DOMAIN_{0}', matrix.env)] }}
+          HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars[format('SIGNIN_CLIENT_ID_{0}', matrix.env)] }}
           # The Anthropic API key (repository secret), kept in the secrets vault; without it the AI tasks use Azure OpenAI (K5).
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python3 deploy/tooling/deploy.py drift --env dev --plan "${PLAN}" --report "${RUNNER_TEMP}/drift.md"
+        run: python3 deploy/tooling/deploy.py drift --env "${ENVIRONMENT}" --plan "${PLAN}" --report "${RUNNER_TEMP}/drift.md" --skip-undeployed
 
       - name: Open an issue
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh issue create --repo "${GITHUB_REPOSITORY}" --title "Drift in dev" --body-file "${RUNNER_TEMP}/drift.md"
+          ENVIRONMENT: ${{ matrix.env }}
+        run: gh issue create --repo "${GITHUB_REPOSITORY}" --title "Drift in ${ENVIRONMENT}" --body-file "${RUNNER_TEMP}/drift.md"

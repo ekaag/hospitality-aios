@@ -7,7 +7,7 @@ using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Serialization;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
-using Microsoft.AspNetCore.Mvc.Testing;
+using HospitalityOS.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.TestHost;
 using Xunit;
 
@@ -17,20 +17,36 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
 {
     private const string Route = "/api/v1/capabilities";
 
-    private readonly WebApplicationFactory<Program> factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+    private readonly StaffApi api = new(configure: builder =>
         builder.ConfigureTestServices(services => services
             .AddCapability<GetHoursCapability>()
             .AddCapability<NotifyGuestCapability>()
             .AddCapability<NotifyGuestV2Capability>()));
 
+    private readonly TenantId tenant = new(Guid.CreateVersion7());
+
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
-    public async ValueTask DisposeAsync() => await factory.DisposeAsync();
+    public async ValueTask DisposeAsync() => await api.DisposeAsync();
+
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData("Worker", HttpStatusCode.Forbidden)]
+    [InlineData("Manager", HttpStatusCode.OK)]
+    [InlineData("Admin", HttpStatusCode.OK)]
+    public async Task List_IsForManagersAndAdministrators(string? role, HttpStatusCode expected)
+    {
+        using HttpClient client = role is null ? api.Client() : api.Staff(tenant, role);
+
+        using HttpResponseMessage response = await client.GetAsync(Route, TestContext.Current.CancellationToken);
+
+        Assert.Equal(expected, response.StatusCode);
+    }
 
     [Fact]
     public async Task List_ReturnsEveryVersionWithEverySpecFieldInTheWireFormat()
     {
-        using HttpClient client = factory.CreateClient();
+        using HttpClient client = api.Staff(tenant, "Manager");
 
         using JsonDocument body = JsonDocument.Parse(await client.GetStringAsync(Route, TestContext.Current.CancellationToken));
 
@@ -59,7 +75,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task Get_ByName_ReturnsTheLatestVersion()
     {
-        using HttpClient client = factory.CreateClient();
+        using HttpClient client = api.Staff(tenant, "Manager");
 
         CapabilityDescription? description = await GetAsync(client, $"{Route}/Test.NotifyGuest");
 
@@ -71,7 +87,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task Get_ByNameAndVersion_ReturnsThatVersion()
     {
-        using HttpClient client = factory.CreateClient();
+        using HttpClient client = api.Staff(tenant, "Manager");
 
         CapabilityDescription? description = await GetAsync(client, $"{Route}/Test.NotifyGuest?version=1");
 
@@ -84,7 +100,7 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     [InlineData("Test.NotifyGuest?version=3")]
     public async Task Get_Unknown_IsNotFound(string path)
     {
-        using HttpClient client = factory.CreateClient();
+        using HttpClient client = api.Staff(tenant, "Manager");
 
         using HttpResponseMessage response = await client.GetAsync($"{Route}/{path}", TestContext.Current.CancellationToken);
 
@@ -94,8 +110,8 @@ public sealed class CapabilityEndpointsTests : IAsyncLifetime
     [Fact]
     public async Task List_InTheHostAsShipped_PublishesTheSpecCapabilities()
     {
-        await using WebApplicationFactory<Program> shipped = new();
-        using HttpClient client = shipped.CreateClient();
+        await using StaffApi shipped = new();
+        using HttpClient client = shipped.Staff(tenant, "Manager");
 
         using JsonDocument body = JsonDocument.Parse(await client.GetStringAsync(Route, TestContext.Current.CancellationToken));
 

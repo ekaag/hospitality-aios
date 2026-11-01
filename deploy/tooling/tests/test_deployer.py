@@ -223,6 +223,13 @@ class DeployerTests(unittest.TestCase):
         cloud.drifted["search-content/indexes"] = ["Create: index content-vectors"]
         self.assertEqual({"search-content": ["Create: index content-vectors"]}, deployer.drift())
 
+    def test_an_environment_never_deployed_is_told_apart_from_one_partly_deployed(self):
+        self.assertTrue(self.deployer.nothing_deployed(self.deployer.drift()))
+
+        self.deployer.up("abc123", smoke=False)
+        self.cloud.deployed.pop("api")
+        self.assertFalse(self.deployer.nothing_deployed(self.deployer.drift()))
+
     def test_a_resource_not_deployed_is_drift(self):
         self.assertEqual("not deployed", self.deployer.drift()["identity-api"][0])
 

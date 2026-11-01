@@ -1,4 +1,5 @@
-# Deploys dev with the default plan after CI passes on main (implementation plan §5.1, K0), or on demand with any plan.
+# Deploys dev with the default plan after CI passes on main (implementation plan §5.1, K0), or on demand with any plan
+# and, to roll back, any earlier commit (P12: rollback is redeploying a previous SHA).
 # Until the Azure bootstrap has set the sign-in variables, there is nothing to deploy to and the job is skipped.
 name: deploy-dev
 
@@ -13,6 +14,9 @@ on:
         description: The deployment plan (deploy/plans).
         required: false
         default: azure-only
+      sha:
+        description: A commit to deploy instead of the branch's head, e.g. an earlier one to roll back to.
+        required: false
 
 permissions:
   contents: read
@@ -27,6 +31,6 @@ jobs:
     with:
       environment: dev
       plan: ${{ inputs.plan || 'azure-only' }}
-      sha: ${{ github.event.workflow_run.head_sha || github.sha }}
+      sha: ${{ inputs.sha || github.event.workflow_run.head_sha || github.sha }}
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -231,6 +231,12 @@ def up(arguments: argparse.Namespace) -> int:
 def drift(arguments: argparse.Namespace) -> int:
     planned = deployer(arguments.env, choose_plan(arguments.plan))
     drifted = planned.drift()
+
+    # An environment never deployed (e.g. prod before its first promotion) has nothing to drift from.
+    if arguments.skip_undeployed and planned.nothing_deployed(drifted):
+        print(f"{arguments.env} ({planned.plan.name}) is not deployed yet; nothing to compare.")
+        return 0
+
     lines = [f"Drift in {arguments.env} ({planned.plan.name}):"] if drifted else [f"No drift in {arguments.env} ({planned.plan.name})."]
 
     for purpose, changes in drifted.items():
@@ -302,6 +308,7 @@ def parser() -> argparse.ArgumentParser:
 
     deploy_drift = planned("drift", "Reports what deploying again would change; exits 1 on drift.", drift)
     deploy_drift.add_argument("--report", help="Also write the report to this file.")
+    deploy_drift.add_argument("--skip-undeployed", action="store_true", help="Succeed when nothing of the plan is deployed yet.")
 
     deploy_down = planned("down", "Tears down a plan's resources in reverse order.", down)
     deploy_down.add_argument("--confirm", help="The environment's name again.")

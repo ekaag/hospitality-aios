@@ -38,5 +38,20 @@ class PromotionTests(unittest.TestCase):
         self.assertIn("promote-from: dev", test)
 
 
+class WorkflowTests(unittest.TestCase):
+    def test_drift_is_checked_in_every_environment_the_catalog_names_passing_those_not_yet_deployed(self):
+        text = (DEPLOY.parent / ".github" / "workflows" / "drift-detection.yml").read_text(encoding="utf-8")
+        listed = re.search(r"env: \[([^\]]*)\]", text)
+
+        self.assertIsNotNone(listed)
+        self.assertEqual(load_catalog()["environments"], [env.strip() for env in listed.group(1).split(",")])
+        self.assertIn("--skip-undeployed", text)
+
+    def test_dev_can_be_redeployed_at_an_earlier_commit_to_roll_back(self):
+        text = (DEPLOY.parent / ".github" / "workflows" / "deploy-dev.yml").read_text(encoding="utf-8")
+
+        self.assertIn("sha: ${{ inputs.sha ||", text)
+
+
 if __name__ == "__main__":
     unittest.main()

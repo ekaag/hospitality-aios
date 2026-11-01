@@ -1,3 +1,4 @@
+using HospitalityOS.Api.Authentication;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Capabilities.Registry;
 using HospitalityOS.Contracts.Capabilities;
@@ -7,7 +8,8 @@ namespace HospitalityOS.Api.Capabilities;
 
 /// <summary>
 /// <c>/api/v1/capabilities</c>: the registered capabilities with every spec §11 field. Read-only; the definitions are
-/// code, not data.
+/// code, not data. Managers and administrators only (L3): the schemas, authorization, and side effects are for those who
+/// oversee what the agents may do, not for anyone who asks.
 /// </summary>
 internal static class CapabilityEndpoints
 {
@@ -15,7 +17,7 @@ internal static class CapabilityEndpoints
 
     public static IEndpointRouteBuilder MapCapabilityEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder group = endpoints.MapGroup(Route);
+        RouteGroupBuilder group = endpoints.MapGroup(Route).RequireAuthorization(StaffPolicies.Oversight);
 
         group.MapGet("/", List).WithName("Capability.List");
         group.MapGet("/{name}", Get).WithName("Capability.Get");
