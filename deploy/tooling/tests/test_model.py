@@ -154,20 +154,26 @@ class RepositoryTests(unittest.TestCase):
     def test_app_settings_use_only_outputs_their_modules_declare(self):
         import re
 
+        from hospitalityos_deploy.graph import declared_outputs, load_definition
+
         catalog = load_catalog()
         modules = {
             purpose: entry["services"]["azure"]["module"]
             for purpose, entry in catalog["resources"].items()
             if "module" in entry["services"].get("azure", {})
         }
+        drivers = {purpose: entry["services"].get("azure", {}).get("driver", "azure") for purpose, entry in catalog["resources"].items()}
 
         for purpose, entry in catalog["resources"].items():
             for key, template in entry["services"].get("azure", {}).get("appSettings", {}).items():
                 for source, output in re.findall(r"\$\{([a-z0-9-]+)\.([A-Za-z0-9]+)\}", template):
                     with self.subTest(setting=key):
                         self.assertIn(source, modules, f"{purpose}: {key} reads {source}, which has no Azure module.")
-                        text = (DEPLOY / modules[source]).read_text(encoding="utf-8")
-                        declared = re.search(rf"(?m)^output {output} ", text) is not None
+                        if drivers[source] == "graph":
+                            declared = output in declared_outputs(load_definition(DEPLOY / modules[source]))
+                        else:
+                            text = (DEPLOY / modules[source]).read_text(encoding="utf-8")
+                            declared = re.search(rf"(?m)^output {output} ", text) is not None
                         self.assertTrue(declared, f"{purpose}: {key} reads {source}.{output}, which its module does not output.")
 
 

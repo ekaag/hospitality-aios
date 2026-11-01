@@ -82,10 +82,30 @@
         "gcp": { "service": "Cloud Run (regional; no environment resource)" }
       }
     },
+    "signin": {
+      "job": "Staff sign-in (K4b): the API's and the staff apps' registrations, their consent, the Operator role, and the sign-up and sign-in user flow, in the environment's Microsoft Entra External ID tenant (created by bootstrap-signin). Who a sign-in acts as is kept by the app (StaffAccess), so it holds no data of its own.",
+      "group": "identity",
+      "dependsOn": [],
+      "services": {
+        "azure": {
+          "service": "Microsoft Entra External ID",
+          "type": "ciam",
+          "driver": "graph",
+          "module": "azure/signin/apps.json",
+          "appSettings": {
+            "Authentication__Schemes__StaffSignIn__Authority": "${signin.authority}",
+            "Authentication__Schemes__StaffSignIn__Audience": "${signin.apiClientId}",
+            "Authentication__Schemes__StaffSignIn__ValidIssuer": "${signin.issuer}"
+          }
+        },
+        "aws": { "service": "Amazon Cognito" },
+        "gcp": { "service": "Identity Platform" }
+      }
+    },
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {

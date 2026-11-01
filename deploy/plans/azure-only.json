@@ -11,6 +11,7 @@
     "blobs": { "cloud": "azure", "region": "uksouth" },
     "search-content": { "cloud": "azure", "region": "uksouth" },
     "realtime": { "cloud": "azure", "region": "uksouth" },
+    "signin": { "cloud": "azure", "region": "uksouth" },
     "apps": { "cloud": "azure", "region": "uksouth" },
     "api": { "cloud": "azure", "region": "uksouth" }
   }

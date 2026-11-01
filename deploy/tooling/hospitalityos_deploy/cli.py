@@ -9,11 +9,11 @@ import subprocess
 import sys
 from typing import Callable
 
-from . import azure
+from . import azure, graph
 from .deployer import Deployer
 from .model import DEFAULT_PLAN, PlanError, load_catalog, load_plan, plan_names
 
-DRIVERS: dict[str, Callable[[], object]] = {"azure": azure.AzureDriver}
+DRIVERS: dict[str, Callable[[], object]] = {"azure": azure.AzureDriver, "graph": graph.GraphDriver}
 
 
 def choose_plan(given: str | None, ask: Callable[[str], str] = input, interactive: bool | None = None) -> str:
@@ -38,7 +38,7 @@ def deployer(env: str, plan_name: str) -> Deployer:
     catalog = load_catalog()
     plan = load_plan(plan_name, env, catalog)
 
-    return Deployer(plan, env, catalog["product"], {cloud: DRIVERS[cloud]() for cloud in plan.clouds()})
+    return Deployer(plan, env, catalog["product"], {driver: DRIVERS[driver]() for driver in plan.drivers()})
 
 
 def validate(arguments: argparse.Namespace) -> int:
@@ -106,6 +106,58 @@ def bootstrap_down(arguments: argparse.Namespace) -> int:
             subprocess.run(["gh", "variable", "delete", key, "--repo", arguments.repo], check=False)
 
     print("Removed the Azure deployment identity.")
+    return 0
+
+
+def bootstrap_signin(arguments: argparse.Namespace) -> int:
+    if not azure.signed_in():
+        print("Sign in first: az login (an account that may create resources in the subscription).")
+        return 1
+
+    product = load_catalog()["product"]
+    values = graph.bootstrap_signin(product, arguments.env, arguments.region, arguments.domain, arguments.country, arguments.data_location, arguments.repo)
+
+    for key, value in values.items():
+        print(f"  {key}={value}")
+
+    if arguments.github:
+        names = graph.github_variables(arguments.env)
+        for key, value in values.items():
+            subprocess.run(["gh", "variable", "set", names[key], "--body", value, "--repo", arguments.repo], check=True)
+
+    return 0
+
+
+def bootstrap_signin_down(arguments: argparse.Namespace) -> int:
+    if arguments.confirm != arguments.env:
+        print(f"To remove {arguments.env}'s External ID tenant, pass --confirm {arguments.env}.")
+        return 1
+
+    graph.bootstrap_signin_down(load_catalog()["product"], arguments.env, arguments.region, arguments.tenant)
+
+    if arguments.github:
+        for name in graph.github_variables(arguments.env).values():
+            subprocess.run(["gh", "variable", "delete", name, "--repo", arguments.repo], check=False)
+
+    print(f"Removed {arguments.env}'s External ID tenant.")
+    return 0
+
+
+def operator(arguments: argparse.Namespace) -> int:
+    """Grants or revokes the Operator role, held by those who may invite a customer's first administrator."""
+    planned = deployer(arguments.env, choose_plan(arguments.plan))
+    target = next((target for target in planned.targets() if target.placement.driver == "graph"), None)
+
+    if target is None:
+        print("The plan places no sign-in resource.")
+        return 1
+
+    driver = planned.driver(target)
+    api = graph.desired(graph.load_definition(target.placement.module), target.name, arguments.env)["api"]["uniqueName"]
+    granting = arguments.command == "grant-operator"
+    who = (graph.grant_operator if granting else graph.revoke_operator)(driver.graph, api, arguments.email)
+    print(f"{'Granted' if granting else 'Revoked'} Operator for {who} in {arguments.env}; it applies from their next sign-in.")
+
     return 0
 
 
@@ -201,6 +253,32 @@ def parser() -> argparse.ArgumentParser:
         command.add_argument("--environments", nargs="+", default=["dev"])
         command.add_argument("--github", action="store_true", help="Also set (or remove) the repository variables with gh.")
         command.set_defaults(handler=handler)
+
+    signin = commands.add_parser("bootstrap-signin", help="Creates an environment's Entra External ID tenant and its deployment app (run once, as an administrator).")
+    signin.add_argument("--env", required=True)
+    signin.add_argument("--repo", required=True, help="The GitHub repository, owner/name.")
+    signin.add_argument("--domain", required=True, help="The tenant's domain prefix, unique across Entra, e.g. hospitalityosdev.")
+    signin.add_argument("--region", default="uksouth")
+    signin.add_argument("--country", default="GB", help="Where the tenant's data is kept.")
+    signin.add_argument("--data-location", default="Europe")
+    signin.add_argument("--github", action="store_true", help="Also set the environment's variables with gh.")
+    signin.set_defaults(handler=bootstrap_signin)
+
+    signin_down = commands.add_parser("bootstrap-signin-down", help="Removes an environment's External ID tenant (after tearing down its signin resource).")
+    signin_down.add_argument("--env", required=True)
+    signin_down.add_argument("--repo", required=True)
+    signin_down.add_argument("--tenant", required=True, help="The tenant's ID.")
+    signin_down.add_argument("--region", default="uksouth")
+    signin_down.add_argument("--confirm", help="The environment's name again.")
+    signin_down.add_argument("--github", action="store_true")
+    signin_down.set_defaults(handler=bootstrap_signin_down)
+
+    for name, help_text in (
+        ("grant-operator", "Makes someone who has signed up an operator, who may invite customers' first administrators."),
+        ("revoke-operator", "Takes the Operator role away."),
+    ):
+        command = planned(name, help_text, operator)
+        command.add_argument("--email", required=True, help="The email they signed up with.")
 
     return root
 

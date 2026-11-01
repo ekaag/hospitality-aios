@@ -44,6 +44,11 @@ class Placement:
     def module(self) -> Path:
         return DEPLOY / self.service["module"]
 
+    @property
+    def driver(self) -> str:
+        """What deploys it: its cloud's driver, unless the service names another (e.g. `graph` for Entra apps)."""
+        return self.service.get("driver", self.cloud)
+
 
 @dataclass
 class Plan:
@@ -56,6 +61,9 @@ class Plan:
 
     def clouds(self) -> list[str]:
         return sorted({placement.cloud for placement in self.placements})
+
+    def drivers(self) -> list[str]:
+        return sorted({placement.driver for placement in self.placements})
 
 
 def load_json(path: Path) -> dict:

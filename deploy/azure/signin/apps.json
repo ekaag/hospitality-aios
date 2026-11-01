@@ -1,0 +1,40 @@
+{
+  "$comment": "What the signin resource deploys into the environment's Microsoft Entra External ID tenant (K4b), applied through Microsoft Graph by the orchestrator's graph driver: the API's registration (its scope, and the Operator app role our own people are granted with `deploy grant-operator`), one single-page app registration per staff app with its redirect URIs per environment and consent to the scope, and the sign-up and sign-in user flow (email one-time codes) those apps use. Names are the resource's own name with a suffix, so each environment's are its own. The tenant itself comes from `deploy bootstrap-signin`.",
+  "api": {
+    "suffix": "api",
+    "displayName": "HospitalityOS API",
+    "scope": {
+      "value": "access_as_user",
+      "displayName": "Use HospitalityOS as the signed-in staff member"
+    },
+    "appRoles": [
+      {
+        "value": "Operator",
+        "displayName": "Platform operator",
+        "description": "Operates the platform: may invite a customer's first administrator."
+      }
+    ]
+  },
+  "spas": [
+    {
+      "suffix": "staff-web",
+      "displayName": "HospitalityOS Staff",
+      "output": "staffWebClientId",
+      "redirectUris": {
+        "dev": ["http://localhost:5174"]
+      }
+    },
+    {
+      "suffix": "admin-web",
+      "displayName": "HospitalityOS Admin",
+      "output": "adminWebClientId",
+      "redirectUris": {
+        "dev": ["http://localhost:5175"]
+      }
+    }
+  ],
+  "userFlow": {
+    "identityProviders": ["EmailOtpSignup-OAUTH"],
+    "attributes": ["email", "displayName"]
+  }
+}

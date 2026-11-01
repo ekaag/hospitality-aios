@@ -94,7 +94,7 @@ class Deployer:
         return [Target(placement, self.env, self.product) for placement in self.plan.placements]
 
     def driver(self, target: Target) -> Driver:
-        return self.drivers[target.placement.cloud]
+        return self.drivers[target.placement.driver]
 
     def parameters(self, target: Target, outputs: dict[str, dict], sha: str | None) -> dict:
         placement = target.placement
@@ -191,8 +191,8 @@ class Deployer:
             self.driver(target).remove(target)
             removed.append(target)
 
-        for cloud in self.plan.clouds():
-            self.drivers[cloud].finish_removal([target for target in removed if target.placement.cloud == cloud])
+        for driver in self.plan.drivers():
+            self.drivers[driver].finish_removal([target for target in removed if target.placement.driver == driver])
 
         return kept
 

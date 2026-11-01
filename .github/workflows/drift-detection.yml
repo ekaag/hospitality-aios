@@ -41,6 +41,9 @@ jobs:
       - name: What-if against what is deployed
         env:
           PLAN: ${{ inputs.plan || 'azure-only' }}
+          HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars.SIGNIN_TENANT_ID_DEV }}
+          HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars.SIGNIN_DOMAIN_DEV }}
+          HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars.SIGNIN_CLIENT_ID_DEV }}
         run: python3 deploy/tooling/deploy.py drift --env dev --plan "${PLAN}" --report "${RUNNER_TEMP}/drift.md"
 
       - name: Open an issue

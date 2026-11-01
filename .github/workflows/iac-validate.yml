@@ -77,6 +77,10 @@ jobs:
 
       # A preview: changes are expected on a pull request, so they do not fail the job.
       - name: What-if
+        env:
+          HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars.SIGNIN_TENANT_ID_DEV }}
+          HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars.SIGNIN_DOMAIN_DEV }}
+          HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars.SIGNIN_CLIENT_ID_DEV }}
         run: python3 deploy/tooling/deploy.py drift --env dev --plan azure-only --report "${RUNNER_TEMP}/what-if.md" || true
 
       - name: Comment

@@ -62,4 +62,8 @@ jobs:
           ENVIRONMENT: ${{ inputs.environment }}
           PLAN: ${{ inputs.plan }}
           SHA: ${{ inputs.sha }}
+          # The environment's External ID tenant (deploy bootstrap-signin), which the signin resource deploys into.
+          HOSPITALITYOS_SIGNIN_TENANT_ID: ${{ vars[format('SIGNIN_TENANT_ID_{0}', inputs.environment)] }}
+          HOSPITALITYOS_SIGNIN_DOMAIN: ${{ vars[format('SIGNIN_DOMAIN_{0}', inputs.environment)] }}
+          HOSPITALITYOS_SIGNIN_CLIENT_ID: ${{ vars[format('SIGNIN_CLIENT_ID_{0}', inputs.environment)] }}
         run: python3 deploy/tooling/deploy.py up --env "${ENVIRONMENT}" --plan "${PLAN}" --sha "${SHA}"
