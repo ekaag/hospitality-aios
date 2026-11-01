@@ -1,9 +1,11 @@
+using HospitalityOS.Adapters.Azure.Search;
 using HospitalityOS.Adapters.Azure.Secrets;
 using HospitalityOS.Adapters.Azure.ServiceBus;
 using HospitalityOS.Adapters.Azure.Storage;
 using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Scheduling;
+using HospitalityOS.Ports.Search;
 using HospitalityOS.Ports.Secrets;
 using HospitalityOS.Ports.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +21,7 @@ public static class DependencyInjection
     /// <summary>
     /// Registers <c>AzureServiceBus</c> for <see cref="IEventTransport"/> (a topic and its subscriptions) and for
     /// <see cref="IScheduler"/> (scheduled messages in a queue), <c>AzureBlobStorage</c> for <see cref="IBlobStore"/>, and
-    /// <c>AzureKeyVault</c> for <see cref="ISecretStore"/>.
+    /// <c>AzureKeyVault</c> for <see cref="ISecretStore"/>, and <c>AzureAISearch</c> for <see cref="ISearchIndex"/> and <see cref="IVectorStore"/>.
     /// </summary>
     public static IServiceCollection AddAzureAdapters(this IServiceCollection services)
     {
@@ -27,6 +29,8 @@ public static class DependencyInjection
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IScheduler>, AzureServiceBusSchedulerFactory>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IBlobStore>, AzureBlobStoreFactory>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<ISecretStore>, AzureKeyVaultSecretStoreFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<ISearchIndex>, AzureSearchIndexFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IVectorStore>, AzureVectorStoreFactory>());
 
         return services;
     }

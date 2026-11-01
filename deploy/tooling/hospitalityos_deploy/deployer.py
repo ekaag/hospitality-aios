@@ -8,7 +8,9 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
-from .model import Placement, Plan, PlanError, app_settings, group_name, resolve_inputs, resource_name, tags
+from pathlib import Path
+
+from .model import DEPLOY, DEPLOYER, Placement, Plan, PlanError, app_settings, environment_parameters, group_name, resolve_inputs, resource_name, tags, uses_deployer
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,20 @@ class Driver(Protocol):
     def ensure_image(self, target: Target, registry: dict, repository: str, tag: str, project: str) -> None:
         """Builds and pushes the image unless the registry already has that tag."""
 
+    def deployer_principal_id(self) -> str:
+        """The object ID of whoever this deployment signs in as, for modules that grant it a role."""
+
+    def apply_indexes(self, target: Target, outputs: dict, definitions: list[Path]) -> None:
+        """Creates or updates the search indexes the definitions describe on the deployed service."""
+
+    def index_changes(self, target: Target, outputs: dict, definitions: list[Path]) -> list[str]:
+        """How the deployed indexes differ from their definitions (empty: no drift)."""
+
+
+def index_definitions(placement: Placement) -> list[Path]:
+    """The search index definitions a service's deployment applies after the service itself (`indexes` in the catalog)."""
+    return [DEPLOY / path for path in placement.service.get("indexes", [])]
+
 
 def protects(env: str) -> bool:
     """Whether an environment's stateful resources are protected against deletion (P12): production only."""
@@ -82,7 +98,17 @@ class Deployer:
 
     def parameters(self, target: Target, outputs: dict[str, dict], sha: str | None) -> dict:
         placement = target.placement
-        parameters = {"name": target.name, "location": placement.region, "tags": target.tags, **resolve_inputs(placement, outputs)}
+
+        if uses_deployer(placement) and DEPLOYER not in outputs:
+            outputs[DEPLOYER] = {"principalId": self.driver(target).deployer_principal_id()}
+
+        parameters = {
+            "name": target.name,
+            "location": placement.region,
+            "tags": target.tags,
+            **environment_parameters(placement, self.env),
+            **resolve_inputs(placement, outputs),
+        }
 
         if placement.stateful:
             parameters["protect"] = protects(self.env)
@@ -112,6 +138,10 @@ class Deployer:
             self.log(f"deploy  {placement.purpose:<14} {placement.cloud}/{placement.region}  {target.name}")
             outputs[placement.purpose] = self.driver(target).deploy(target, parameters)
 
+            if definitions := index_definitions(placement):
+                self.log(f"indexes {placement.purpose:<14} {', '.join(path.stem for path in definitions)}")
+                self.driver(target).apply_indexes(target, outputs[placement.purpose], definitions)
+
         if smoke:
             for target in self.targets():
                 url = outputs[target.placement.purpose].get("url")
@@ -135,6 +165,9 @@ class Deployer:
             deployed_image = current.get("image")
             sha = deployed_image.rsplit(":", 1)[1] if deployed_image else None
             changes = self.driver(target).changes(target, self.parameters(target, outputs, sha))
+
+            if definitions := index_definitions(target.placement):
+                changes = [*changes, *self.driver(target).index_changes(target, current, definitions)]
 
             if changes:
                 drifted[target.placement.purpose] = changes

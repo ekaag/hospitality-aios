@@ -39,6 +39,16 @@ class FakeCloud:
     def ensure_image(self, target, registry, repository, tag, project) -> None:
         self.calls.append(("image", repository, tag, registry["loginServer"], project))
 
+    def deployer_principal_id(self) -> str:
+        self.calls.append(("whoami",))
+        return "deployer-oid"
+
+    def apply_indexes(self, target, outputs, definitions) -> None:
+        self.calls.append(("indexes", target.placement.purpose, outputs.get("endpoint"), tuple(path.name for path in definitions)))
+
+    def index_changes(self, target, outputs, definitions) -> list[str]:
+        return self.drifted.get(f"{target.placement.purpose}/indexes", [])
+
 
 def plan() -> Plan:
     identity = Placement("identity-api", "azure", "uksouth", "platform", (), {"service": "id", "type": "id"})
@@ -112,6 +122,37 @@ class DeployerTests(unittest.TestCase):
 
         self.cloud.drifted["secrets"] = ["Modify: /vaults/secrets-dev-uksouth-kv"]
         self.assertEqual({"secrets": ["Modify: /vaults/secrets-dev-uksouth-kv"]}, self.deployer.drift())
+
+    def test_a_service_with_indexes_gets_them_after_it_is_deployed_and_drift_includes_them(self):
+        search = Placement(
+            "search-content",
+            "azure",
+            "uksouth",
+            "platform",
+            (),
+            {
+                "service": "srch",
+                "type": "srch",
+                "inputs": {"deployerPrincipalId": "deployer.principalId"},
+                "parameters": {"sku": {"dev": "free", "prod": "basic"}},
+                "indexes": ["azure/search/content.json", "azure/search/content-vectors.json"],
+            },
+        )
+        cloud = FakeCloud({"search-content": {"endpoint": "https://search-content-dev-uksouth-srch.search.windows.net"}})
+        deployer = Deployer(Plan("p", "", [search]), "dev", "hospitalityos", {"azure": cloud}, log=lambda _: None)
+
+        deployer.up(None, smoke=False)
+
+        deployed = cloud.calls[1][2]
+        self.assertEqual(("whoami",), cloud.calls[0])
+        self.assertEqual(("deployer-oid", "free"), (deployed["deployerPrincipalId"], deployed["sku"]))
+        self.assertEqual(
+            ("indexes", "search-content", "https://search-content-dev-uksouth-srch.search.windows.net", ("content.json", "content-vectors.json")),
+            cloud.calls[2],
+        )
+
+        cloud.drifted["search-content/indexes"] = ["Create: index content-vectors"]
+        self.assertEqual({"search-content": ["Create: index content-vectors"]}, deployer.drift())
 
     def test_a_resource_not_deployed_is_drift(self):
         self.assertEqual("not deployed", self.deployer.drift()["identity-api"][0])

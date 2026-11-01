@@ -9,6 +9,8 @@
     "secrets": { "cloud": "azure", "region": "uksouth" },
     "events": { "cloud": "azure", "region": "uksouth" },
     "blobs": { "cloud": "azure", "region": "uksouth" },
+    "search-content": { "cloud": "azure", "region": "uksouth" },
+    "realtime": { "cloud": "azure", "region": "uksouth" },
     "apps": { "cloud": "azure", "region": "uksouth" },
     "api": { "cloud": "azure", "region": "uksouth" }
   }

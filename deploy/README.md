@@ -49,6 +49,19 @@ The cloud transports send and receive but may not create topics, subscriptions, 
 A new event handler needs its subscription there, and `EventInfrastructureTests` fails until it is added. The Service Bus
 adapter's contract tests run against the emulator (`tests/emulators/servicebus`), which CI starts.
 
+## Search indexes
+
+Azure AI Search indexes are not ARM resources, so a service's catalog entry lists their definitions (`indexes`, in
+`azure/search/`) and `up` applies them after deploying the service, as whoever runs the deployment, whom the module lets
+manage indexes (`deployer.principalId`); `drift` reports indexes that are missing or whose fields differ. The API itself
+may only read and write documents. A vector index's width is fixed when it is made: `SearchInfrastructureTests` keeps it
+equal to what `content.embed` produces.
+
+## Per-environment settings
+
+A service's `parameters` set module parameters per environment, e.g. `"sku": { "dev": "free" }`; every environment
+needs a value.
+
 ## Bootstrapping a cloud (once)
 
 CI cannot create the identity it signs in with, so each cloud has one bootstrap, run by someone signed in with rights to
@@ -62,7 +75,8 @@ python deploy/tooling/deploy.py bootstrap --cloud azure --repo ekaag/hospitality
 It deploys the subscription deployment stack `hospitalityos-deploy`: `rg-hospitalityos-deploy` with the managed identity
 `deploy-shared-uksouth-id`, federated credentials trusting this repository's `main` branch, its pull requests, and its
 `dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, Azure
-Service Bus Data Sender and Data Receiver, and Storage Blob Data Contributor.
+Service Bus Data Sender and Data Receiver, Storage Blob Data Contributor, Search Index Data Contributor, SignalR App
+Server, and Search Service Contributor.
 `--github` sets the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` and creates
 the `dev` environment with `gh`. Running it again changes nothing; `bootstrap-down` removes it all.
 

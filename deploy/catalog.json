@@ -85,7 +85,7 @@
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {
@@ -176,23 +176,46 @@
       }
     },
     "search-content": {
-      "job": "Search over the property's content and its vectors (ISearchIndex, IVectorStore).",
+      "job": "Search over the property's content and its vectors (ISearchIndex, IVectorStore). Its indexes are rebuilt from the content, so it holds nothing of its own.",
       "group": "platform",
-      "planned": "K4",
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Azure AI Search" },
+        "azure": {
+          "service": "Azure AI Search",
+          "type": "srch",
+          "maxLength": 60,
+          "module": "azure/modules/search-content.bicep",
+          "inputs": { "principalId": "identity-api.principalId", "deployerPrincipalId": "deployer.principalId" },
+          "parameters": { "sku": { "dev": "free" } },
+          "indexes": ["azure/search/content.json", "azure/search/content-vectors.json"],
+          "appSettings": {
+            "Bindings__SearchIndex__Default__Adapter": "AzureAISearch",
+            "Bindings__SearchIndex__Default__Settings__Endpoint": "${search-content.endpoint}",
+            "Bindings__VectorStore__Default__Adapter": "AzureAISearch",
+            "Bindings__VectorStore__Default__Settings__Endpoint": "${search-content.endpoint}"
+          }
+        },
         "aws": { "service": "OpenSearch Service" },
         "gcp": { "service": "Vertex AI Search" }
       }
     },
     "realtime": {
-      "job": "Live updates to browsers (IRealtimeNotifier).",
+      "job": "Live updates to browsers (IRealtimeNotifier): carries the API hub's connections, so every replica reaches every client.",
       "group": "platform",
-      "planned": "K4",
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Azure SignalR Service" },
+        "azure": {
+          "service": "Azure SignalR Service",
+          "type": "sigr",
+          "maxLength": 63,
+          "module": "azure/modules/realtime.bicep",
+          "inputs": { "principalId": "identity-api.principalId" },
+          "parameters": { "sku": { "dev": "Free_F1" } },
+          "appSettings": {
+            "Bindings__RealtimeNotifier__Default__Adapter": "AzureSignalR",
+            "Bindings__RealtimeNotifier__Default__Settings__Endpoint": "${realtime.endpoint}"
+          }
+        },
         "aws": { "service": "API Gateway WebSockets" },
         "gcp": { "service": "None managed; the in-process adapter on Cloud Run" }
       }

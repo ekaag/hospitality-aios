@@ -1,0 +1,32 @@
+{
+  "name": "content",
+  "fields": [
+    { "name": "key", "type": "Edm.String", "key": true, "searchable": false, "filterable": false, "retrievable": true },
+    { "name": "tenantId", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": false },
+    { "name": "scope", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": false },
+    { "name": "kind", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": false },
+    { "name": "id", "type": "Edm.String", "searchable": false, "filterable": false, "retrievable": true },
+    { "name": "title", "type": "Edm.String", "searchable": true, "retrievable": false, "analyzer": "words" },
+    { "name": "body", "type": "Edm.String", "searchable": true, "retrievable": false, "analyzer": "words" },
+    { "name": "tags", "type": "Collection(Edm.String)", "searchable": true, "retrievable": false, "analyzer": "words" }
+  ],
+  "scoringProfiles": [
+    { "name": "weighted", "text": { "weights": { "title": 3, "tags": 3, "body": 1 } } }
+  ],
+  "defaultScoringProfile": "weighted",
+  "analyzers": [
+    {
+      "@odata.type": "#Microsoft.Azure.Search.CustomAnalyzer",
+      "name": "words",
+      "tokenizer": "standard_v2",
+      "charFilters": ["no_hyphens"],
+      "tokenFilters": ["lowercase", "english_stopwords"]
+    }
+  ],
+  "charFilters": [
+    { "@odata.type": "#Microsoft.Azure.Search.MappingCharFilter", "name": "no_hyphens", "mappings": ["-=>"] }
+  ],
+  "tokenFilters": [
+    { "@odata.type": "#Microsoft.Azure.Search.StopwordsTokenFilter", "name": "english_stopwords", "stopwordsList": "english" }
+  ]
+}

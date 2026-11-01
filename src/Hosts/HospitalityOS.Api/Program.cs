@@ -100,7 +100,7 @@ builder.Services.AddDevTokens(builder.Configuration, builder.Environment);
 builder.Services.AddStaffWork();
 builder.Services.AddGuestRequests();
 builder.Services.AddPropertyIntegrations();
-builder.Services.AddRealtime();
+builder.Services.AddRealtime(builder.Configuration);
 
 WebApplication app = builder.Build();
 

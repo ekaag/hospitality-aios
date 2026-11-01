@@ -4,11 +4,17 @@ what it made."""
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import shutil
 import subprocess
 import tempfile
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
 from .deployer import Target
 from .model import DEPLOY, PlanError, resource_name, tags
 
@@ -16,6 +22,13 @@ REPOSITORY_ROOT = DEPLOY.parent
 
 # What-if reports these when nothing would change.
 _UNCHANGED = {"NoChange", "Ignore", "Unsupported"}
+
+# Azure AI Search's data-plane API, for the index definitions in deploy/azure/search/.
+SEARCH_API_VERSION = "2025-09-01"
+SEARCH_RESOURCE = "https://search.azure.com"
+
+# A role granted in the same deployment takes a few minutes to apply; index writes wait for it this long.
+_ROLE_WAIT_SECONDS = 600
 
 
 def az(*arguments: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -47,6 +60,42 @@ def parameters_file(parameters: dict) -> str:
         json.dump(document, file)
 
     return path
+
+
+def token_for(resource: str) -> str:
+    """An access token for a resource, as the signed-in identity."""
+    return az_json("account", "get-access-token", "--resource", resource)["accessToken"]
+
+
+def object_id(token: str) -> str:
+    """The `oid` claim of an access token: the signed-in user's or service principal's object ID, without Graph."""
+    payload = token.split(".")[1]
+    claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+
+    return claims["oid"]
+
+
+def search_request(method: str, url: str, token: str, body: dict | None = None) -> tuple[int, dict | None]:
+    """One call to a search service's data-plane API: its status and JSON body."""
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8") if body is not None else None,
+        method=method,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            text = response.read().decode("utf-8")
+            return response.status, json.loads(text) if text else None
+    except urllib.error.HTTPError as error:
+        text = error.read().decode("utf-8")
+        return error.code, json.loads(text) if text.startswith("{") else {"error": text}
+
+
+def index_shape(definition: dict) -> list[tuple]:
+    """What drift compares: each field's name, type, and vector width (the service adds defaults to the rest)."""
+    return sorted((field["name"], field["type"], field.get("dimensions")) for field in definition.get("fields", []))
 
 
 def outputs_of(stack: dict) -> dict:
@@ -120,6 +169,48 @@ class AzureDriver:
             exists = az("group", "exists", "--name", group, check=False).stdout.strip() == "true"
             if exists and not az_json("resource", "list", "--resource-group", group):
                 az("group", "delete", "--name", group, "--yes")
+
+    def deployer_principal_id(self) -> str:
+        return object_id(token_for("https://management.azure.com/"))
+
+    def apply_indexes(self, target: Target, outputs: dict, definitions: list[Path]) -> None:
+        endpoint = outputs["endpoint"].rstrip("/")
+        deadline = time.monotonic() + _ROLE_WAIT_SECONDS
+
+        for path in definitions:
+            definition = json.loads(path.read_text(encoding="utf-8"))
+            url = f"{endpoint}/indexes/{definition['name']}?api-version={SEARCH_API_VERSION}"
+
+            while True:
+                status, body = search_request("PUT", url, token_for(SEARCH_RESOURCE), definition)
+
+                if status in (200, 201, 204):
+                    break
+
+                # The module has just granted this identity Search Service Contributor; until it applies, writes are refused.
+                if status in (401, 403) and time.monotonic() < deadline:
+                    time.sleep(20)
+                    continue
+
+                raise PlanError([f"{target.placement.purpose}: applying index {definition['name']} failed ({status}): {body}"])
+
+    def index_changes(self, target: Target, outputs: dict, definitions: list[Path]) -> list[str]:
+        endpoint = outputs["endpoint"].rstrip("/")
+        token = token_for(SEARCH_RESOURCE)
+        changes: list[str] = []
+
+        for path in definitions:
+            definition = json.loads(path.read_text(encoding="utf-8"))
+            status, deployed = search_request("GET", f"{endpoint}/indexes/{definition['name']}?api-version={SEARCH_API_VERSION}", token)
+
+            if status == 404:
+                changes.append(f"Create: index {definition['name']}")
+            elif status != 200:
+                changes.append(f"Unknown: index {definition['name']} could not be read ({status})")
+            elif index_shape(deployed or {}) != index_shape(definition):
+                changes.append(f"Modify: index {definition['name']} fields")
+
+        return changes
 
     def ensure_image(self, target: Target, registry: dict, repository: str, tag: str, project: str) -> None:
         name, server = registry["registryName"], registry["loginServer"]

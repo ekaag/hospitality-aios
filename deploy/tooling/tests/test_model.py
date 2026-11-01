@@ -142,6 +142,15 @@ class RepositoryTests(unittest.TestCase):
             with self.subTest(env=env):
                 self.assertEqual("azure-only", load_plan(DEFAULT_PLAN, env).name)
 
+    def test_every_environment_has_a_value_for_each_per_environment_parameter(self):
+        catalog = load_catalog()
+
+        for env in catalog["environments"]:
+            for purpose, entry in catalog["resources"].items():
+                for parameter, values in entry["services"].get("azure", {}).get("parameters", {}).items():
+                    with self.subTest(resource=purpose, parameter=parameter, env=env):
+                        self.assertIn(env, values)
+
     def test_app_settings_use_only_outputs_their_modules_declare(self):
         import re
 

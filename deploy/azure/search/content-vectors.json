@@ -1,0 +1,23 @@
+{
+  "name": "content-vectors",
+  "fields": [
+    { "name": "key", "type": "Edm.String", "key": true, "searchable": false, "filterable": false, "retrievable": true },
+    { "name": "tenantId", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": false },
+    { "name": "scope", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": false },
+    { "name": "kind", "type": "Edm.String", "searchable": false, "filterable": true, "retrievable": false },
+    { "name": "id", "type": "Edm.String", "searchable": false, "filterable": false, "retrievable": true },
+    {
+      "name": "vector",
+      "type": "Collection(Edm.Single)",
+      "searchable": true,
+      "retrievable": false,
+      "stored": false,
+      "dimensions": 64,
+      "vectorSearchProfile": "cosine"
+    }
+  ],
+  "vectorSearch": {
+    "algorithms": [{ "name": "hnsw", "kind": "hnsw", "hnswParameters": { "metric": "cosine" } }],
+    "profiles": [{ "name": "cosine", "algorithm": "hnsw" }]
+  }
+}

@@ -14,7 +14,7 @@ namespace HospitalityOS.Api.Realtime;
 
 /// <summary>
 /// Live updates for the staff surface (J2) and the guest surface (J3): <see cref="IRealtimeNotifier"/> is bound in
-/// configuration (<c>Bindings:RealtimeNotifier</c>; <c>SignalR</c> in-process locally), and callers connect to
+/// configuration (<c>Bindings:RealtimeNotifier</c>; <c>SignalR</c> in-process locally, <c>AzureSignalR</c> in Azure), and callers connect to
 /// <see cref="HubPath"/> with their bearer token, sent as the <c>access_token</c> query value since browsers cannot set
 /// headers on WebSockets. A staff member hears their tenant's staff channel; a guest hears their stay's channel and
 /// nothing of the staff's. Messages name what changed, never what it is, so either reads it again through the API.
@@ -23,9 +23,9 @@ internal static class RealtimeRegistration
 {
     public const string HubPath = "/hubs/realtime";
 
-    public static IServiceCollection AddRealtime(this IServiceCollection services)
+    public static IServiceCollection AddRealtime(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSignalRAdapters();
+        services.AddSignalRAdapters(configuration.GetSection("Bindings"));
         services.AddPortBinding<IRealtimeNotifier>();
         services.AddSingleton<IRealtimeAudience, CallerAudience>();
 

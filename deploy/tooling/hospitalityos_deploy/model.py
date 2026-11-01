@@ -12,6 +12,10 @@ DEPLOY = Path(__file__).resolve().parents[2]
 
 DEFAULT_PLAN = "azure-only"
 
+DEPLOYER = "deployer"
+"""The input source naming whoever runs the deployment, e.g. `deployer.principalId`, which a module grants a role so the
+deployment's own later steps (such as applying search indexes) may act; not a resource."""
+
 _SEGMENT = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
@@ -135,6 +139,10 @@ def load_plan(name: str, env: str, catalog: dict | None = None, deploy: Path = D
             problems.append(f"{purpose}: its module {service['module']} is missing.")
             continue
 
+        for definition in service.get("indexes", []):
+            if not (deploy / definition).exists():
+                problems.append(f"{purpose}: its index definition {definition} is missing.")
+
         if not region or not _SEGMENT.match(region):
             problems.append(f"{purpose}: needs a lowercase region, e.g. uksouth.")
             continue
@@ -158,6 +166,15 @@ def load_plan(name: str, env: str, catalog: dict | None = None, deploy: Path = D
             )
         )
 
+    if DEPLOYER in resources:
+        problems.append(f"{DEPLOYER}: is reserved for whoever runs the deployment; no resource may be named so.")
+
+    # Per-environment module parameters, e.g. a cheaper tier in dev, must name a value for this environment.
+    for placement in plan.placements:
+        for parameter, values in placement.service.get("parameters", {}).items():
+            if env not in values:
+                problems.append(f"{placement.purpose}: parameter {parameter} has no value for '{env}'.")
+
     # Every resource the app needs now must be placed; those still planned may wait.
     for purpose, entry in resources.items():
         if "planned" not in entry and purpose not in chosen:
@@ -171,7 +188,7 @@ def load_plan(name: str, env: str, catalog: dict | None = None, deploy: Path = D
 
         for parameter, source in placement.service.get("inputs", {}).items():
             dependency = source.split(".", 1)[0]
-            if dependency not in placement.depends_on:
+            if dependency != DEPLOYER and dependency not in placement.depends_on:
                 problems.append(f"{placement.purpose}: input {parameter} comes from {dependency}, which it does not depend on.")
 
     if problems:
@@ -216,6 +233,16 @@ def resolve_inputs(placement: Placement, outputs: dict[str, dict]) -> dict:
         resolved[parameter] = value
 
     return resolved
+
+
+def environment_parameters(placement: Placement, env: str) -> dict:
+    """The module parameters the catalog sets per environment, e.g. `{"sku": "free"}` in dev."""
+    return {parameter: values[env] for parameter, values in placement.service.get("parameters", {}).items()}
+
+
+def uses_deployer(placement: Placement) -> bool:
+    """Whether the module takes an input about whoever runs the deployment."""
+    return any(source.split(".", 1)[0] == DEPLOYER for source in placement.service.get("inputs", {}).values())
 
 
 def app_settings(plan: Plan, outputs: dict[str, dict]) -> dict[str, str]:
