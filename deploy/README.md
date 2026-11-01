@@ -5,6 +5,7 @@ Everything in the cloud is built and torn down by automation from this folder (P
 | Path | What |
 |---|---|
 | `catalog.json` | Every resource the product needs, by its job (the purpose), its dependencies, and the service each cloud offers for it |
+| `events.json` | The event topic, one subscription per event handler, and the scheduled-work queue, for whichever cloud hosts `events` |
 | `plans/` | Saved deployment plans: a cloud and region for every resource. `azure-only` is the default |
 | `azure/` | Azure IaC in Bicep: `bootstrap/` (the GitHub deployment identity) and `modules/`, one per resource |
 | `tooling/` | The orchestrator: `python deploy/tooling/deploy.py <command>` (Python 3, standard library only) |
@@ -35,6 +36,18 @@ already there), and waits for `/health`. Running it again on the same commit cha
 together (`imagesdevuksouthacr`). Every resource is tagged `name` (the delimited form), `purpose`, `env`, and `product`.
 See [solution-structure.md §8](../solution-structure.md).
 
+## App settings
+
+A resource's catalog entry can name the app settings it implies (`appSettings`, with `${purpose.output}` filled from its
+outputs); the API is deployed with all of them. `events` binds the event transport and the scheduler to Service Bus this
+way, so the plan, not the image, decides where events go.
+
+## Events
+
+The cloud transports send and receive but may not create topics, subscriptions, or queues: those come from `events.json`.
+A new event handler needs its subscription there, and `EventInfrastructureTests` fails until it is added. The Service Bus
+adapter's contract tests run against the emulator (`tests/emulators/servicebus`), which CI starts.
+
 ## Bootstrapping a cloud (once)
 
 CI cannot create the identity it signs in with, so each cloud has one bootstrap, run by someone signed in with rights to
@@ -47,7 +60,8 @@ python deploy/tooling/deploy.py bootstrap --cloud azure --repo ekaag/hospitality
 
 It deploys the subscription deployment stack `hospitalityos-deploy`: `rg-hospitalityos-deploy` with the managed identity
 `deploy-shared-uksouth-id`, federated credentials trusting this repository's `main` branch, its pull requests, and its
-`dev` environment, Contributor on the subscription, and permission to grant only AcrPull and Key Vault Secrets User.
+`dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, and Azure
+Service Bus Data Sender and Data Receiver.
 `--github` sets the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` and creates
 the `dev` environment with `gh`. Running it again changes nothing; `bootstrap-down` removes it all.
 
