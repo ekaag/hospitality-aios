@@ -22,6 +22,7 @@ function towels(overrides: Partial<WorkItem> = {}): WorkItem {
     assigneeName: "Jo Okafor",
     endedAt: null,
     completionNote: null,
+    evidence: [],
     failureReason: null,
     actions: ["Accept"],
     ...overrides,

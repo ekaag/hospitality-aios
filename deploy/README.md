@@ -40,7 +40,8 @@ See [solution-structure.md §8](../solution-structure.md).
 
 A resource's catalog entry can name the app settings it implies (`appSettings`, with `${purpose.output}` filled from its
 outputs); the API is deployed with all of them. `events` binds the event transport and the scheduler to Service Bus this
-way, so the plan, not the image, decides where events go.
+way, as `blobs` binds the blob store and `secrets` the secret store, so the plan, not the image, decides where events,
+files, and secrets go.
 
 ## Events
 
@@ -60,8 +61,8 @@ python deploy/tooling/deploy.py bootstrap --cloud azure --repo ekaag/hospitality
 
 It deploys the subscription deployment stack `hospitalityos-deploy`: `rg-hospitalityos-deploy` with the managed identity
 `deploy-shared-uksouth-id`, federated credentials trusting this repository's `main` branch, its pull requests, and its
-`dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, and Azure
-Service Bus Data Sender and Data Receiver.
+`dev` environment, Contributor on the subscription, and permission to grant only AcrPull, Key Vault Secrets User, Azure
+Service Bus Data Sender and Data Receiver, and Storage Blob Data Contributor.
 `--github` sets the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` and creates
 the `dev` environment with `gh`. Running it again changes nothing; `bootstrap-down` removes it all.
 

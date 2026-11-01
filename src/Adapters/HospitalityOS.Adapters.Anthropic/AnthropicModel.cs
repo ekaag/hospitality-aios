@@ -17,7 +17,7 @@ namespace HospitalityOS.Adapters.Anthropic;
 /// <see cref="InferenceUnavailableException"/>, so the router can fall back; rejected requests propagate. Stateless
 /// apart from the client, so one instance serves concurrent calls.
 /// </summary>
-internal sealed class AnthropicModel(IAnthropicClient client, AnthropicSettings settings)
+internal sealed class AnthropicModel(AnthropicClientSource clients, AnthropicSettings settings)
     : IChatModel, IStructuredExtractor, IClassifier, IEvaluationJudge, IAdapterHealthProbe
 {
     public const string ProviderName = "Anthropic";
@@ -116,9 +116,15 @@ internal sealed class AnthropicModel(IAnthropicClient client, AnthropicSettings 
 
         try
         {
+            IAnthropicClient client = await clients.GetAsync(cancellationToken).ConfigureAwait(false);
             await client.Models.List(cancellationToken: cancellationToken).ConfigureAwait(false);
 
             return AdapterHealth.Healthy;
+        }
+        catch (InvalidOperationException exception)
+        {
+            // The key's secret is not there.
+            return AdapterHealth.Unhealthy(exception.Message);
         }
         catch (AnthropicApiException exception)
         {
@@ -204,6 +210,8 @@ internal sealed class AnthropicModel(IAnthropicClient client, AnthropicSettings 
     {
         try
         {
+            IAnthropicClient client = await clients.GetAsync(cancellationToken).ConfigureAwait(false);
+
             return await client.Beta.Messages.Create(parameters, cancellationToken).ConfigureAwait(false);
         }
         catch (AnthropicRateLimitException exception)

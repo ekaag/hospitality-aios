@@ -43,10 +43,10 @@ module identity 'identity.bicep' = {
 var contributor = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
 
 // Role Based Access Control Administrator, limited by the condition to the roles the modules grant: AcrPull, Key Vault
-// Secrets User, and Azure Service Bus Data Sender and Data Receiver. CI can let the API identity pull images, read
-// secrets, and send and receive messages, and nothing more.
+// Secrets User, Azure Service Bus Data Sender and Data Receiver, and Storage Blob Data Contributor. CI can let the API
+// identity pull images, read secrets, send and receive messages, and read and write blobs, and nothing more.
 var rbacAdministrator = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f58310d9-a9f6-439a-9e8d-f62e7b41a168')
-var grantable = '7f951dda-4ed3-4680-a7ca-43fe172d538d, 4633458b-17de-408a-b874-0445c86b69e6, 69a216fc-b8fb-44d8-bc22-1f3c2cd27a39, 4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
+var grantable = '7f951dda-4ed3-4680-a7ca-43fe172d538d, 4633458b-17de-408a-b874-0445c86b69e6, 69a216fc-b8fb-44d8-bc22-1f3c2cd27a39, 4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0, ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 var onlyGrantable = '((!(ActionMatches{\'Microsoft.Authorization/roleAssignments/write\'})) OR (@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {${grantable}})) AND ((!(ActionMatches{\'Microsoft.Authorization/roleAssignments/delete\'})) OR (@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {${grantable}}))'
 
 resource contribute 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

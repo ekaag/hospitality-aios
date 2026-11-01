@@ -5,6 +5,7 @@ using HospitalityOS.Application.Auditing;
 using HospitalityOS.Application.Content;
 using HospitalityOS.Application.Conversations;
 using HospitalityOS.Application.Events;
+using HospitalityOS.Application.Evidence;
 using HospitalityOS.Application.Hours;
 using HospitalityOS.Application.Menus;
 using HospitalityOS.Application.Organizations;
@@ -32,7 +33,8 @@ public static class DependencyInjection
     /// <see cref="ISpaceAdministration"/>, <see cref="IAmenityAdministration"/>, <see cref="IOperatingHoursAdministration"/>,
     /// <see cref="IPolicyAdministration"/>, <see cref="IContentAdministration"/>, <see cref="IRestaurantAdministration"/>,
     /// <see cref="IMenuAdministration"/>, <see cref="IPropertyEventAdministration"/>, <see cref="IServiceAdministration"/>,
-    /// <see cref="IAccommodationAdministration"/>, <see cref="IStaffAdministration"/>), and the guest-facing <see cref="IGuestConversations"/>.
+    /// <see cref="IAccommodationAdministration"/>, <see cref="IStaffAdministration"/>), the guest-facing <see cref="IGuestConversations"/>, and
+    /// <see cref="HumanActionEvidence"/> (which needs <c>IBlobStore</c> bound).
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
@@ -56,6 +58,7 @@ public static class DependencyInjection
         services.TryAddScoped<IStaffAdministration, StaffAdministration>();
         services.TryAddScoped<IAccommodationAdministration, AccommodationAdministration>();
         services.TryAddScoped<IGuestConversations, GuestConversations>();
+        services.TryAddScoped<HumanActionEvidence>();
 
         return services;
     }

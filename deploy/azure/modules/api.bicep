@@ -22,9 +22,6 @@ param identityId string
 @description('The API identity client ID, for the app to sign in as it: identity-api.clientId.')
 param identityClientId string
 
-@description('The vault the app reads secrets from: secrets.vaultUri.')
-param vaultUri string
-
 @description('The image as repository:tag, tagged by commit SHA, never latest.')
 param image string
 
@@ -35,7 +32,6 @@ var settings = union(
   {
     ASPNETCORE_ENVIRONMENT: 'Production'
     AZURE_CLIENT_ID: identityClientId
-    HOSPITALITYOS_VAULT_URI: vaultUri
   },
   appSettings
 )

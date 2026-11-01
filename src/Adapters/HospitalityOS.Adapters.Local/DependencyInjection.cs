@@ -3,12 +3,16 @@ using HospitalityOS.Adapters.Local.IdGenerator;
 using HospitalityOS.Adapters.Local.Inference;
 using HospitalityOS.Adapters.Local.Scheduling;
 using HospitalityOS.Adapters.Local.Search;
+using HospitalityOS.Adapters.Local.Secrets;
+using HospitalityOS.Adapters.Local.Storage;
 using HospitalityOS.Ports.Bindings;
 using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Inference;
 using HospitalityOS.Ports.Scheduling;
 using HospitalityOS.Ports.Search;
+using HospitalityOS.Ports.Secrets;
+using HospitalityOS.Ports.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -21,7 +25,8 @@ public static class DependencyInjection
 {
     /// <summary>
     /// Registers local adapters: <c>GuidV7</c> for <see cref="IIdGenerator"/>, <c>InProcess</c> for <see cref="IScheduler"/>, <c>InMemory</c> for <see cref="IEventTransport"/>,
-    /// <see cref="ISearchIndex"/>, and <see cref="IVectorStore"/>, and <c>Fake</c> for every inference port (deterministic, optionally scripted through <see cref="FakeInferenceOptions"/>).
+    /// <see cref="ISearchIndex"/>, <see cref="IVectorStore"/>, and <see cref="IBlobStore"/> (also <c>FileSystem</c>), <c>Environment</c> for
+    /// <see cref="ISecretStore"/>, and <c>Fake</c> for every inference port (deterministic, optionally scripted through <see cref="FakeInferenceOptions"/>).
     /// </summary>
     public static IServiceCollection AddLocalAdapters(this IServiceCollection services)
     {
@@ -30,6 +35,9 @@ public static class DependencyInjection
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IScheduler>, InProcessSchedulerFactory>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<ISearchIndex>, InMemorySearchIndexFactory>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IVectorStore>, InMemoryVectorStoreFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IBlobStore>, InMemoryBlobStoreFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<IBlobStore>, FileSystemBlobStoreFactory>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IAdapterFactory<ISecretStore>, EnvironmentSecretStoreFactory>());
         services.AddOptions<FakeInferenceOptions>();
         AddFake<IChatModel>(services);
         AddFake<IStructuredExtractor>(services);

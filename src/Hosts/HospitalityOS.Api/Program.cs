@@ -40,6 +40,8 @@ using HospitalityOS.Ports.Eventing;
 using HospitalityOS.Ports.Ids;
 using HospitalityOS.Ports.Scheduling;
 using HospitalityOS.Ports.Search;
+using HospitalityOS.Ports.Secrets;
+using HospitalityOS.Ports.Storage;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.Workflows;
 using HospitalityOS.Workflows.Routing;
@@ -63,6 +65,8 @@ builder.Services.AddPortBinding<IEventTransport>();
 builder.Services.AddPortBinding<IScheduler>();
 builder.Services.AddPortBinding<ISearchIndex>();
 builder.Services.AddPortBinding<IVectorStore>();
+builder.Services.AddPortBinding<IBlobStore>();
+builder.Services.AddPortBinding<ISecretStore>();
 // Inference tasks are declared by the modules that run them (from G4 on) and routed by the Inference section.
 builder.Services.AddInference(builder.Configuration);
 builder.Services.AddConfiguredPersistence(builder.Configuration);

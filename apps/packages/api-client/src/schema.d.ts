@@ -724,6 +724,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Work.AddEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work/{id}/evidence/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Work.GetEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work/{id}/fail": {
         parameters: {
             query?: never;
@@ -1095,6 +1127,7 @@ export interface components {
         CompleteWorkRequest: {
             /** @description The worker's note, e.g. `Left at the door`. */
             note?: null | string;
+            evidence?: string[];
         };
         /**
          * @description Whether a capability runs only after the person it acts for explicitly confirms it (spec §11
@@ -1439,6 +1472,18 @@ export interface components {
          * @enum {unknown}
          */
         EventAudience: "Everyone" | "AdultsOnly" | "Families" | "Children";
+        /** @description A file uploaded as evidence for work, to complete it with. */
+        EvidenceResponse: {
+            /** @description Its evidence key, `{work}/{file}`, to send in ValueList&lt;string&gt;? CompleteWorkRequest.Evidence. */
+            key: string;
+            /** @description Its media type, e.g. `image/jpeg`. */
+            contentType: string;
+            /**
+             * Format: int64
+             * @description Its size in bytes.
+             */
+            length: number;
+        };
         /** @description Fails work. */
         FailWorkRequest: {
             /** @description Why it cannot be done, e.g. `Could not access the room`; required. */
@@ -1560,6 +1605,8 @@ export interface components {
          * @enum {unknown}
          */
         IdempotencyPolicy: "Inherent" | "KeyRequired";
+        /** Format: binary */
+        IFormFile: string;
         /** @description Which model an AI task uses for the tenant (P6). */
         InferenceTaskResponse: {
             /** @description The task, e.g. `concierge.answer`. */
@@ -2466,6 +2513,8 @@ export interface components {
             endedAt: null | string;
             /** @description The worker's note on completing it. */
             completionNote: null | string;
+            /** @description Keys of the files completed with, each readable at `/api/v1/work/{id}/evidence/{key}`. */
+            evidence: components["schemas"]["ValueListOfstring"];
             /** @description Why it failed or was cancelled. */
             failureReason: null | string;
             /** @description What the caller may do to it now. */
@@ -4749,6 +4798,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkItemResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "Work.AddEvidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    file: components["schemas"]["IFormFile"];
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "Work.GetEvidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
                 };
             };
             /** @description The request failed; the problem says why. */

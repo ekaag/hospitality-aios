@@ -1,4 +1,3 @@
-using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 
@@ -36,11 +35,10 @@ internal static class ServiceBusConnection
             return new ServiceBusClient(connectionString);
         }
 
-        // In Azure the identity is the API's user-assigned managed identity, which AZURE_CLIENT_ID names (api.bicep).
         string fullyQualifiedNamespace = settings[NamespaceSetting]
             ?? throw new InvalidOperationException($"Set {NamespaceSetting} or {ConnectionStringSetting}.");
 
-        return new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+        return new ServiceBusClient(fullyQualifiedNamespace, AzureCredentials.App);
     }
 
     /// <summary>

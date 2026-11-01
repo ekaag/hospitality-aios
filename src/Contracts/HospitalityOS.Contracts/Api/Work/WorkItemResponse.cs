@@ -23,6 +23,7 @@ namespace HospitalityOS.Contracts.Api.Work;
 /// <param name="AssigneeName">Their name, if they are on the roster.</param>
 /// <param name="EndedAt">When it was completed, failed, cancelled, or expired (UTC).</param>
 /// <param name="CompletionNote">The worker's note on completing it.</param>
+/// <param name="Evidence">Keys of the files completed with, each readable at <c>/api/v1/work/{id}/evidence/{key}</c>.</param>
 /// <param name="FailureReason">Why it failed or was cancelled.</param>
 /// <param name="Actions">What the caller may do to it now.</param>
 public sealed record WorkItemResponse(
@@ -42,5 +43,6 @@ public sealed record WorkItemResponse(
     string? AssigneeName,
     DateTimeOffset? EndedAt,
     string? CompletionNote,
+    ValueList<string> Evidence,
     string? FailureReason,
     ValueList<WorkAction> Actions);

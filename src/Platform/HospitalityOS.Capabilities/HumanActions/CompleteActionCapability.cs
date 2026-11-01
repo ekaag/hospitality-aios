@@ -1,3 +1,4 @@
+using HospitalityOS.Application.Evidence;
 using HospitalityOS.Capabilities.Definitions;
 using HospitalityOS.Contracts.Capabilities;
 using HospitalityOS.Contracts.Capabilities.HumanActions;
@@ -10,10 +11,11 @@ namespace HospitalityOS.Capabilities.HumanActions;
 /// <summary>
 /// <c>HumanAction.Complete</c>: the assignee records the work as done, with an optional note and evidence (Journey 14),
 /// raising <c>HumanActionCompleted</c> exactly once: completing it again keeps the first completion and raises nothing
-/// (P8), so the parent workflow resumes once.
+/// (P8), so the parent workflow resumes once. Evidence must be files uploaded for this work (<see cref="HumanActionEvidence"/>).
 /// </summary>
 internal sealed class CompleteActionCapability(
     IHumanActionRepository actions,
+    HumanActionEvidence evidence,
     OperationContext operation,
     TimeProvider timeProvider) : ICapability<CompleteActionInput, HumanActionOutput>
 {
@@ -41,6 +43,13 @@ internal sealed class CompleteActionCapability(
         if (await HumanActionEntries.FindAsync(actions, input.HumanActionId, cancellationToken).ConfigureAwait(false) is not { } action)
         {
             return HumanActionErrors.NotFound;
+        }
+
+        if (input.Evidence is { Count: > 0 } keys
+            && await evidence.MissingAsync(input.HumanActionId, keys.Where(key => key is not null), cancellationToken).ConfigureAwait(false) is { Count: > 0 } missing)
+        {
+            return ValidationError.From([.. missing.Select(key => new FieldError(
+                $"evidence[{keys.ToList().IndexOf(key)}]", "human_action.evidence_not_found", $"'{key}' is not a file uploaded for this work."))]);
         }
 
         Result completed = action.Complete(staff, input.Note, input.Evidence, timeProvider.GetUtcNow());

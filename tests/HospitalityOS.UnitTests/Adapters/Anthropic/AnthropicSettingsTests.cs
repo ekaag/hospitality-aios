@@ -29,9 +29,28 @@ public sealed class AnthropicSettingsTests
     [InlineData("MaxRetries", "-1", "must be a whole number from 0 to 10")]
     [InlineData("TimeoutSeconds", "0", "must be a whole number from 1 to 3600")]
     [InlineData("RefusalFallback", "always", "must be Default or Off")]
+    [InlineData("ApiKeySecret", "sk-ant-api03-secret", "never put the key itself in configuration")]
+    [InlineData("ApiKeySecret", "ANTHROPIC_API_KEY", "names the secret holding the key")]
     public void Validate_RefusesBadSettings(string key, string value, string expected)
     {
         Assert.Contains(AnthropicSettings.Validate(Settings((key, value))), problem => problem.Contains(expected, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_SecretAndVariableTogether_AreRefused()
+    {
+        IConfiguration settings = Settings(("ApiKeySecret", "anthropic-api-key"), ("ApiKeyVariable", "ANTHROPIC_API_KEY"));
+
+        Assert.Contains(AnthropicSettings.Validate(settings), problem => problem.Contains("not both", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Read_ASecret_IsKept()
+    {
+        IConfiguration settings = Settings(("ApiKeySecret", "anthropic-api-key"));
+
+        Assert.Empty(AnthropicSettings.Validate(settings));
+        Assert.Equal("anthropic-api-key", AnthropicSettings.Read(settings).ApiKeySecret);
     }
 
     private static IConfiguration Settings(params (string Key, string Value)[] values) =>

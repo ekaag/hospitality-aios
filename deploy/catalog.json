@@ -57,7 +57,11 @@
           "type": "kv",
           "maxLength": 24,
           "module": "azure/modules/secrets.bicep",
-          "inputs": { "readerPrincipalId": "identity-api.principalId" }
+          "inputs": { "readerPrincipalId": "identity-api.principalId" },
+          "appSettings": {
+            "Bindings__SecretStore__Default__Adapter": "AzureKeyVault",
+            "Bindings__SecretStore__Default__Settings__VaultUri": "${secrets.vaultUri}"
+          }
         },
         "aws": { "service": "Secrets Manager" },
         "gcp": { "service": "Secret Manager" }
@@ -81,7 +85,7 @@
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets", "events"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {
@@ -93,8 +97,7 @@
             "environmentId": "apps.environmentId",
             "registryServer": "images.loginServer",
             "identityId": "identity-api.identityId",
-            "identityClientId": "identity-api.clientId",
-            "vaultUri": "secrets.vaultUri"
+            "identityClientId": "identity-api.clientId"
           }
         },
         "aws": { "service": "ECS Fargate service" },
@@ -139,21 +142,32 @@
       }
     },
     "blobs": {
-      "job": "Files the app stores.",
+      "job": "Files the app keeps (IBlobStore): evidence photos staff complete work with, later content assets.",
       "group": "platform",
-      "planned": "K3",
       "stateful": true,
       "dependsOn": ["identity-api"],
       "services": {
-        "azure": { "service": "Blob Storage" },
+        "azure": {
+          "service": "Blob Storage",
+          "type": "st",
+          "compact": true,
+          "maxLength": 24,
+          "module": "azure/modules/blobs.bicep",
+          "inputs": { "principalId": "identity-api.principalId" },
+          "appSettings": {
+            "Bindings__BlobStore__Default__Adapter": "AzureBlobStorage",
+            "Bindings__BlobStore__Default__Settings__ServiceUri": "${blobs.serviceUri}",
+            "Bindings__BlobStore__Default__Settings__Container": "${blobs.container}"
+          }
+        },
         "aws": { "service": "S3" },
         "gcp": { "service": "Cloud Storage" }
       }
     },
     "config": {
-      "job": "Configuration the app reads at run time.",
+      "job": "Feature flags per property (IFeatureFlags), added when a feature first needs a toggle.",
       "group": "platform",
-      "planned": "K3",
+      "planned": "later",
       "dependsOn": ["identity-api"],
       "services": {
         "azure": { "service": "App Configuration" },

@@ -73,7 +73,7 @@ internal sealed class RecordedAnthropicApi : HttpMessageHandler
             Timeout = timeout ?? TimeSpan.FromMinutes(1),
         });
 
-        return new AnthropicModel(client, new AnthropicSettings(null, null, 0, timeout, refusalFallback));
+        return new AnthropicModel(AnthropicClientSource.Of(client), new AnthropicSettings(null, null, 0, timeout, refusalFallback));
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

@@ -1,15 +1,19 @@
 using HospitalityOS.Api.Authentication;
 using HospitalityOS.Api.Http;
+using HospitalityOS.Application.Evidence;
 using HospitalityOS.Contracts.Api.Work;
+using HospitalityOS.Ports.Storage;
 using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HospitalityOS.Api.Work;
 
 /// <summary>
 /// <c>/api/v1/work</c>: the staff surface (J2, spec §32). Staff list a property's work by view and step through it
 /// (accept, start, complete or fail; claim unassigned work they are eligible for); managers and administrators also assign
-/// work and ask again for work that failed. Each step answers with the work as it now stands.
+/// work and ask again for work that failed. Each step answers with the work as it now stands. The worker uploads photos or
+/// files as evidence (multipart, field <c>file</c>) and completes the work with their keys; whoever sees the work can read them.
 /// </summary>
 internal static class WorkEndpoints
 {
@@ -31,6 +35,15 @@ internal static class WorkEndpoints
         group.MapPost("/{id}/complete", (RecordId id, CompleteWorkRequest? request, StaffWork work, CancellationToken cancellationToken) =>
             Answer(work.CompleteAsync(id.Value, request ?? new CompleteWorkRequest(), cancellationToken)))
             .Produces<WorkItemResponse>().WithName("Work.Complete");
+        group.MapPost("/{id}/evidence", AddEvidenceAsync)
+            .Accepts<IFormFile>("multipart/form-data")
+            .Produces<EvidenceResponse>(StatusCodes.Status201Created)
+            .WithName("Work.AddEvidence")
+            .DisableAntiforgery()
+            .WithMetadata(new RequestSizeLimitAttribute(HumanActionEvidence.MaxBytes + UploadOverhead));
+        group.MapGet("/{id}/evidence/{file}", GetEvidenceAsync)
+            .Produces<byte[]>(StatusCodes.Status200OK, "application/octet-stream")
+            .WithName("Work.GetEvidence");
         group.MapPost("/{id}/fail", (RecordId id, FailWorkRequest request, StaffWork work, CancellationToken cancellationToken) =>
             Answer(work.FailAsync(id.Value, request, cancellationToken)))
             .Produces<WorkItemResponse>().WithName("Work.Fail");
@@ -54,6 +67,33 @@ internal static class WorkEndpoints
         Result<IReadOnlyList<WorkItemResponse>> listed = await work.ListAsync(new PropertyId(propertyId.Value), view, cancellationToken).ConfigureAwait(false);
 
         return listed.IsSuccess ? TypedResults.Ok(listed.Value) : listed.Error.ToProblem();
+    }
+
+    /// <summary>
+    /// Room in a request for the multipart framing around a file of the largest size.
+    /// </summary>
+    private const long UploadOverhead = 64 * 1024;
+
+    private static async Task<IResult> AddEvidenceAsync(RecordId id, IFormFile file, StaffWork work, CancellationToken cancellationToken)
+    {
+        Stream content = file.OpenReadStream();
+
+        await using (content.ConfigureAwait(false))
+        {
+            Result<EvidenceResponse> added = await work.AddEvidenceAsync(id.Value, content, file.ContentType, file.Length, cancellationToken).ConfigureAwait(false);
+
+            return added.IsFailure
+                ? added.Error.ToProblem()
+                : TypedResults.Created($"{Route}/{id.Value}/evidence/{added.Value.Key.Split('/')[1]}", added.Value);
+        }
+    }
+
+    private static async Task<IResult> GetEvidenceAsync(RecordId id, string file, StaffWork work, CancellationToken cancellationToken)
+    {
+        Result<StoredBlob> opened = await work.OpenEvidenceAsync(id.Value, file, cancellationToken).ConfigureAwait(false);
+
+        // The stream result disposes the content once it is written.
+        return opened.IsFailure ? opened.Error.ToProblem() : TypedResults.Stream(opened.Value.Content, opened.Value.ContentType);
     }
 
     private static async Task<IResult> Answer(Task<Result<WorkItemResponse>> step, bool created = false)

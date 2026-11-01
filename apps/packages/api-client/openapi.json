@@ -3405,6 +3405,125 @@
         ]
       }
     },
+    "/api/v1/work/{id}/evidence": {
+      "post": {
+        "tags": [
+          "Work"
+        ],
+        "operationId": "Work.AddEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/work/{id}/evidence/{file}": {
+      "get": {
+        "tags": [
+          "Work"
+        ],
+        "operationId": "Work.GetEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/work/{id}/fail": {
       "post": {
         "tags": [
@@ -4296,6 +4415,12 @@
               "string"
             ],
             "description": "The worker's note, e.g. `Left at the door`."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "description": "Completes work."
@@ -5150,6 +5275,30 @@
         ],
         "description": "Who an event is for."
       },
+      "EvidenceResponse": {
+        "required": [
+          "key",
+          "contentType",
+          "length"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Its evidence key, `{work}/{file}`, to send in ValueList&lt;string&gt;? CompleteWorkRequest.Evidence."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "Its media type, e.g. `image/jpeg`."
+          },
+          "length": {
+            "type": "integer",
+            "description": "Its size in bytes.",
+            "format": "int64"
+          }
+        },
+        "description": "A file uploaded as evidence for work, to complete it with."
+      },
       "FailWorkRequest": {
         "type": "object",
         "properties": {
@@ -5390,6 +5539,10 @@
           "KeyRequired"
         ],
         "description": "How a capability keeps a repeated invocation from repeating its effect (spec §11 `idempotency`, P8)."
+      },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
       },
       "InferenceTaskResponse": {
         "required": [
@@ -7601,6 +7754,7 @@
           "assigneeName",
           "endedAt",
           "completionNote",
+          "evidence",
           "failureReason",
           "actions"
         ],
@@ -7692,6 +7846,10 @@
               "string"
             ],
             "description": "The worker's note on completing it."
+          },
+          "evidence": {
+            "description": "Keys of the files completed with, each readable at `/api/v1/work/{id}/evidence/{key}`.",
+            "$ref": "#/components/schemas/ValueListOfstring"
           },
           "failureReason": {
             "type": [

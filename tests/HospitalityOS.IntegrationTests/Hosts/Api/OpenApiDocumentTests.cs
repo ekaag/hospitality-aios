@@ -58,7 +58,9 @@ public sealed class OpenApiDocumentTests : IAsyncDisposable
                 missing.Add($"{method} {path} has no operationId (WithName).");
             }
 
-            if (!responses.Any(response => response.Key.StartsWith('2') && response.Value!["content"]?["application/json"]?["schema"] is not null))
+            // A body is JSON, or a file's bytes (evidence downloads).
+            if (!responses.Any(response => response.Key.StartsWith('2')
+                && response.Value!["content"]?.AsObject().Any(content => content.Value?["schema"] is not null) == true))
             {
                 missing.Add($"{method} {path} has no success response with a body (Produces).");
             }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using HospitalityOS.Application.Evidence;
 using HospitalityOS.Capabilities.Execution;
 using HospitalityOS.Contracts;
 using HospitalityOS.Contracts.Api.Work;
@@ -8,6 +9,7 @@ using HospitalityOS.Domain.Operations.HumanActions;
 using HospitalityOS.Domain.Operations.StaffMembers;
 using HospitalityOS.Domain.Services.ServiceRequests;
 using HospitalityOS.Ports.Execution;
+using HospitalityOS.Ports.Storage;
 using HospitalityOS.Ports.Tenancy;
 using HospitalityOS.SharedKernel.Collections;
 using HospitalityOS.SharedKernel.Execution;
@@ -17,7 +19,7 @@ using HospitalityOS.SharedKernel.Results;
 namespace HospitalityOS.Api.Work;
 
 /// <summary>
-/// The staff surface's work (spec §32, Journeys 13, 14, 20): the four views of a property's human actions, each piece of
+/// The staff surface's work (spec Â§32, Journeys 13, 14, 20): the four views of a property's human actions, each piece of
 /// work with what the caller may do to it now, and those steps. A worker is the staff member their token names and sees
 /// their own work and the unassigned work they may claim; managers and administrators see everyone's. Every step runs a
 /// capability through the executor (P7), which authorizes, audits, and commits it, continuing the work's own flow so the
@@ -28,6 +30,7 @@ internal sealed class StaffWork(
     IHumanActionRepository actions,
     IStaffMemberRepository staff,
     IServiceRequestRepository requests,
+    HumanActionEvidence evidence,
     ICapabilityExecutor executor,
     OperationContext operation,
     ICurrentTenant currentTenant,
@@ -43,6 +46,11 @@ internal sealed class StaffWork(
         Error.Forbidden("work.not_on_roster", "Only a staff member on this property's roster, or a manager, can see its work.");
 
     public static Error NotFound { get; } = Error.NotFound("work.not_found", "There is no such work.");
+
+    public static Error NotYoursToEvidence { get; } = Error.Forbidden(
+        "work.evidence_not_allowed", "Only the staff member doing this work can add evidence to it, once they have accepted it.");
+
+    public static Error EvidenceNotFound { get; } = Error.NotFound("work.evidence_not_found", "This work has no such file.");
 
     public static Error NotAnException { get; } = Error.InvalidState(
         "work.not_an_exception", "Only the latest failed, expired, or cancelled work for a request still waiting for new work can be requested again.");
@@ -81,7 +89,7 @@ internal sealed class StaffWork(
         ActAsync(id, "HumanAction.UpdateStatus", new UpdateActionStatusInput(id, ActionStatus.InProgress), cancellationToken);
 
     public Task<Result<WorkItemResponse>> CompleteAsync(Guid id, CompleteWorkRequest request, CancellationToken cancellationToken) =>
-        ActAsync(id, "HumanAction.Complete", new CompleteActionInput(id, request?.Note), cancellationToken);
+        ActAsync(id, "HumanAction.Complete", new CompleteActionInput(id, request?.Note, request?.Evidence), cancellationToken);
 
     public Task<Result<WorkItemResponse>> FailAsync(Guid id, FailWorkRequest request, CancellationToken cancellationToken) =>
         ActAsync(id, "HumanAction.UpdateStatus", new UpdateActionStatusInput(id, ActionStatus.Failed, request?.Reason), cancellationToken);
@@ -138,6 +146,68 @@ internal sealed class StaffWork(
         Guid newId = created.Value.Output.Deserialize<HumanActionOutput>(ContractJson.Options)!.Action.Source.Id;
 
         return await ReadBackAsync(newId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Saves a photo or file for the caller's own work, accepted or in progress, to complete it with. Uploading is not a
+    /// step of the work: the file is recorded, and audited, when <c>HumanAction.Complete</c> names it.
+    /// </summary>
+    public async Task<Result<EvidenceResponse>> AddEvidenceAsync(Guid id, Stream content, string? contentType, long length, CancellationToken cancellationToken)
+    {
+        if (await FindAsync(id, cancellationToken).ConfigureAwait(false) is not { } action)
+        {
+            return NotFound;
+        }
+
+        Result<Caller> caller = await CallerAsync(action.PropertyId, cancellationToken).ConfigureAwait(false);
+
+        if (caller.IsFailure)
+        {
+            return caller.Error;
+        }
+
+        if (!caller.Value.Sees(action) && !caller.Value.MayClaim(action))
+        {
+            return NotFound;
+        }
+
+        if (caller.Value.Member?.Id != action.AssignedTo || action.AssignedTo is null
+            || action.Status is not (HumanActionStatus.Accepted or HumanActionStatus.InProgress))
+        {
+            return NotYoursToEvidence;
+        }
+
+        Result<string> added = await evidence.AddAsync(id, content, contentType, length, cancellationToken).ConfigureAwait(false);
+
+        return added.IsFailure ? added.Error : new EvidenceResponse(added.Value, contentType!.Split(';')[0].Trim().ToLowerInvariant(), length);
+    }
+
+    /// <summary>
+    /// Opens one of the work's files, for whoever may see the work; the caller disposes it.
+    /// </summary>
+    /// <param name="id">The work.</param>
+    /// <param name="file">The file: the part of its evidence key after the work.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    public async Task<Result<StoredBlob>> OpenEvidenceAsync(Guid id, string file, CancellationToken cancellationToken)
+    {
+        if (await FindAsync(id, cancellationToken).ConfigureAwait(false) is not { } action)
+        {
+            return NotFound;
+        }
+
+        Result<Caller> caller = await CallerAsync(action.PropertyId, cancellationToken).ConfigureAwait(false);
+
+        if (caller.IsFailure)
+        {
+            return caller.Error;
+        }
+
+        if (!caller.Value.Sees(action))
+        {
+            return NotFound;
+        }
+
+        return await evidence.OpenAsync(id, $"{id:N}/{file}", cancellationToken).ConfigureAwait(false) is { } blob ? blob : EvidenceNotFound;
     }
 
     private async Task<Result<WorkItemResponse>> ActAsync(Guid id, string capability, object input, CancellationToken cancellationToken)
@@ -280,6 +350,7 @@ internal sealed class StaffWork(
             action.AssignedTo is { } assignee ? caller.Roster.GetValueOrDefault(assignee)?.Details.DisplayName : null,
             action.Completion?.CompletedAt ?? action.EndedAt,
             action.Completion?.Note,
+            action.Completion?.Evidence ?? [],
             action.FailureReason,
             ValueList.From(caller.ActionsOn(action, isException)));
     }
