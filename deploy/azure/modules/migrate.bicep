@@ -62,6 +62,8 @@ var settings = union(
     Persistence__AppRole__Name: appRoleName
     Persistence__AppRole__ObjectId: appRoleObjectId
     Seed__AuroraGrand__Enabled: string(seed)
+    // Its output is in the job's console logs; identity-data may not send telemetry.
+    Telemetry__Exporter: 'None'
   }
 )
 

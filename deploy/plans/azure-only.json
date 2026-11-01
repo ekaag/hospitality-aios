@@ -4,6 +4,7 @@
   "description": "Everything on Azure, UK South.",
   "resources": {
     "logs": { "cloud": "azure", "region": "uksouth" },
+    "telemetry": { "cloud": "azure", "region": "uksouth" },
     "identity-api": { "cloud": "azure", "region": "uksouth" },
     "identity-data": { "cloud": "azure", "region": "uksouth" },
     "images": { "cloud": "azure", "region": "uksouth" },

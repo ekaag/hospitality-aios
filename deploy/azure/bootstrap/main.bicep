@@ -44,12 +44,12 @@ var contributor = subscriptionResourceId('Microsoft.Authorization/roleDefinition
 
 // Role Based Access Control Administrator, limited by the condition to the roles the modules grant: AcrPull, Key Vault
 // Secrets User, Key Vault Crypto User, Azure Service Bus Data Sender and Data Receiver, Storage Blob Data Contributor,
-// Search Index Data Contributor, SignalR App Server, Cognitive Services OpenAI User, and Search Service Contributor (which
-// the deployment grants itself, to apply search indexes). CI can let the API identity pull images, read secrets, sign with
-// the stay token key, send and receive messages, read and write blobs and search documents, serve the realtime hub, and
-// call the deployed models, and nothing more.
+// Search Index Data Contributor, SignalR App Server, Cognitive Services OpenAI User, Monitoring Metrics Publisher, and
+// Search Service Contributor (which the deployment grants itself, to apply search indexes). CI can let the API identity
+// pull images, read secrets, sign with the stay token key, send and receive messages, read and write blobs and search
+// documents, serve the realtime hub, call the deployed models, and send telemetry, and nothing more.
 var rbacAdministrator = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f58310d9-a9f6-439a-9e8d-f62e7b41a168')
-var grantable = '7f951dda-4ed3-4680-a7ca-43fe172d538d, 4633458b-17de-408a-b874-0445c86b69e6, 12338af0-0e69-4776-bea7-57ae8d297424, 69a216fc-b8fb-44d8-bc22-1f3c2cd27a39, 4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0, ba92f5b4-2d11-453d-a403-e96b0029c9fe, 8ebe5a00-799e-43f5-93ac-243d3dce84a7, 420fcaa2-552c-430f-98ca-3264be4806c7, 7ca78c08-252a-4471-8644-bb5ff32d4ba0, 5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+var grantable = '7f951dda-4ed3-4680-a7ca-43fe172d538d, 4633458b-17de-408a-b874-0445c86b69e6, 12338af0-0e69-4776-bea7-57ae8d297424, 69a216fc-b8fb-44d8-bc22-1f3c2cd27a39, 4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0, ba92f5b4-2d11-453d-a403-e96b0029c9fe, 8ebe5a00-799e-43f5-93ac-243d3dce84a7, 420fcaa2-552c-430f-98ca-3264be4806c7, 7ca78c08-252a-4471-8644-bb5ff32d4ba0, 5e0bd9bd-7b93-4f28-af87-19fc36ad61bd, 3913510d-42f4-4e42-8a64-420c390055eb'
 var onlyGrantable = '((!(ActionMatches{\'Microsoft.Authorization/roleAssignments/write\'})) OR (@Request[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {${grantable}})) AND ((!(ActionMatches{\'Microsoft.Authorization/roleAssignments/delete\'})) OR (@Resource[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {${grantable}}))'
 
 resource contribute 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

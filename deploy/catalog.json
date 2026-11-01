@@ -19,6 +19,25 @@
         "gcp": { "service": "Cloud Logging" }
       }
     },
+    "telemetry": {
+      "job": "Traces, metrics, and logs from the app (OpenTelemetry), searchable alongside the logs workspace.",
+      "group": "platform",
+      "dependsOn": ["logs", "identity-api"],
+      "services": {
+        "azure": {
+          "service": "Application Insights",
+          "type": "appi",
+          "module": "azure/modules/telemetry.bicep",
+          "inputs": { "workspaceId": "logs.workspaceId", "principalId": "identity-api.principalId" },
+          "appSettings": {
+            "Telemetry__Exporter": "AzureMonitor",
+            "Telemetry__AzureMonitor__ConnectionString": "${telemetry.connectionString}"
+          }
+        },
+        "aws": { "service": "CloudWatch (OpenTelemetry)" },
+        "gcp": { "service": "Cloud Trace and Cloud Monitoring" }
+      }
+    },
     "identity-api": {
       "job": "The API's own identity, which the resources it uses trust; no stored credentials.",
       "group": "platform",
@@ -119,7 +138,7 @@
     "api": {
       "job": "The API host (src/Hosts/HospitalityOS.Api), serving guests, staff, and administrators.",
       "group": "api",
-      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin", "inference-chat", "inference-embed", "data", "migrate"],
+      "dependsOn": ["apps", "images", "identity-api", "secrets", "events", "blobs", "search-content", "realtime", "signin", "inference-chat", "inference-embed", "telemetry", "data", "migrate"],
       "image": { "project": "src/Hosts/HospitalityOS.Api", "repository": "hospitalityos-api", "registry": "images" },
       "services": {
         "azure": {

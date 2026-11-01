@@ -90,6 +90,13 @@ key). The key rotates every 90 days; guest apps then open new sessions from the 
 address from `GuestLinks:BaseUrl`, which waits for the guest app's own deployment; until then the front desk gets the
 code only.
 
+## Telemetry
+
+The API sends OpenTelemetry traces, metrics, and logs to `telemetry` (Application Insights over the `logs` workspace)
+as its own identity; local auth is off, so the connection string alone sends nothing. Health probes are not traced.
+Locally nothing is collected unless asked: set `Telemetry__Exporter=Otlp` and the standard `OTEL_EXPORTER_OTLP_*`
+variables to send to a local dashboard.
+
 ## Database and migrations
 
 `data` is PostgreSQL with Entra sign-in only. Before each API deployment, `up` deploys the `migrate` job and runs it to

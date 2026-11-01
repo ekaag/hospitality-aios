@@ -29,6 +29,7 @@ using HospitalityOS.Api.Services;
 using HospitalityOS.Api.Spaces;
 using HospitalityOS.Api.Staff;
 using HospitalityOS.Api.Stays;
+using HospitalityOS.Api.Telemetry;
 using HospitalityOS.Api.Work;
 using HospitalityOS.Application;
 using HospitalityOS.Bindings;
@@ -76,6 +77,9 @@ builder.Services.AddPortBinding<ISigningKey>();
 // Inference tasks are declared by the modules that run them (from G4 on) and routed by the Inference section.
 builder.Services.AddInference(builder.Configuration);
 builder.Services.AddConfiguredPersistence(builder.Configuration);
+
+// Traces, metrics, and logs, sent where Telemetry:Exporter says (none locally unless asked).
+builder.Services.AddConfiguredTelemetry(builder.Configuration);
 // The tenant is set per scope: from the caller's token for requests, from the envelope when handling events.
 builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ICurrentTenant>(services => services.GetRequiredService<TenantContext>());
