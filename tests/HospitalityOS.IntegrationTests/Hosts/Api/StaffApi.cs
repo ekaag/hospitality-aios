@@ -111,9 +111,12 @@ internal sealed class StaffApi : IAsyncDisposable
     /// <summary>
     /// A token from the test identity provider for the user <paramref name="objectId"/>, optionally an operator.
     /// </summary>
-    public static string SignInToken(string objectId, bool isOperator = false)
+    /// <param name="objectId">The user (Entra's <c>oid</c>, the same in every app).</param>
+    /// <param name="isOperator">Whether they hold the Operator role.</param>
+    /// <param name="app">The app they signed in through, which Entra's <c>sub</c> differs by.</param>
+    public static string SignInToken(string objectId, bool isOperator = false, string app = "staff-web")
     {
-        Dictionary<string, object> claims = new() { ["oid"] = objectId, ["sub"] = $"pairwise-{objectId}" };
+        Dictionary<string, object> claims = new() { ["oid"] = objectId, ["sub"] = $"{app}-{objectId}" };
 
         if (isOperator)
         {
@@ -123,7 +126,7 @@ internal sealed class StaffApi : IAsyncDisposable
         return Token(claims, issuer: SignInIssuer);
     }
 
-    public HttpClient SignIn(string objectId, bool isOperator = false) => Client(SignInToken(objectId, isOperator));
+    public HttpClient SignIn(string objectId, bool isOperator = false, string app = "staff-web") => Client(SignInToken(objectId, isOperator, app));
 
     public HttpClient Client(string? token = null)
     {

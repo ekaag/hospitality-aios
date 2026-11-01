@@ -65,6 +65,21 @@ public sealed class AccessEndpointsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task TheSameUser_ThroughAnotherApp_ActsAsTheSameAccess()
+    {
+        using HttpClient admin = api.Staff(tenant);
+        StaffInviteResponse invite = await GrantAsync(admin, new GrantStaffAccessRequest("Dana", StaffRole.Manager));
+        using HttpClient staffWeb = api.SignIn("dana", app: "staff-web");
+        using HttpClient adminWeb = api.SignIn("dana", app: "admin-web");
+        using HttpClient someoneElse = api.SignIn("jo", app: "staff-web");
+
+        await RedeemAsync(staffWeb, invite.Code);
+
+        Assert.Equal(invite.Access.Id, (await MeAsync(adminWeb)).AccessId);
+        Assert.False((await MeAsync(someoneElse)).IsLinked);
+    }
+
+    [Fact]
     public async Task AWorker_ActsAsTheirRosterEntry()
     {
         PropertyResponse property = await api.CreatePropertyAsync(tenant, Cancellation);

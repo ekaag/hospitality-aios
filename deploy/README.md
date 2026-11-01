@@ -57,6 +57,27 @@ manage indexes (`deployer.principalId`); `drift` reports indexes that are missin
 may only read and write documents. A vector index's width is fixed when it is made: `SearchInfrastructureTests` keeps it
 equal to what `content.embed` produces.
 
+## Staff sign-in (Entra External ID)
+
+Staff sign in through each environment's Microsoft Entra External ID tenant: a tenant of its own, not the subscription's,
+so the product's users never mix with the operator's own staff, and each customer's identity provider can be federated
+into it later. What the tenant holds is not an ARM resource and an external tenant has no subscription, so the `signin`
+resource names the `graph` driver: `up` applies `azure/signin/apps.json` through Microsoft Graph (the API's registration
+with its `access_as_user` scope and `Operator` app role, one single-page app registration per staff app with its
+redirect URIs and consent, and the email one-time code sign-up and sign-in user flow), `drift` compares them, and `down`
+deletes them for good. Its outputs set the API's `Authentication:Schemes:StaffSignIn` (authority, audience, issuer); the
+staff apps take `spaAuthority`, their client IDs, and `scope` as `VITE_SIGNIN_*` build variables when they are deployed.
+
+The driver signs in to the tenant as the tenant's own deployment app, trusted like the Azure identity (GitHub OIDC, no
+secret). Who a sign-in acts as is kept by the API (StaffAccess, invited with one-time codes), not by the tenant.
+
+Operators, who may invite a customer's first administrator, are granted after they have signed up once:
+
+```sh
+python deploy/tooling/deploy.py grant-operator --env dev --email someone@example.com
+python deploy/tooling/deploy.py revoke-operator --env dev --email someone@example.com
+```
+
 ## Per-environment settings
 
 A service's `parameters` set module parameters per environment, e.g. `"sku": { "dev": "free" }`; every environment
@@ -79,6 +100,24 @@ Service Bus Data Sender and Data Receiver, Storage Blob Data Contributor, Search
 Server, and Search Service Contributor.
 `--github` sets the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` and creates
 the `dev` environment with `gh`. Running it again changes nothing; `bootstrap-down` removes it all.
+
+Each environment's External ID tenant is bootstrapped once too, by someone who may create resources in the subscription:
+
+```sh
+az login
+python deploy/tooling/deploy.py bootstrap-signin --env dev --repo ekaag/hospitality-aios --domain hospitalityosdev --github
+```
+
+It creates `rg-hospitalityos-signin-dev` and in it the tenant `hospitalityosdev.onmicrosoft.com` (`azure/bootstrap/signin.bicep`,
+a preview resource type; creating a tenant can take 30 minutes), then has you sign in to the new tenant as its
+administrator (`az login --tenant ... --allow-no-subscriptions`) and creates there the deployment app `deploy-dev-uksouth-app`:
+federated credentials for `main`, pull requests, and the `dev` environment, and only the Graph permissions the driver
+needs (Application.ReadWrite.OwnedBy, DelegatedPermissionGrant.ReadWrite.All, AppRoleAssignment.ReadWrite.All,
+EventListener.ReadWrite.All, User.Read.All). `--github` sets `SIGNIN_TENANT_ID_DEV`, `SIGNIN_DOMAIN_DEV`, and
+`SIGNIN_CLIENT_ID_DEV`, repository variables (not environment-scoped) so drift checks and pull request previews read them
+too. Running it again changes nothing. `bootstrap-signin-down --env dev --tenant <id> --confirm dev` removes the
+deployment app and the tenant; Azure refuses to delete a tenant that still has users or apps, so tear the `signin`
+resource down first and remove staff accounts in the Entra admin center.
 
 ## Workflows
 
