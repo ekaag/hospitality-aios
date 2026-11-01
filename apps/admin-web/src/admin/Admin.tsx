@@ -1,5 +1,6 @@
 import type { ApiClient } from "@hospitalityos/api-client";
 import { useEffect, useState, type ComponentType } from "react";
+import { Access } from "./Access";
 import { Integrations } from "./Integrations";
 import {
   AmenitiesSection,
@@ -17,8 +18,8 @@ import {
 import { Traces } from "./Traces";
 
 /**
- * The sections of spec §34, in its order. Integrations are for administrators only; everything else is read by managers
- * too, and changed only by administrators.
+ * The sections of spec §34, in its order, and who may sign in. People & access and integrations are for administrators
+ * only; everything else is read by managers too, and changed only by administrators.
  */
 const sections: readonly { id: string; title: string; adminOnly?: boolean; component: ComponentType<SectionProps> }[] = [
   { id: "property", title: "Property", component: PropertySection },
@@ -31,6 +32,7 @@ const sections: readonly { id: string; title: string; adminOnly?: boolean; compo
   { id: "policies", title: "Policies", component: PoliciesSection },
   { id: "hours", title: "Operating Hours", component: HoursSection },
   { id: "content", title: "Content", component: ContentSection },
+  { id: "access", title: "People & access", adminOnly: true, component: ({ client, propertyId }) => <Access client={client} propertyId={propertyId} /> },
   { id: "integrations", title: "Integrations", adminOnly: true, component: ({ client, propertyId }) => <Integrations client={client} propertyId={propertyId} /> },
   { id: "traces", title: "AI Traces", component: ({ client, propertyId }) => <Traces client={client} propertyId={propertyId} /> },
 ];

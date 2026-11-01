@@ -13,6 +13,7 @@
   "dependencies": {
     "@hospitalityos/api-client": "workspace:*",
     "@hospitalityos/dev-auth": "workspace:*",
+    "@hospitalityos/sign-in": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

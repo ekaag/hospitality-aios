@@ -1,16 +1,27 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
-import { useEffect, useMemo, useState } from "react";
+import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Admin } from "./admin/Admin";
 
 const roles = ["Admin", "Manager"] as const;
 
+// Staff sign in through Entra External ID when the build names it (VITE_SIGNIN_*), otherwise as the dev personas.
+const signInConfig = readSignInConfig(import.meta.env);
+const provider = signInConfig && entraProvider(signInConfig);
+
 /**
- * Property configuration and the AI trace viewer (J4). Signed out, it offers the dev personas for its roles.
+ * Property configuration and the AI trace viewer (J4). Signed out, it signs in through the identity provider,
+ * or offers the dev personas for its roles locally.
  */
 export function App() {
   const { session, signIn, signOut } = useDevSession("admin-web");
+  // A refused token signs out here only, so the provider's sign-in picks up again silently.
   const client = useMemo(() => createApiClient({ token: () => session?.token, onUnauthorized: signOut }), [session, signOut]);
+  const signOutEverywhere = useCallback(() => {
+    signOut();
+    void provider?.signOut();
+  }, [signOut]);
 
   return (
     <>
@@ -19,13 +30,17 @@ export function App() {
         {session && (
           <p>
             {session.persona.displayName} ({session.persona.role}){" "}
-            <button type="button" onClick={signOut}>
+            <button type="button" onClick={signOutEverywhere}>
               Sign out
             </button>
           </p>
         )}
       </header>
-      <main>{session ? <Signed client={client} session={session} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}</main>
+      <main>{session ? <Signed client={client} session={session} /> : provider ? (
+          <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} />
+        ) : (
+          <DevSignIn client={client} roles={roles} onSignedIn={signIn} />
+        )}</main>
     </>
   );
 }
