@@ -136,6 +136,16 @@ public abstract class EventTransportContractTests : IAsyncDisposable
     public async Task RemoveDeadLetter_RemovesOnlyThatEventsDeadLetter_FromOnlyThatSubscription()
     {
         TaskCompletionSource<EventMessage> last = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<EventMessage> bystanderLast = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using IAsyncDisposable bystander = await Transport.SubscribeAsync("bystander", (message, _) =>
+        {
+            if (message == TestEvents.Message(3))
+            {
+                bystanderLast.TrySetResult(message);
+            }
+
+            return Task.CompletedTask;
+        }, Cancellation);
         await using IAsyncDisposable subscription = await Transport.SubscribeAsync("removing", (message, _) =>
         {
             if (message != TestEvents.Message(3))
@@ -151,8 +161,9 @@ public abstract class EventTransportContractTests : IAsyncDisposable
         await Transport.PublishAsync(TestEvents.Message(2), Cancellation);
         await Transport.PublishAsync(TestEvents.Message(3), Cancellation);
         await last.Task.WaitAsync(timeout, Cancellation);
+        await bystanderLast.Task.WaitAsync(timeout, Cancellation);
 
-        bool otherSubscription = await Transport.RemoveDeadLetterAsync("poisoned", TestEvents.Message(1).EventId, Cancellation);
+        bool otherSubscription = await Transport.RemoveDeadLetterAsync("bystander", TestEvents.Message(1).EventId, Cancellation);
         bool removed = await Transport.RemoveDeadLetterAsync("removing", TestEvents.Message(1).EventId, Cancellation);
         bool again = await Transport.RemoveDeadLetterAsync("removing", TestEvents.Message(1).EventId, Cancellation);
 
