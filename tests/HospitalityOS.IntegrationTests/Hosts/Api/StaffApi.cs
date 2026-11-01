@@ -36,6 +36,11 @@ internal sealed class StaffApi : IAsyncDisposable
     public const string Issuer = "https://identity.test.hospitalityos";
     public const string Audience = "hospitalityos-api";
 
+    /// <summary>
+    /// The test identity provider staff sign in through (as Entra External ID in a deployment).
+    /// </summary>
+    public const string SignInIssuer = "https://signin.test.hospitalityos/v2.0";
+
     public static DateTimeOffset Now { get; } = new(2026, 10, 27, 9, 30, 0, TimeSpan.Zero);
 
     public static SymmetricSecurityKey SigningKey { get; } = new(SHA256.HashData(Encoding.UTF8.GetBytes("hospitalityos-integration-tests")));
@@ -69,6 +74,12 @@ internal sealed class StaffApi : IAsyncDisposable
                     options.TokenValidationParameters.ValidAudience = Audience;
                     options.TokenValidationParameters.IssuerSigningKey = SigningKey;
                 });
+                services.PostConfigure<JwtBearerOptions>("StaffSignIn", options =>
+                {
+                    options.TokenValidationParameters.ValidIssuer = SignInIssuer;
+                    options.TokenValidationParameters.ValidAudience = Audience;
+                    options.TokenValidationParameters.IssuerSigningKey = SigningKey;
+                });
             });
             configure?.Invoke(builder);
         });
@@ -84,10 +95,10 @@ internal sealed class StaffApi : IAsyncDisposable
     /// <summary>
     /// A token from the trusted issuer with exactly <paramref name="claims"/> (an array value becomes several claims).
     /// </summary>
-    public static string Token(IDictionary<string, object> claims, SecurityKey? signingKey = null) =>
+    public static string Token(IDictionary<string, object> claims, SecurityKey? signingKey = null, string issuer = Issuer) =>
         new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {
-            Issuer = Issuer,
+            Issuer = issuer,
             Audience = Audience,
             Expires = DateTime.UtcNow.AddHours(1),
             Claims = claims,
@@ -96,6 +107,23 @@ internal sealed class StaffApi : IAsyncDisposable
 
     public static string StaffToken(TenantId tenant, string role, string subject = "maria") =>
         Token(new Dictionary<string, object> { ["sub"] = subject, ["tenant_id"] = tenant.Value.ToString(), ["role"] = role });
+
+    /// <summary>
+    /// A token from the test identity provider for the user <paramref name="objectId"/>, optionally an operator.
+    /// </summary>
+    public static string SignInToken(string objectId, bool isOperator = false)
+    {
+        Dictionary<string, object> claims = new() { ["oid"] = objectId, ["sub"] = $"pairwise-{objectId}" };
+
+        if (isOperator)
+        {
+            claims["roles"] = new[] { "Operator" };
+        }
+
+        return Token(claims, issuer: SignInIssuer);
+    }
+
+    public HttpClient SignIn(string objectId, bool isOperator = false) => Client(SignInToken(objectId, isOperator));
 
     public HttpClient Client(string? token = null)
     {

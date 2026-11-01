@@ -26,9 +26,10 @@ internal sealed class StaffSignIns(
             return StaffAccessErrors.InviteNotFound;
         }
 
-        if (tenantContext.IsSet && tenantContext.TenantId != entry.TenantId)
+        // A linked sign-in already acts in a tenant, possibly another, so nothing is recorded for it.
+        if (tenantContext.IsSet || await directory.FindBySignInAsync(issuer, subject, cancellationToken).ConfigureAwait(false) is not null)
         {
-            return StaffAccessErrors.OtherTenant;
+            return StaffAccessErrors.AlreadyLinked;
         }
 
         // From here the invite names the tenant, so the attempt is recorded there, by whoever it would make them.
@@ -40,15 +41,13 @@ internal sealed class StaffSignIns(
             operation.ActAs(Actor.Staff(found.StaffMemberId?.ToString() ?? found.Id.ToString(), found.Role));
         }
 
-        bool linked = await directory.FindBySignInAsync(issuer, subject, cancellationToken).ConfigureAwait(false) is not null;
-
         return await commit.ChangeAsync(
             AdministrationActions.StaffAccessRedeem,
             StaffAccessAdministration.Target(entry.AccessId.Value),
             found,
             StaffAccessErrors.InviteNotFound,
             null,
-            invited => Task.FromResult(linked ? StaffAccessErrors.AlreadyLinked : invited.Redeem(hash, issuer, subject, timeProvider.GetUtcNow())),
+            invited => Task.FromResult(invited.Redeem(hash, issuer, subject, timeProvider.GetUtcNow())),
             StaffAccessAdministration.Response,
             cancellationToken).ConfigureAwait(false);
     }
@@ -58,9 +57,10 @@ internal sealed class StaffSignIns(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (tenantContext.IsSet && tenantContext.TenantId != tenantId)
+        // An operator with access acts as that access already; first administrators are invited from the platform.
+        if (tenantContext.IsSet)
         {
-            return StaffAccessErrors.OtherTenant;
+            return StaffAccessErrors.OperatorInTenant;
         }
 
         tenantContext.Set(tenantId);

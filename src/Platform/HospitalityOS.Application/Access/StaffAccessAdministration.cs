@@ -143,5 +143,5 @@ internal static class StaffAccessErrors
 
     public static Error TenantHasAdmin { get; } = Error.Conflict("access.tenant_has_admin", "This tenant already has an administrator, who invites everyone else.");
 
-    public static Error OtherTenant { get; } = Error.Forbidden("access.other_tenant", "This sign-in acts in another tenant.");
+    public static Error OperatorInTenant { get; } = Error.Forbidden("access.operator_in_tenant", "Operators invite first administrators from a sign-in without access to any tenant.");
 }

@@ -1,5 +1,5 @@
-using HospitalityOS.Application.Accommodations;
 using HospitalityOS.Application.Access;
+using HospitalityOS.Application.Accommodations;
 using HospitalityOS.Application.Administration;
 using HospitalityOS.Application.Amenities;
 using HospitalityOS.Application.Auditing;

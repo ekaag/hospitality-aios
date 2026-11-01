@@ -18,8 +18,8 @@ public interface IStaffSignIns
     /// <param name="issuer">The caller's token issuer.</param>
     /// <param name="subject">The caller's stable user ID at the issuer.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
-    /// <returns>The access; <c>access.invite_not_found</c> (not audited: no tenant to record it in);
-    /// <c>access.already_linked</c> when the sign-in already acts as someone; <c>access.invite_expired</c>;
+    /// <returns>The access; <c>access.invite_not_found</c> and <c>access.already_linked</c> (not audited: no tenant to
+    /// record them in, or not the invite's); <c>access.invite_expired</c>;
     /// <c>access.revoked</c>; or a conflict when the sign-in was linked elsewhere at the same moment.</returns>
     Task<Result<StaffAccessResponse>> RedeemAsync(string? code, string issuer, string subject, CancellationToken cancellationToken);
 
@@ -31,6 +31,7 @@ public interface IStaffSignIns
     /// <param name="operatorId">The operator, as audit records name them.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
     /// <returns>The invite; <c>access.tenant_has_admin</c> when an administrator's access is already active or invited,
-    /// so operators cannot add themselves to customers' tenants; or a <see cref="ValidationError"/>.</returns>
+    /// so operators cannot add themselves to customers' tenants; <c>access.operator_in_tenant</c> when the operator's
+    /// sign-in has access itself; or a <see cref="ValidationError"/>.</returns>
     Task<Result<StaffInviteResponse>> GrantFirstAdminAsync(TenantId tenantId, GrantFirstAdminRequest request, string operatorId, CancellationToken cancellationToken);
 }

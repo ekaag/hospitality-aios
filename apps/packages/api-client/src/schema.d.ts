@@ -532,6 +532,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Me.Get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StaffAccess.Redeem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StaffAccess.List"];
+        put?: never;
+        post: operations["StaffAccess.Grant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["StaffAccess.Get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access/{id}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StaffAccess.Reinvite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/access/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StaffAccess.Revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/operator/tenants/{tenantId}/admins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["StaffAccess.GrantFirstAdmin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/traces": {
         parameters: {
             query?: never;
@@ -1516,6 +1628,22 @@ export interface components {
              */
             recordedAt: string;
         };
+        /** @description An operator invites a customer's first administrator, who invites everyone else. */
+        GrantFirstAdminRequest: {
+            /** @description Who they are. */
+            displayName?: null | string;
+        };
+        /**
+         * @description Gives someone access to the caller's tenant and invites them with a one-time code. Missing values are reported by the
+         *     server, not the deserializer.
+         */
+        GrantStaffAccessRequest: {
+            /** @description Who they are, e.g. Sam Patel. */
+            displayName?: null | string;
+            role?: null | components["schemas"]["StaffRole"];
+            /** Format: uuid */
+            staffMemberId?: string;
+        };
         /** @description How a grounded answer's replies were checked. */
         GroundingCheck: {
             /** @description Each reply's verdict, in order; a rejected reply may be followed by a corrected one. */
@@ -2019,6 +2147,11 @@ export interface components {
              */
             version: number;
         };
+        /** @description Links the caller's sign-in to the access an invite opens. */
+        RedeemInviteRequest: {
+            /** @description The invite code, with or without its hyphens. */
+            code?: null | string;
+        };
         /** @description `PUT /api/v1/organizations/{id}`: renames an organization. */
         RenameOrganizationRequest: {
             /** @description The new display name; required. */
@@ -2134,6 +2267,27 @@ export interface components {
          * @enum {unknown}
          */
         SideEffect: "None" | "PlatformState" | "External";
+        /** @description Who the caller's sign-in acts as: nobody yet until they redeem an invite. */
+        SignInResponse: {
+            /** @description Whether the sign-in acts as someone with access. */
+            isLinked: boolean;
+            /** @description Whether they operate the platform (they may invite a customer's first administrator). */
+            isOperator: boolean;
+            /**
+             * Format: uuid
+             * @description Their tenant, once linked.
+             */
+            tenantId: null | string;
+            /**
+             * Format: uuid
+             * @description Their access, once linked.
+             */
+            accessId: null | string;
+            /** @description Who they are, once linked. */
+            displayName: null | string;
+            role: null | components["schemas"]["StaffRole"];
+            staffMemberId: null | components["schemas"]["StaffMemberId"];
+        };
         /**
          * @description The authoritative platform record an answer comes from (P4). Agents cite it, and traces record it, so every
          *     statement can be checked against the record and version it came from; an answer with no source is unknown.
@@ -2182,6 +2336,58 @@ export interface components {
              */
             version: number;
         };
+        /** @description Someone's access to the tenant. It never shows the invite code or how they sign in. */
+        StaffAccessResponse: {
+            /**
+             * Format: uuid
+             * @description The access ID.
+             */
+            id: string;
+            /** @description Who they are. */
+            displayName: string;
+            /** @description What they may do. */
+            role: components["schemas"]["StaffRole"];
+            staffMemberId: null | components["schemas"]["StaffMemberId"];
+            /** @description Where it stands. */
+            status: components["schemas"]["StaffAccessStatus"];
+            /**
+             * Format: date-time
+             * @description When the open invite stops working, while one is open.
+             */
+            inviteExpiresAt: null | string;
+            /**
+             * Format: date-time
+             * @description When their sign-in was linked.
+             */
+            linkedAt: null | string;
+            /**
+             * Format: date-time
+             * @description When it was revoked.
+             */
+            revokedAt: null | string;
+            /**
+             * Format: int64
+             * @description The version.
+             */
+            version: number;
+        };
+        /**
+         * @description Where someone's access stands.
+         * @enum {unknown}
+         */
+        StaffAccessStatus: "Invited" | "Active" | "Revoked";
+        /** @description A new invite: the code is shown this once, for the administrator to pass on; only its hash is kept. */
+        StaffInviteResponse: {
+            /** @description The access it opens. */
+            access: components["schemas"]["StaffAccessResponse"];
+            /** @description The one-time code, e.g. K7QF3-MZP9A-...; redeemed after signing in. */
+            code: string;
+            /**
+             * Format: date-time
+             * @description When it stops working.
+             */
+            expiresAt: string;
+        };
         /** Format: uuid */
         StaffMemberId: string;
         /** @description A staff member on a property's roster. */
@@ -2202,6 +2408,8 @@ export interface components {
              */
             version: number;
         };
+        /** @enum {unknown} */
+        StaffRole: "Worker" | "Manager" | "Admin" | null;
         /** Format: uuid */
         StayContextId: string;
         /** @enum {unknown} */
@@ -4375,6 +4583,258 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffMemberResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "Me.Get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.Redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RedeemInviteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAccessResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.List": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAccessResponse"][];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.Grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantStaffAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInviteResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.Get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAccessResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.Reinvite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInviteResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.Revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffAccessResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "StaffAccess.GrantFirstAdmin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantFirstAdminRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffInviteResponse"];
                 };
             };
             /** @description The request failed; the problem says why. */

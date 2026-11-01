@@ -2733,6 +2733,361 @@
         ]
       }
     },
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "Me.Get",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/invite": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.Redeem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/access": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.Grant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantStaffAccessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInviteResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.List",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StaffAccessResponse"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/access/{id}": {
+      "get": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.Get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/access/{id}/invite": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.Reinvite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInviteResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/access/{id}/revoke": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.Revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAccessResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/operator/tenants/{tenantId}/admins": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "operationId": "StaffAccess.GrantFirstAdmin",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantFirstAdminRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffInviteResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ai/traces": {
       "get": {
         "tags": [
@@ -5354,6 +5709,47 @@
         },
         "description": "An event recorded in a trace's flow."
       },
+      "GrantFirstAdminRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who they are."
+          }
+        },
+        "description": "An operator invites a customer's first administrator, who invites everyone else."
+      },
+      "GrantStaffAccessRequest": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who they are, e.g. Sam Patel."
+          },
+          "role": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "What they may do.",
+                "$ref": "#/components/schemas/StaffRole"
+              }
+            ]
+          },
+          "staffMemberId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "Gives someone access to the caller's tenant and invites them with a one-time code. Missing values are reported by the\nserver, not the deserializer."
+      },
       "GroundingCheck": {
         "required": [
           "replies"
@@ -6511,6 +6907,19 @@
         },
         "description": "A property's base information, normalized (trimmed, country code upper-cased)."
       },
+      "RedeemInviteRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The invite code, with or without its hyphens."
+          }
+        },
+        "description": "Links the caller's sign-in to the access an invite opens."
+      },
       "RenameOrganizationRequest": {
         "type": "object",
         "properties": {
@@ -6771,6 +7180,74 @@
         ],
         "description": "The most far-reaching effect a capability can have (spec §11 `sideEffects`)."
       },
+      "SignInResponse": {
+        "required": [
+          "isLinked",
+          "isOperator",
+          "tenantId",
+          "accessId",
+          "displayName",
+          "role",
+          "staffMemberId"
+        ],
+        "type": "object",
+        "properties": {
+          "isLinked": {
+            "type": "boolean",
+            "description": "Whether the sign-in acts as someone with access."
+          },
+          "isOperator": {
+            "type": "boolean",
+            "description": "Whether they operate the platform (they may invite a customer's first administrator)."
+          },
+          "tenantId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Their tenant, once linked.",
+            "format": "uuid"
+          },
+          "accessId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Their access, once linked.",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who they are, once linked."
+          },
+          "role": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "What they may do, once linked.",
+                "$ref": "#/components/schemas/StaffRole"
+              }
+            ]
+          },
+          "staffMemberId": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The roster entry they work as, if any.",
+                "$ref": "#/components/schemas/StaffMemberId"
+              }
+            ]
+          }
+        },
+        "description": "Who the caller's sign-in acts as: nobody yet until they redeem an invite."
+      },
       "SourceReference": {
         "required": [
           "type",
@@ -6881,6 +7358,112 @@
         },
         "description": "A space, normalized (trimmed)."
       },
+      "StaffAccessResponse": {
+        "required": [
+          "id",
+          "displayName",
+          "role",
+          "staffMemberId",
+          "status",
+          "inviteExpiresAt",
+          "linkedAt",
+          "revokedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The access ID.",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Who they are."
+          },
+          "role": {
+            "description": "What they may do.",
+            "$ref": "#/components/schemas/StaffRole"
+          },
+          "staffMemberId": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The roster entry they work as, if any.",
+                "$ref": "#/components/schemas/StaffMemberId"
+              }
+            ]
+          },
+          "status": {
+            "description": "Where it stands.",
+            "$ref": "#/components/schemas/StaffAccessStatus"
+          },
+          "inviteExpiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When the open invite stops working, while one is open.",
+            "format": "date-time"
+          },
+          "linkedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When their sign-in was linked.",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was revoked.",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version.",
+            "format": "int64"
+          }
+        },
+        "description": "Someone's access to the tenant. It never shows the invite code or how they sign in."
+      },
+      "StaffAccessStatus": {
+        "enum": [
+          "Invited",
+          "Active",
+          "Revoked"
+        ],
+        "description": "Where someone's access stands."
+      },
+      "StaffInviteResponse": {
+        "required": [
+          "access",
+          "code",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "access": {
+            "description": "The access it opens.",
+            "$ref": "#/components/schemas/StaffAccessResponse"
+          },
+          "code": {
+            "type": "string",
+            "description": "The one-time code, e.g. K7QF3-MZP9A-...; redeemed after signing in."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When it stops working.",
+            "format": "date-time"
+          }
+        },
+        "description": "A new invite: the code is shown this once, for the administrator to pass on; only its hash is kept."
+      },
       "StaffMemberId": {
         "type": "string",
         "format": "uuid"
@@ -6923,6 +7506,14 @@
           }
         },
         "description": "A staff member on a property's roster."
+      },
+      "StaffRole": {
+        "enum": [
+          "Worker",
+          "Manager",
+          "Admin",
+          null
+        ]
       },
       "StayContextId": {
         "type": "string",
@@ -7923,6 +8514,9 @@
     },
     {
       "name": "StaffEndpoints"
+    },
+    {
+      "name": "Access"
     },
     {
       "name": "AITraceEndpoints"
