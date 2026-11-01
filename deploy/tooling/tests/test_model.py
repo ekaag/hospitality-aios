@@ -168,6 +168,18 @@ class RepositoryTests(unittest.TestCase):
             raised.exception.problems,
         )
 
+    def test_whatever_runs_an_image_waits_for_the_jobs_that_prepare_it(self):
+        # The migration step must finish before the API's new revision, which runs the same image against its schema.
+        resources = load_catalog()["resources"]
+        jobs = {purpose: entry for purpose, entry in resources.items() if any(service.get("run") for service in entry["services"].values())}
+
+        self.assertIn("migrate", jobs)
+        for job, entry in jobs.items():
+            for purpose, other in resources.items():
+                if purpose != job and other.get("image", {}).get("repository") == entry["image"]["repository"]:
+                    with self.subTest(job=job, resource=purpose):
+                        self.assertIn(job, other["dependsOn"], f"{purpose} runs the image {job} prepares, so it must depend on {job}.")
+
     def test_the_deployment_identity_may_grant_every_role_the_modules_grant(self):
         import re
 

@@ -6,8 +6,9 @@ namespace HospitalityOS.IntegrationTests.Hosts.Api;
 
 /// <summary>
 /// The deployment's migration step as it runs in a job: the API executable in <c>migrate</c> mode, with the deployed
-/// settings, against a real PostgreSQL server (<c>HOSPITALITYOS_POSTGRES</c>; skipped without it, required in CI). It
-/// must make the schema, let the app's role read and write it, seed, and exit; and running it again must change nothing.
+/// settings, against a real PostgreSQL server (<c>HOSPITALITYOS_POSTGRES</c>; skipped without it, required in CI), and on
+/// SQLite everywhere. It must make the schema, let the app's role read and write it, seed, and exit; and running it again
+/// must change nothing.
 /// </summary>
 public sealed class MigrationModeTests : IAsyncLifetime
 {
@@ -49,6 +50,33 @@ public sealed class MigrationModeTests : IAsyncLifetime
         await Assert.ThrowsAsync<PostgresException>(() => ExecuteAsync(Database(), $"SET ROLE \"{role}\"; CREATE TABLE \"Intruder\" (\"Id\" integer)"));
     }
 
+    [Fact]
+    public async Task Migrate_OnSqlite_MakesTheSchemaAndSeedsOnce_AndExits()
+    {
+        string file = Path.Combine(Path.GetTempPath(), $"hospitalityos-migrate-{Guid.NewGuid():N}.db");
+        Dictionary<string, string> settings = new()
+        {
+            ["Persistence__Provider"] = "Sqlite",
+            ["Persistence__ConnectionString"] = $"Data Source={file};Pooling=False",
+            ["Seed__AuroraGrand__Enabled"] = "true",
+        };
+
+        try
+        {
+            (int first, string firstOutput) = await RunAsync(settings);
+            (int second, string secondOutput) = await RunAsync(settings);
+
+            Assert.True(first == 0, firstOutput);
+            Assert.True(second == 0, secondOutput);
+            Assert.Matches(@"seeded in tenant [0-9a-f-]+: [1-9]\d* records created, 0 already present", firstOutput);
+            Assert.Matches(@"seeded in tenant [0-9a-f-]+: 0 records created, [1-9]\d* already present", secondOutput);
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (!created)
@@ -63,7 +91,21 @@ public sealed class MigrationModeTests : IAsyncLifetime
 
     private string Database() => new NpgsqlConnectionStringBuilder(server) { Database = database }.ConnectionString;
 
-    private async Task<(int ExitCode, string Output)> MigrateAsync()
+    private Task<(int ExitCode, string Output)> MigrateAsync() =>
+        RunAsync(new Dictionary<string, string>
+        {
+            ["Persistence__Provider"] = "PostgreSql",
+            ["Persistence__ConnectionString"] = Database(),
+            ["Persistence__AppRole__Name"] = role,
+            ["Persistence__AppRole__ObjectId"] = Guid.NewGuid().ToString(),
+            ["Seed__AuroraGrand__Enabled"] = "true",
+        });
+
+    /// <summary>
+    /// The API executable in migrate mode with these settings; one that has not exited within two minutes is stopped and
+    /// fails, as the migration job would.
+    /// </summary>
+    private static async Task<(int ExitCode, string Output)> RunAsync(Dictionary<string, string> settings)
     {
         ProcessStartInfo start = new("dotnet", ["HospitalityOS.Api.dll", "migrate"])
         {
@@ -72,16 +114,29 @@ public sealed class MigrationModeTests : IAsyncLifetime
             RedirectStandardError = true,
         };
         start.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
-        start.Environment["Persistence__Provider"] = "PostgreSql";
-        start.Environment["Persistence__ConnectionString"] = Database();
-        start.Environment["Persistence__AppRole__Name"] = role;
-        start.Environment["Persistence__AppRole__ObjectId"] = Guid.NewGuid().ToString();
-        start.Environment["Seed__AuroraGrand__Enabled"] = "true";
+        start.Environment["ASPNETCORE_URLS"] = "http://127.0.0.1:0";
+
+        foreach ((string key, string value) in settings)
+        {
+            start.Environment[key] = value;
+        }
 
         using Process process = Process.Start(start)!;
         Task<string> output = process.StandardOutput.ReadToEndAsync(Cancellation);
         Task<string> errors = process.StandardError.ReadToEndAsync(Cancellation);
-        await process.WaitForExitAsync(Cancellation);
+        using CancellationTokenSource limit = CancellationTokenSource.CreateLinkedTokenSource(Cancellation);
+        limit.CancelAfter(TimeSpan.FromMinutes(2));
+
+        try
+        {
+            await process.WaitForExitAsync(limit.Token);
+        }
+        catch (OperationCanceledException) when (!Cancellation.IsCancellationRequested)
+        {
+            process.Kill(entireProcessTree: true);
+
+            return (-1, "The migrate mode did not exit within two minutes.");
+        }
 
         return (process.ExitCode, await output + await errors);
     }
