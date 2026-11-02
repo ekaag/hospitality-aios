@@ -1,7 +1,8 @@
 /*
  * The frontends' look, after Fluent 2 (Microsoft's design system): its colour, type, radius, and shadow tokens, light
  * and dark, and plain HTML styled as its controls, so the apps keep semantic markup and no component library.
- * The backdrop is an aurora's colours washed over a soft canvas, after the Aurora Grand illustration.
+ * The backdrop is the shown hotel's colours washed over a soft canvas: an aurora's for the Aurora Grand, gold and rose
+ * for the Mysore Grand.
  */
 
 :root {
@@ -197,6 +198,61 @@
   --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
   --shadow-16: 0 0 2px rgb(0 0 0 / 0.24), 0 8px 16px rgb(0 0 0 / 0.28);
   --shadow-28: 0 0 8px rgb(0 0 0 / 0.24), 0 14px 28px rgb(0 0 0 / 0.28);
+}
+
+/*
+ * The Mysore Grand's palette, after Mysore Palace: ivory stone, a maroon brand (a Fluent custom brand ramp), and washes
+ * of gold, rose, and crimson. The apps set data-hotel on the root element for the hotel shown.
+ */
+
+:root[data-hotel="mysore-grand"] {
+  --canvas: #f6f1e8;
+  --brand-background: #8e1f45;
+  --brand-background-hover: #7a1a3b;
+  --brand-background-pressed: #4f0f26;
+  --brand-background-2: #fbeef2;
+  --brand-background-2-hover: #f6d9e2;
+  --brand-foreground-1: #8e1f45;
+  --brand-foreground-2: #7a1a3b;
+  --brand-stroke: #8e1f45;
+  --brand-stroke-2: #eab8c8;
+  --wash-1: rgb(230 168 60 / 0.22);
+  --wash-2: rgb(142 31 69 / 0.12);
+  --wash-3: rgb(240 132 154 / 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-hotel="mysore-grand"]:not([data-theme="light"]) {
+    --canvas: #120c22;
+    --brand-background: #a3274f;
+    --brand-background-hover: #b8325d;
+    --brand-background-pressed: #6b1430;
+    --brand-background-2: #2d0f1d;
+    --brand-background-2-hover: #4a1730;
+    --brand-foreground-1: #f48fab;
+    --brand-foreground-2: #f7a8bd;
+    --brand-stroke: #f48fab;
+    --brand-stroke-2: #6b1d3a;
+    --wash-1: rgb(230 168 60 / 0.14);
+    --wash-2: rgb(163 39 79 / 0.24);
+    --wash-3: rgb(240 132 154 / 0.14);
+  }
+}
+
+:root[data-hotel="mysore-grand"][data-theme="dark"] {
+  --canvas: #120c22;
+  --brand-background: #a3274f;
+  --brand-background-hover: #b8325d;
+  --brand-background-pressed: #6b1430;
+  --brand-background-2: #2d0f1d;
+  --brand-background-2-hover: #4a1730;
+  --brand-foreground-1: #f48fab;
+  --brand-foreground-2: #f7a8bd;
+  --brand-stroke: #f48fab;
+  --brand-stroke-2: #6b1d3a;
+  --wash-1: rgb(230 168 60 / 0.14);
+  --wash-2: rgb(163 39 79 / 0.24);
+  --wash-3: rgb(240 132 154 / 0.14);
 }
 
 /* Page */
@@ -743,6 +799,48 @@ summary {
   margin: 0;
 }
 
+.hero[data-look="mysore-grand"].hero-compact .hero-image {
+  object-position: 50% 22%;
+}
+
+/* The hotel picker, frosted glass over the banner's top right. */
+
+.hero-aside {
+  position: absolute;
+  right: 20px;
+  top: 16px;
+}
+
+.hotel-picker {
+  align-items: center;
+  backdrop-filter: blur(16px) saturate(1.4);
+  background: rgb(10 12 40 / 0.45);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: var(--radius-large);
+  color: #ffffff;
+  display: flex;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+}
+
+.hotel-picker span {
+  color: rgb(255 255 255 / 0.85);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hotel-picker select,
+.hotel-picker select:hover,
+.hotel-picker select:focus {
+  background: rgb(255 255 255 / 0.95);
+  border-color: transparent;
+  color: #242424;
+  font-weight: 600;
+  min-width: 11rem;
+}
+
 /* Welcome: the hotel beside the sign-in panel. */
 
 .welcome {
@@ -940,5 +1038,15 @@ summary {
 
   .hero-compact .hero-subtitle {
     max-width: none;
+  }
+
+  .hero-compact .hero-text {
+    top: auto;
+    bottom: 12px;
+    transform: none;
+  }
+
+  .hero-compact {
+    min-height: 190px;
   }
 }

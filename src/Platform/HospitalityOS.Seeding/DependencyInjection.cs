@@ -20,6 +20,8 @@ public static class DependencyInjection
         services.TryAddScoped<AuroraGrandProperty>();
         services.TryAddScoped<AuroraGrandOfferings>();
         services.TryAddScoped<AuroraGrandGuests>();
+        services.TryAddScoped<MysoreGrandProperty>();
+        services.TryAddScoped<MysoreGrandOfferings>();
         services.TryAddScoped<IReferenceDataSeeder, AuroraGrandSeeder>();
 
         return services;

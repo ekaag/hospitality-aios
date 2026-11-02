@@ -7,7 +7,7 @@ using HospitalityOS.SharedKernel.Execution;
 namespace HospitalityOS.Api.Seeding;
 
 /// <summary>
-/// Seeds the Aurora Grand while the host starts, before it serves requests, in the Aurora Grand's tenant and acting as
+/// Seeds the reference properties (the Aurora Grand and the Mysore Grand) while the host starts, before it serves requests, in the Aurora Grand's tenant and acting as
 /// the system. A failure stops the host: a half-seeded reference property would mislead every demo and test run on it.
 /// </summary>
 internal sealed partial class ReferenceDataSeeding(IServiceScopeFactory scopes, ILogger<ReferenceDataSeeding> logger) : IHostedService
@@ -18,7 +18,7 @@ internal sealed partial class ReferenceDataSeeding(IServiceScopeFactory scopes, 
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(AuroraGrand.TenantId);
         scope.ServiceProvider.GetRequiredService<OperationContext>().ActAs(new Actor(ActorType.System, "reference-data-seed"));
 
-        SeedReport report = await scope.ServiceProvider.GetRequiredService<IReferenceDataSeeder>().SeedAuroraGrandAsync(cancellationToken).ConfigureAwait(false);
+        SeedReport report = await scope.ServiceProvider.GetRequiredService<IReferenceDataSeeder>().SeedReferencePropertiesAsync(cancellationToken).ConfigureAwait(false);
 
         LogSeeded(AuroraGrand.TenantId.Value, report.Created, report.Existing);
 
@@ -30,7 +30,7 @@ internal sealed partial class ReferenceDataSeeding(IServiceScopeFactory scopes, 
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Aurora Grand seeded in tenant {TenantId}: {Created} records created, {Existing} already present")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Aurora Grand and Mysore Grand seeded in tenant {TenantId}: {Created} records created, {Existing} already present")]
     private partial void LogSeeded(Guid tenantId, int created, int existing);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "The seed's PMS stay import skipped {PmsStayId}: {Reason}")]

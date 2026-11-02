@@ -142,7 +142,7 @@ internal sealed class AuroraGrandProperty(
         ValueList<WeeklyHours> weekly,
         ValueList<HoursOverride> overrides,
         CancellationToken cancellationToken) =>
-        SeedHours.EnsureAsync(steps, hours, record, id, subject, weekly, overrides, cancellationToken);
+        SeedHours.EnsureAsync(steps, hours, AuroraGrand.PropertyId, record, id, subject, weekly, overrides, cancellationToken);
 
     private static ValueList<WeeklyHours> Daily(params OpeningInterval[] intervals) => SeedHours.Daily(intervals);
 

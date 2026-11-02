@@ -16,8 +16,19 @@ Apps never import from each other; shared code lives in `packages/` (solution-st
 
 Every app imports `@hospitalityos/theme/fluent.css` first, then its own layout. The theme follows Fluent 2 (colour,
 type, radius, and shadow tokens; acrylic surfaces; light and dark from the system setting, or `data-theme` on `<html>`)
-by styling plain semantic HTML, so components keep their roles and labels and no component library is needed. The hotel
-picture (`aurora-grand.svg`) is original artwork drawn for the reference hotel.
+by styling plain semantic HTML, so components keep their roles and labels and no component library is needed. Each
+reference hotel has its own picture and palette, both original artwork redrawn by `packages/theme/tools/draw-*.py`: the
+Aurora Grand under the northern lights, and the Mysore Grand after Mysore Palace illuminated (gilded and rose domes, every
+edge traced in bulbs, a maroon brand on ivory). An app sets `data-hotel` on `<html>` for the hotel it shows.
+
+## Two hotels
+
+The seed puts two hotels in the reference tenant: the Aurora Grand, London, where the demos run (Alex is its in-house
+guest), and the Mysore Grand, Mysuru, configured as fully (rooms, amenities, Ambari and Chamundi Terrace with menus in
+rupees, events, policies, content, a roster of three) but with no guests yet. In the staff and admin apps a manager or
+administrator picks the hotel from the **Hotel** drop-down on the banner; the choice is remembered in that browser, and
+the page takes on that hotel's look. Workers get no picker: they see the first hotel by name, the Aurora Grand, where
+the seeded workers are.
 
 ## Run locally
 

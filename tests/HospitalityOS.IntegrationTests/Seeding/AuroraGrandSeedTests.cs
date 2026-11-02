@@ -130,13 +130,13 @@ public sealed class AuroraGrandSeedTests : IAsyncDisposable
         SeedReport again;
         await using (AsyncServiceScope scope = TenantScope())
         {
-            again = await scope.ServiceProvider.GetRequiredService<IReferenceDataSeeder>().SeedAuroraGrandAsync(Cancellation);
+            again = await scope.ServiceProvider.GetRequiredService<IReferenceDataSeeder>().SeedReferencePropertiesAsync(Cancellation);
         }
 
         Assert.Contains(auditBefore, audit => (audit.Action, audit.Outcome, audit.Actor, audit.PropertyId)
             == ("Property.Create", AuditOutcome.Succeeded, new Actor(ActorType.System, "reference-data-seed"), AuroraGrand.PropertyId));
         Assert.Contains(auditBefore, audit => (audit.Action, audit.TargetId) == ("Menu.Create", AuroraGrand.SaffronDinner.ToString()));
-        Assert.Equal((0, 47), (again.Created, again.Existing));
+        Assert.Equal((0, 94), (again.Created, again.Existing));
         Assert.Equal(StayImportOutcome.Unchanged, Assert.Single(again.StayImport.Imported).Outcome);
         Assert.Equal(auditBefore.Count, (await api.AuditAsync(Tenant, Cancellation)).Count);
         Assert.Equal(eventsBefore, (await api.EventsAsync(Tenant, Cancellation)).Count);
@@ -150,7 +150,7 @@ public sealed class AuroraGrandSeedTests : IAsyncDisposable
         scope.ServiceProvider.GetRequiredService<TenantContext>().Set(other);
 
         InvalidOperationException refused = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => scope.ServiceProvider.GetRequiredService<IReferenceDataSeeder>().SeedAuroraGrandAsync(Cancellation));
+            () => scope.ServiceProvider.GetRequiredService<IReferenceDataSeeder>().SeedReferencePropertiesAsync(Cancellation));
 
         // Refused before anything is written, not by a later clash with the Aurora Grand's fixed IDs.
         Assert.StartsWith("The Aurora Grand is seeded in its own tenant", refused.Message, StringComparison.Ordinal);

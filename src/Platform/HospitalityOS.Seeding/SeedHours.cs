@@ -2,6 +2,7 @@ using HospitalityOS.Application.Hours;
 using HospitalityOS.Contracts.Api.Hours;
 using HospitalityOS.Contracts.Api.Properties;
 using HospitalityOS.SharedKernel.Collections;
+using HospitalityOS.SharedKernel.Ids;
 
 namespace HospitalityOS.Seeding;
 
@@ -16,6 +17,7 @@ internal static class SeedHours
     public static Task EnsureAsync(
         SeedSteps steps,
         IOperatingHoursAdministration hours,
+        PropertyId property,
         string record,
         Guid id,
         SubjectReference subject,
@@ -30,6 +32,6 @@ internal static class SeedHours
             record,
             id,
             () => hours.GetAsync(id, cancellationToken),
-            () => hours.CreateAsync(new CreateOperatingHoursRequest(AuroraGrand.PropertyId, subject, weekly, overrides), cancellationToken));
+            () => hours.CreateAsync(new CreateOperatingHoursRequest(property, subject, weekly, overrides), cancellationToken));
     }
 }

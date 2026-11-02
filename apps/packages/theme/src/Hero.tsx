@@ -1,25 +1,29 @@
-/// <reference types="vite/client" />
 import type { ReactNode } from "react";
-import hotel from "./aurora-grand.svg";
+import { pictures, type HotelLook } from "./hotels";
 
 export interface HeroProps {
   title: string;
   children?: ReactNode;
   /** `tall` to welcome, `compact` as a banner over the work. */
   size?: "tall" | "compact";
+  /** Whose picture: the Aurora Grand's unless another hotel is shown. */
+  look?: HotelLook;
+  /** Shown at the banner's top right, such as the hotel picker. */
+  aside?: ReactNode;
 }
 
 /**
- * The Aurora Grand at dusk under the northern lights, with a title over it.
+ * The hotel's picture (the Aurora Grand under the northern lights, the Mysore Grand illuminated), with a title over it.
  */
-export function Hero({ title, children, size = "tall" }: HeroProps) {
+export function Hero({ title, children, size = "tall", look = "aurora-grand", aside }: HeroProps) {
   return (
-    <div className={`hero hero-${size}`}>
-      <img src={hotel} alt="" className="hero-image" />
+    <div className={`hero hero-${size}`} data-look={look}>
+      <img src={pictures[look]} alt="" className="hero-image" />
       <div className="hero-text">
         <p className="hero-title">{title}</p>
         {children && <div className="hero-subtitle">{children}</div>}
       </div>
+      {aside && <div className="hero-aside">{aside}</div>}
     </div>
   );
 }

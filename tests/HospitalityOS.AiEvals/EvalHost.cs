@@ -193,14 +193,29 @@ public sealed class EvalHost : IAsyncDisposable
     }
 
     /// <summary>
-    /// The events of the property's tenant, in the order they were recorded.
+    /// The events of the property's tenant, in the order they were recorded: every page, since the seed alone fills more
+    /// than one.
     /// </summary>
     public async Task<IReadOnlyList<EventMessage>> EventsAsync(CancellationToken cancellationToken)
     {
         await using AsyncServiceScope scope = factory.Services.CreateAsyncScope();
-        IReadOnlyList<StoredEvent> stored = await scope.ServiceProvider.GetRequiredService<IEventStore>().ReadAsync(new EventStoreQuery(TenantId: Seed.TenantId), cancellationToken);
+        IEventStore store = scope.ServiceProvider.GetRequiredService<IEventStore>();
+        List<EventMessage> events = [];
+        long after = 0;
 
-        return [.. stored.Select(entry => entry.Message)];
+        while (true)
+        {
+            IReadOnlyList<StoredEvent> page = await store.ReadAsync(
+                new EventStoreQuery(AfterPosition: after, Limit: EventStoreQuery.MaxLimit, TenantId: Seed.TenantId), cancellationToken);
+            events.AddRange(page.Select(entry => entry.Message));
+
+            if (page.Count < EventStoreQuery.MaxLimit)
+            {
+                return events;
+            }
+
+            after = page[^1].Position;
+        }
     }
 
     /// <summary>

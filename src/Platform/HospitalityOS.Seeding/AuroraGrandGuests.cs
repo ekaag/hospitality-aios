@@ -6,6 +6,7 @@ using HospitalityOS.Domain.Integrations.IntegrationConfigurations;
 using HospitalityOS.IntegrationRuntime.Configuration;
 using HospitalityOS.IntegrationRuntime.Stays;
 using HospitalityOS.Ports.Auditing;
+using HospitalityOS.SharedKernel.Ids;
 using HospitalityOS.SharedKernel.Results;
 
 namespace HospitalityOS.Seeding;
@@ -37,27 +38,35 @@ internal sealed class AuroraGrandGuests(
 
     public async Task<StayImportReport> SeedAsync(DateOnly localToday, CancellationToken cancellationToken)
     {
-        foreach ((ConnectorKind kind, string provider) in providers)
-        {
-            await ConfigureAsync(kind, provider, cancellationToken).ConfigureAwait(false);
-        }
-
+        await ConfigureIntegrationsAsync(AuroraGrand.PropertyId, cancellationToken).ConfigureAwait(false);
         await SeedAlexAsync(localToday, cancellationToken).ConfigureAwait(false);
 
         return await ImportStaysAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    // A property that already has a connector of this kind keeps it, even if an administrator chose another provider.
-    private async Task ConfigureAsync(ConnectorKind kind, string provider, CancellationToken cancellationToken)
+    /// <summary>
+    /// Configures the mock PMS, native CMS, and mock messaging for a seeded property (the Aurora Grand's, and the Mysore
+    /// Grand's).
+    /// </summary>
+    public async Task ConfigureIntegrationsAsync(PropertyId property, CancellationToken cancellationToken)
     {
-        if (await configurations.FindForPropertyAsync(AuroraGrand.PropertyId, kind, cancellationToken).ConfigureAwait(false) is not null)
+        foreach ((ConnectorKind kind, string provider) in providers)
+        {
+            await ConfigureAsync(property, kind, provider, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    // A property that already has a connector of this kind keeps it, even if an administrator chose another provider.
+    private async Task ConfigureAsync(PropertyId property, ConnectorKind kind, string provider, CancellationToken cancellationToken)
+    {
+        if (await configurations.FindForPropertyAsync(property, kind, cancellationToken).ConfigureAwait(false) is not null)
         {
             steps.CountExisting();
             return;
         }
 
         Result<IntegrationConfigurationId> configured = await configurator
-            .ConfigureAsync(AuroraGrand.PropertyId, kind, provider, new Dictionary<string, string>(), cancellationToken)
+            .ConfigureAsync(property, kind, provider, new Dictionary<string, string>(), cancellationToken)
             .ConfigureAwait(false);
 
         if (configured.IsFailure)
@@ -67,7 +76,7 @@ internal sealed class AuroraGrandGuests(
 
         await CommitAsync(
             "IntegrationConfiguration.Configure",
-            new AuditTarget(nameof(IntegrationConfiguration), configured.Value.Value.ToString(), AuroraGrand.PropertyId),
+            new AuditTarget(nameof(IntegrationConfiguration), configured.Value.Value.ToString(), property),
             cancellationToken).ConfigureAwait(false);
         steps.CountCreated();
     }

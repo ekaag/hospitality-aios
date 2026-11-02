@@ -49,6 +49,7 @@ internal sealed class AuroraGrandOfferings(
         await SeedHours.EnsureAsync(
             steps,
             hours,
+            AuroraGrand.PropertyId,
             "Saffron hours",
             AuroraGrand.SaffronHours,
             new SubjectReference(SubjectKind.Restaurant, AuroraGrand.Saffron),
@@ -58,6 +59,7 @@ internal sealed class AuroraGrandOfferings(
         await SeedHours.EnsureAsync(
             steps,
             hours,
+            AuroraGrand.PropertyId,
             "Harbour Grill hours",
             AuroraGrand.HarbourGrillHours,
             new SubjectReference(SubjectKind.Restaurant, AuroraGrand.HarbourGrill),

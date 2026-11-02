@@ -1,6 +1,6 @@
 """Draws the Aurora Grand: a grand lakeside hotel at dusk under the northern lights, reflected in the water (original art).
 
-Run `python tools/draw-hotel.py` in packages/theme to redraw src/aurora-grand.svg; the layout is seeded, so it is the same each run."""
+Run `python tools/draw-aurora-grand.py` in packages/theme to redraw src/aurora-grand.svg; the layout is seeded, so it is the same each run."""
 import math
 import pathlib
 import random

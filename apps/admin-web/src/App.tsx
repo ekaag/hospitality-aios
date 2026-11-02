@@ -1,7 +1,7 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
-import { AppBar, Hero, Welcome } from "@hospitalityos/theme";
+import { AppBar, Hero, HotelPicker, lookOf, useChosenHotel, useHotelLook, Welcome } from "@hospitalityos/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Admin } from "./admin/Admin";
 
@@ -36,7 +36,7 @@ export function App() {
         {session ? (
           <Signed client={client} session={session} />
         ) : (
-          <Welcome title="Aurora Grand" subtitle={<p>The property's configuration, integrations, and what the AI did and why.</p>}>
+          <Welcome title="Welcome back" subtitle={<p>Your hotels' configuration, integrations, and what the AI did and why.</p>}>
             {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}
           </Welcome>
         )}
@@ -46,11 +46,15 @@ export function App() {
 }
 
 /**
- * The admin surface for the caller's property: the tenant's first, as Phase 1 runs one property per tenant.
+ * The admin surface for one of the tenant's hotels, chosen from the banner (the one last chosen here, else the first by
+ * name); the page takes on that hotel's look.
  */
 function Signed({ client, session }: { client: ApiClient; session: DevSession }) {
-  const [propertyId, setPropertyId] = useState<string | undefined>();
+  const [hotels, setHotels] = useState<{ id: string; name: string }[] | undefined>();
   const [problem, setProblem] = useState<string | undefined>();
+  const [propertyId, choose] = useChosenHotel("admin-web", hotels);
+  const hotel = hotels?.find((each) => each.id === propertyId);
+  useHotelLook(lookOf(hotel?.name));
 
   useEffect(() => {
     let current = true;
@@ -58,7 +62,7 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
     client.GET("/api/v1/properties").then(
       ({ data }) => {
         if (current) {
-          setPropertyId(data?.[0]?.id);
+          setHotels(data?.map((property) => ({ id: property.id, name: property.name })));
           setProblem(data?.[0] ? undefined : "There is no property to show.");
         }
       },
@@ -78,12 +82,17 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
     return <p role="alert">{problem}</p>;
   }
 
-  return propertyId ? (
+  return propertyId && hotel ? (
     <>
-      <Hero title="Aurora Grand" size="compact">
-        <p>Configure the property, and see what the AI did and why.</p>
+      <Hero
+        title={hotel.name}
+        size="compact"
+        look={lookOf(hotel.name)}
+        aside={hotels && hotels.length > 1 ? <HotelPicker hotels={hotels} value={propertyId} onChange={choose} /> : undefined}
+      >
+        <p>Configure the hotel, and see what the AI did and why.</p>
       </Hero>
-      <Admin client={client} propertyId={propertyId} isAdmin={session.persona.role === "Admin"} />
+      <Admin key={propertyId} client={client} propertyId={propertyId} isAdmin={session.persona.role === "Admin"} />
     </>
   ) : (
     <p>Loading…</p>
