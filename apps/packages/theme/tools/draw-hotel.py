@@ -190,7 +190,6 @@ for _ in range(30):
 add("</g>")
 add("</svg>")
 
-target = pathlib.Path(r"C:\code\ekaag\hospitality-aios\apps\packages\theme\src\aurora-grand.svg")
-target.parent.mkdir(parents=True, exist_ok=True)
+target = pathlib.Path(__file__).resolve().parent.parent / "src" / "aurora-grand.svg"
 target.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")
 print(target, target.stat().st_size)
