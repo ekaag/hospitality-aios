@@ -31,10 +31,12 @@ export function Hero({ title, children, size = "tall", look = "aurora-grand", as
 /**
  * The page before signing in: the hotel, and beside it a panel to sign in or open the stay.
  */
-export function Welcome({ title, subtitle, children }: { title: string; subtitle: ReactNode; children: ReactNode }) {
+export function Welcome({ title, subtitle, children, look, aside }: { title: string; subtitle: ReactNode; children: ReactNode; look?: HotelLook; aside?: ReactNode }) {
   return (
     <div className="welcome">
-      <Hero title={title}>{subtitle}</Hero>
+      <Hero title={title} look={look ?? "aurora-grand"} aside={aside}>
+        {subtitle}
+      </Hero>
       <div className="welcome-panel card">{children}</div>
     </div>
   );

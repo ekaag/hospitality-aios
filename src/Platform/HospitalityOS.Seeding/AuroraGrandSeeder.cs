@@ -30,10 +30,11 @@ internal sealed class AuroraGrandSeeder(
         await offerings.SeedAsync(localToday, cancellationToken).ConfigureAwait(false);
         StayImportReport stayImport = await guests.SeedAsync(localToday, cancellationToken).ConfigureAwait(false);
 
-        // The second property, in the same tenant: no guests, so its integrations are configured without a stay import.
+        // The second property, in the same tenant; its guest has no PMS reservation, so there is no stay import.
         await mysoreProperty.SeedAsync(cancellationToken).ConfigureAwait(false);
         await mysoreOfferings.SeedAsync(MysoreGrand.LocalToday(timeProvider.GetUtcNow()), cancellationToken).ConfigureAwait(false);
         await guests.ConfigureIntegrationsAsync(MysoreGrand.PropertyId, cancellationToken).ConfigureAwait(false);
+        await guests.SeedMysoreGrandGuestAsync(MysoreGrand.LocalToday(timeProvider.GetUtcNow()), cancellationToken).ConfigureAwait(false);
 
         // Content search is a projection that content events keep current; rebuilding it here makes the seeded content
         // searchable at once, including when a durable store outlives an in-memory index across restarts.

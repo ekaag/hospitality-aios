@@ -158,6 +158,7 @@ app.MapAITraceEndpoints();
 app.MapFailedEventEndpoints();
 app.MapConversationEndpoints();
 app.MapGuestRequestEndpoints();
+app.MapGuestStayEndpoints();
 app.MapIntegrationEndpoints();
 app.MapWorkEndpoints();
 app.MapRealtime();

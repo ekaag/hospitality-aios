@@ -27,8 +27,12 @@ public sealed class DevTokenEndpointsTests : IAsyncDisposable
         IReadOnlyList<DevPersona> personas = await StaffApi.OkAsync<IReadOnlyList<DevPersona>>(await anonymous.GetAsync("/api/dev/tokens/personas", Cancellation), Cancellation);
 
         Assert.Equal(
-            [("guest-alex", "Guest"), ("worker-sam", "Worker"), ("worker-jo", "Worker"), ("worker-ravi", "Worker"), ("manager", "Manager"), ("admin", "Admin")],
-            personas.Select(persona => (persona.Id, persona.Role)));
+            [
+                ("guest-alex", "Guest", "Aurora Grand"), ("worker-sam", "Worker", "Aurora Grand"), ("worker-jo", "Worker", "Aurora Grand"), ("worker-ravi", "Worker", "Aurora Grand"),
+                ("guest-ananya", "Guest", "Mysore Grand"), ("worker-lakshmi", "Worker", "Mysore Grand"), ("worker-kiran", "Worker", "Mysore Grand"), ("worker-arjun", "Worker", "Mysore Grand"),
+                ("manager", "Manager", null), ("admin", "Admin", null),
+            ],
+            personas.Select(persona => (persona.Id, persona.Role, persona.PropertyName)));
     }
 
     [Fact]

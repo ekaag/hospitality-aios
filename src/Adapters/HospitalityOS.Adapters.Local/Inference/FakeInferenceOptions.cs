@@ -50,12 +50,15 @@ public sealed class FakeScriptOptions
 /// result.</param>
 /// <param name="CallTool">A tool to call instead of replying.</param>
 /// <param name="Arguments">The call's arguments, a JSON object (default <c>{}</c>).</param>
+/// <param name="WhenPromptContains">The system prompt contains this (ignoring case), e.g. a property's ID in the
+/// context the concierge is given, so one script can answer for several properties.</param>
 public sealed record FakeChatRuleOptions(
     string? WhenUserSays = null,
     string? AfterTool = null,
     string? Reply = null,
     string? CallTool = null,
-    string? Arguments = null);
+    string? Arguments = null,
+    string? WhenPromptContains = null);
 
 /// <summary>
 /// A classification: when the input contains <paramref name="WhenInputContains"/> (ignoring case), choose

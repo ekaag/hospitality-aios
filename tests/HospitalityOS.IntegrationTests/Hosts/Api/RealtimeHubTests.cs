@@ -32,7 +32,7 @@ public sealed class RealtimeHubTests : IAsyncLifetime
     private const string WorkChanged = "WorkChanged";
     private const string StayChanged = "StayChanged";
 
-    private readonly StaffApi api = new(seedAuroraGrand: true, dispatchEvents: true, configure: AuroraGrandScriptTests.Scripted);
+    private readonly StaffApi api = new(seedAuroraGrand: true, dispatchEvents: true, configure: ReferenceHotelsScriptTests.Scripted);
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 

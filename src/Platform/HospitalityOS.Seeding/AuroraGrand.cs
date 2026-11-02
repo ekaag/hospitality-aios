@@ -20,6 +20,11 @@ public static class AuroraGrand
     public const string TimeZone = "Europe/London";
 
     /// <summary>
+    /// The property's name.
+    /// </summary>
+    public const string Name = "Aurora Grand";
+
+    /// <summary>
     /// The Aurora Grand's tenant. A staff token for it carries this as <c>tenant_id</c>.
     /// </summary>
     public static TenantId TenantId { get; } = new(Id(1));

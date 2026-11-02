@@ -12,9 +12,10 @@ using HospitalityOS.SharedKernel.Results;
 namespace HospitalityOS.Seeding;
 
 /// <summary>
-/// The Aurora Grand's integrations and its in-house guest: the mock PMS, native CMS, and mock messaging are configured;
+/// The reference hotels' integrations and in-house guests: the mock PMS, native CMS, and mock messaging are configured;
 /// Alex's stay in room 412 is created with its fixed IDs and checked in; then the PMS import links Alex's reservation
-/// to it, as it would for a stay created before the property connected its PMS (Journey 18).
+/// to it, as it would for a stay created before the property connected its PMS (Journey 18). The Mysore Grand's guest,
+/// Ananya, is seeded the same way, without a PMS reservation.
 /// </summary>
 internal sealed class AuroraGrandGuests(
     SeedSteps steps,
@@ -39,7 +40,9 @@ internal sealed class AuroraGrandGuests(
     public async Task<StayImportReport> SeedAsync(DateOnly localToday, CancellationToken cancellationToken)
     {
         await ConfigureIntegrationsAsync(AuroraGrand.PropertyId, cancellationToken).ConfigureAwait(false);
-        await SeedAlexAsync(localToday, cancellationToken).ConfigureAwait(false);
+        await SeedInHouseAsync(
+            new InHouseGuest(AuroraGrand.Alex, AuroraGrand.AlexStay, AuroraGrand.PropertyId, AuroraGrand.Room412, "412", "Alex Morgan", localToday, AuroraGrand.AlexDeparture(localToday)),
+            cancellationToken).ConfigureAwait(false);
 
         return await ImportStaysAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -81,37 +84,55 @@ internal sealed class AuroraGrandGuests(
         steps.CountCreated();
     }
 
-    private async Task SeedAlexAsync(DateOnly localToday, CancellationToken cancellationToken)
+    /// <summary>
+    /// Seeds the Mysore Grand's in-house guest, Ananya, in room 210 from <paramref name="localToday"/> for two nights.
+    /// </summary>
+    public Task SeedMysoreGrandGuestAsync(DateOnly localToday, CancellationToken cancellationToken) =>
+        SeedInHouseAsync(
+            new InHouseGuest(MysoreGrand.Ananya, MysoreGrand.AnanyaStay, MysoreGrand.PropertyId, MysoreGrand.Room210, "210", "Ananya Rao", localToday, localToday.AddDays(2)),
+            cancellationToken);
+
+    private async Task SeedInHouseAsync(InHouseGuest seeded, CancellationToken cancellationToken)
     {
-        if (await stays.GetByIdAsync(AuroraGrand.AlexStay, cancellationToken).ConfigureAwait(false) is not null)
+        if (await stays.GetByIdAsync(seeded.Stay, cancellationToken).ConfigureAwait(false) is not null)
         {
             steps.CountExisting();
             return;
         }
 
-        if (await stays.FindInHouseInUnitAsync(AuroraGrand.PropertyId, AuroraGrand.Room412, cancellationToken).ConfigureAwait(false) is not null)
+        if (await stays.FindInHouseInUnitAsync(seeded.Property, seeded.Unit, cancellationToken).ConfigureAwait(false) is not null)
         {
-            throw new InvalidOperationException("Seeding Alex's stay failed: room 412 is occupied by another in-house stay.");
+            throw new InvalidOperationException($"Seeding {seeded.Name}'s stay failed: room {seeded.Room} is occupied by another in-house stay.");
         }
 
         DateTimeOffset now = timeProvider.GetUtcNow();
-        Guest? alex = await guests.GetByIdAsync(AuroraGrand.Alex, cancellationToken).ConfigureAwait(false);
+        Guest? guest = await guests.GetByIdAsync(seeded.Guest, cancellationToken).ConfigureAwait(false);
 
-        if (alex is null)
+        if (guest is null)
         {
-            alex = Required("guest Alex", Guest.Register(AuroraGrand.Alex, AuroraGrand.TenantId, new GuestProfile("Alex Morgan", "en"), now));
-            await guests.AddAsync(alex, cancellationToken).ConfigureAwait(false);
-            auditTrail.Record("Guest.Register", AuditOutcome.Succeeded, new AuditTarget(nameof(Guest), AuroraGrand.Alex.ToString()));
+            guest = Required($"guest {seeded.Name}", Guest.Register(seeded.Guest, AuroraGrand.TenantId, new GuestProfile(seeded.Name, "en"), now));
+            await guests.AddAsync(guest, cancellationToken).ConfigureAwait(false);
+            auditTrail.Record("Guest.Register", AuditOutcome.Succeeded, new AuditTarget(nameof(Guest), seeded.Guest.ToString()));
         }
 
         StayContext stay = Required(
-            "Alex's stay",
-            StayContext.Create(AuroraGrand.AlexStay, alex, AuroraGrand.PropertyId, localToday, AuroraGrand.AlexDeparture(localToday), AuroraGrand.Room412, now));
-        Required("checking Alex in", stay.CheckIn(null, now));
+            $"{seeded.Name}'s stay",
+            StayContext.Create(seeded.Stay, guest, seeded.Property, seeded.Arrival, seeded.Departure, seeded.Unit, now));
+        Required($"checking {seeded.Name} in", stay.CheckIn(null, now));
         await stays.AddAsync(stay, cancellationToken).ConfigureAwait(false);
-        await CommitAsync("StayContext.Create", new AuditTarget(nameof(StayContext), AuroraGrand.AlexStay.ToString(), AuroraGrand.PropertyId), cancellationToken).ConfigureAwait(false);
+        await CommitAsync("StayContext.Create", new AuditTarget(nameof(StayContext), seeded.Stay.ToString(), seeded.Property), cancellationToken).ConfigureAwait(false);
         steps.CountCreated();
     }
+
+    private sealed record InHouseGuest(
+        GuestId Guest,
+        StayContextId Stay,
+        PropertyId Property,
+        AccommodationUnitId Unit,
+        string Room,
+        string Name,
+        DateOnly Arrival,
+        DateOnly Departure);
 
     // The import is idempotent; it is committed (and audited) only when it changed something.
     private async Task<StayImportReport> ImportStaysAsync(CancellationToken cancellationToken)

@@ -51,7 +51,7 @@ internal sealed class MysoreGrandProperty(
             () => properties.CreateAsync(
                 new CreatePropertyRequest(
                     MysoreGrand.OrganizationId,
-                    "Mysore Grand",
+                    MysoreGrand.Name,
                     MysoreGrand.TimeZone,
                     new PropertyAddress("1 Palace Road", null, "Mysuru", "Karnataka", "570001", "IN"),
                     "+91 821 400 0000",

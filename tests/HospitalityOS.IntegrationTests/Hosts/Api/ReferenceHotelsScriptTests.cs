@@ -5,18 +5,21 @@ using HospitalityOS.Workflows.Routing;
 using Microsoft.AspNetCore.Hosting;
 using Xunit;
 using static HospitalityOS.IntegrationTests.Workflows.GuestChat;
+using Mysore = HospitalityOS.Seeding.MysoreGrand;
 using Seed = HospitalityOS.Seeding.AuroraGrand;
 
 namespace HospitalityOS.IntegrationTests.Hosts.Api;
 
 /// <summary>
-/// The Fake models' local script (<c>aurora-grand</c>, J3), as the launch profile binds it: against the seeded Aurora Grand
-/// the concierge answers each question it knows from the seed's records, citing them as retrieved (an answer citing
-/// anything else would be refused), says it does not know anything else, and requests become requests for Alex's room.
+/// The Fake models' local script (<c>reference-hotels</c>, J3), as the launch profile binds it: at each seeded hotel the
+/// concierge answers each question it knows from that hotel's records, citing them as retrieved (an answer citing
+/// anything else would be refused), says it does not know anything else, and requests become requests for the guest's
+/// room: Alex's at the Aurora Grand, Ananya's at the Mysore Grand.
 /// </summary>
-public sealed class AuroraGrandScriptTests : IAsyncLifetime
+public sealed class ReferenceHotelsScriptTests : IAsyncLifetime
 {
     private static readonly GuestStay alex = new(Seed.Alex, Seed.AlexStay, Seed.PropertyId);
+    private static readonly GuestStay ananya = new(Mysore.Ananya, Mysore.AnanyaStay, Mysore.PropertyId);
 
     private readonly StaffApi api = new(seedAuroraGrand: true, dispatchEvents: true, configure: Scripted);
 
@@ -30,7 +33,7 @@ public sealed class AuroraGrandScriptTests : IAsyncLifetime
     /// <summary>
     /// The launch profile's binding: the <c>fake</c> provider, which every task uses locally, plays the script.
     /// </summary>
-    internal static void Scripted(IWebHostBuilder builder) => builder.UseSetting("Inference:Providers:fake:Settings:Script", "aurora-grand");
+    internal static void Scripted(IWebHostBuilder builder) => builder.UseSetting("Inference:Providers:fake:Settings:Script", "reference-hotels");
 
     [Fact]
     public async Task TheConcierge_AnswersWhatTheSeedKnows_AndNothingElse()
@@ -51,6 +54,48 @@ public sealed class AuroraGrandScriptTests : IAsyncLifetime
             ("Can I fly a drone from the roof?", Concierge.NoSourceAnswer),
         ];
         using HttpClient guest = api.Guest(Seed.TenantId, alex);
+
+        Assert.Empty(await WrongAnswersAsync(guest, asked));
+    }
+
+    [Fact]
+    public async Task AtTheMysoreGrand_TheConciergeAnswersFromItsOwnRecords()
+    {
+        (string Question, string Answer)[] asked =
+        [
+            ("What time does the pool close?", "The courtyard pool is open daily from 06:30 to 20:00."),
+            ("When does the spa open?", "The Ayurveda spa is open daily from 09:00 to 21:00."),
+            ("Can my kid swim on their own?", "Children under 14 must be supervised"),
+            ("What time is check-out?", "Check-in is from 14:00 and check-out is by 12:00."),
+            ("Can I bring my dog?", "Pets are not allowed at the Mysore Grand"),
+            ("What should I wear to the music evening?", "Smart casual in Durbar Hall after 19:00"),
+            ("What's the wifi password?", "Join the MysoreGrand-Guest network"),
+            ("When is the palace lit up?", "nearly 100,000 bulbs"),
+            ("Any vegetarian food?", "Mysore masala dosa (INR 280)"),
+            ("Where can we have dinner?", "Ambari serves Mysore and Karnataka classics"),
+            ("Anything on tonight?", "palace illumination walk from 18:45"),
+            ("Can I fly a drone from the roof?", Concierge.NoSourceAnswer),
+        ];
+        using HttpClient guest = api.Guest(Seed.TenantId, ananya);
+
+        Assert.Empty(await WrongAnswersAsync(guest, asked));
+    }
+
+    [Fact]
+    public async Task AtTheMysoreGrand_ARequest_BecomesARequestForAnanyasRoom()
+    {
+        using HttpClient guest = api.Guest(Seed.TenantId, ananya);
+
+        (_, GuestMessageResponse answer) = await AskAsync(api, guest, "Could I get two towels please?", Cancellation);
+
+        Assert.Equal("Of course. I've asked our team to bring 2 bath towels to Room 210.", answer.Text);
+        GuestRequestResponse request = Assert.Single(await StaffApi.OkAsync<IReadOnlyList<GuestRequestResponse>>(
+            await guest.GetAsync("/api/v1/service-requests", Cancellation), Cancellation));
+        Assert.Equal(("Bath towel", 2, "Room 210"), (request.ItemName, request.Quantity, request.Location));
+    }
+
+    private async Task<List<string>> WrongAnswersAsync(HttpClient guest, (string Question, string Answer)[] asked)
+    {
         List<string> wrong = [];
 
         foreach ((string question, string expected) in asked)
@@ -63,7 +108,7 @@ public sealed class AuroraGrandScriptTests : IAsyncLifetime
             }
         }
 
-        Assert.Empty(wrong);
+        return wrong;
     }
 
     [Fact]

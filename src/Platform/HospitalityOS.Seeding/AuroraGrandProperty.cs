@@ -51,7 +51,7 @@ internal sealed class AuroraGrandProperty(
             () => properties.CreateAsync(
                 new CreatePropertyRequest(
                     AuroraGrand.OrganizationId,
-                    "Aurora Grand",
+                    AuroraGrand.Name,
                     AuroraGrand.TimeZone,
                     new PropertyAddress("1 Strand", null, "London", null, "WC2N 5HR", "GB"),
                     "+44 20 7946 0000",

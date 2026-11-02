@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/stay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Stay.GetMine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capabilities": {
         parameters: {
             query?: never;
@@ -1631,7 +1647,7 @@ export interface components {
         };
         /** @enum {unknown} */
         DayOfWeek: "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | null;
-        /** @description Someone from the Aurora Grand seed a local developer can sign in as. */
+        /** @description Someone from the reference hotels' seed a local developer can sign in as. */
         DevPersona: {
             /** @description The persona's key, e.g. `guest-alex`; send it to have a token issued. */
             id: string;
@@ -1641,6 +1657,14 @@ export interface components {
             description: string;
             /** @description Their role: `Guest`, or a staff role (`Worker`, `Manager`, `Admin`). */
             role: string;
+            /**
+             * Format: uuid
+             * @description The hotel they belong to (a guest's stay, a worker's roster), or null for someone who works
+             *                 across the tenant's hotels (managers and administrators).
+             */
+            propertyId?: null | string;
+            /** @description That hotel's name, e.g. `Mysore Grand`. */
+            propertyName?: null | string;
         };
         /** @description A bearer token for a dev persona, valid only against this API while dev tokens are on. */
         DevTokenResponse: {
@@ -1856,6 +1880,27 @@ export interface components {
          * @enum {unknown}
          */
         GuestRequestStatus: "Open" | "InProgress" | "Exception";
+        /** @description The guest's own stay, as the guest app shows it: which hotel, which room, and when. */
+        GuestStayResponse: {
+            /** @description The stay. */
+            id: components["schemas"]["StayContextId"];
+            /** @description The hotel. */
+            propertyId: components["schemas"]["PropertyId"];
+            /** @description The hotel's name, e.g. `Mysore Grand`. */
+            propertyName: string;
+            /** @description The room, once assigned. */
+            unitNumber: null | string;
+            /**
+             * Format: date
+             * @description The arrival date.
+             */
+            arrival: string;
+            /**
+             * Format: date
+             * @description The departure date.
+             */
+            departure: string;
+        };
         /**
          * @description Closed on every date from From to To, whatever the weekly hours or overrides
          *     say, e.g. for maintenance.
@@ -2976,6 +3021,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StayTokenResponse"];
+                };
+            };
+            /** @description The request failed; the problem says why. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    "Stay.GetMine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuestStayResponse"];
                 };
             };
             /** @description The request failed; the problem says why. */

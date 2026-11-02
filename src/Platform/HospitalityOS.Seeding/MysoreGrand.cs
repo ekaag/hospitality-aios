@@ -6,8 +6,8 @@ namespace HospitalityOS.Seeding;
 /// <summary>
 /// The Mysore Grand, Mysuru: a heritage palace hotel, the reference tenant's second property, so staff and
 /// administrators can switch between hotels. It is configured as fully as the Aurora Grand (spaces, rooms, amenities and
-/// hours, policies, content, restaurants and menus, events, services, and a roster), but has no in-house guest: the
-/// demos and AI evaluations run against the Aurora Grand. Its records have fixed IDs reading
+/// hours, policies, content, restaurants and menus, events, services, and a roster), with Ananya Rao in house in room
+/// 210. The demos and AI evaluations run against the Aurora Grand. Its records have fixed IDs reading
 /// <c>ab000000-0000-4000-8000-0000000NNNNN</c>; it lives in <see cref="AuroraGrand.TenantId"/>.
 /// </summary>
 public static class MysoreGrand
@@ -16,6 +16,11 @@ public static class MysoreGrand
     /// The property's IANA time zone.
     /// </summary>
     public const string TimeZone = "Asia/Kolkata";
+
+    /// <summary>
+    /// The property's name.
+    /// </summary>
+    public const string Name = "Mysore Grand";
 
     /// <summary>
     /// Mysore Heritage Hotels, the organization owning the property.
@@ -276,6 +281,16 @@ public static class MysoreGrand
     /// Arjun Nair, maintenance, on duty.
     /// </summary>
     public static StaffMemberId ArjunNair { get; } = new(Id(302));
+
+    /// <summary>
+    /// Ananya Rao, the in-house guest in room 210.
+    /// </summary>
+    public static GuestId Ananya { get; } = new(Id(200));
+
+    /// <summary>
+    /// Ananya's stay, in house in room 210 for two nights.
+    /// </summary>
+    public static StayContextId AnanyaStay { get; } = new(Id(201));
 
     /// <summary>
     /// The property's calendar date at <paramref name="now"/>.

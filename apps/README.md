@@ -23,12 +23,22 @@ edge traced in bulbs, a maroon brand on ivory). An app sets `data-hotel` on `<ht
 
 ## Two hotels
 
-The seed puts two hotels in the reference tenant: the Aurora Grand, London, where the demos run (Alex is its in-house
-guest), and the Mysore Grand, Mysuru, configured as fully (rooms, amenities, Ambari and Chamundi Terrace with menus in
-rupees, events, policies, content, a roster of three) but with no guests yet. In the staff and admin apps a manager or
-administrator picks the hotel from the **Hotel** drop-down on the banner; the choice is remembered in that browser, and
-the page takes on that hotel's look. Workers get no picker: they see the first hotel by name, the Aurora Grand, where
-the seeded workers are.
+The seed puts two hotels in the reference tenant: the **Aurora Grand**, London (Alex in room 412; Sam, Jo, and Ravi on
+the roster), where the demos and AI evaluations run, and the **Mysore Grand**, Mysuru (Ananya in room 210; Lakshmi,
+Kiran, and Arjun on the roster), configured as fully, with menus in rupees. Dana (manager) and Priya (administrator)
+work across both.
+
+Every app has a **Hotel** drop-down, on the sign-in page and on the banner, and the whole app follows the hotel chosen:
+
+- **Guest:** the stay's hotel names the app and dresses it (`GET /api/v1/stay`). Locally, picking another hotel signs in
+  as that hotel's guest, so the chat, the requests, and the concierge's answers are that hotel's. A guest who opened
+  their stay from a check-in link sees their own hotel only.
+- **Staff and admin:** before signing in, the hotel decides who is offered: its people, and those who work across
+  hotels. Managers and administrators switch hotels in place; a worker starts at their own, and choosing another signs
+  them out to sign in as someone who works there.
+
+The choice is remembered per app in that browser. Locally, the Fake models play the `reference-hotels` script, which
+answers for each hotel from its own records.
 
 ## Run locally
 

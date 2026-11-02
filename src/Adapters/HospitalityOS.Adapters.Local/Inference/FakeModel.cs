@@ -166,6 +166,11 @@ internal sealed class FakeModel(FakeScriptOptions? script, bool unavailable)
             return false;
         }
 
+        if (rule.WhenPromptContains is { } prompted && !Contains(request.SystemPrompt ?? "", prompted))
+        {
+            return false;
+        }
+
         if (rule.AfterTool is { } tool)
         {
             ChatMessage last = request.Messages[^1];

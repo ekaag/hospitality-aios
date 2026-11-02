@@ -46,6 +46,41 @@
         }
       }
     },
+    "/api/v1/stay": {
+      "get": {
+        "tags": [
+          "Stays"
+        ],
+        "operationId": "Stay.GetMine",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuestStayResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "The request failed; the problem says why.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/capabilities": {
       "get": {
         "tags": [
@@ -5867,9 +5902,24 @@
           "role": {
             "type": "string",
             "description": "Their role: `Guest`, or a staff role (`Worker`, `Manager`, `Admin`)."
+          },
+          "propertyId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The hotel they belong to (a guest's stay, a worker's roster), or null for someone who works\n            across the tenant's hotels (managers and administrators).",
+            "format": "uuid"
+          },
+          "propertyName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "That hotel's name, e.g. `Mysore Grand`."
           }
         },
-        "description": "Someone from the Aurora Grand seed a local developer can sign in as."
+        "description": "Someone from the reference hotels' seed a local developer can sign in as."
       },
       "DevTokenResponse": {
         "required": [
@@ -6300,6 +6350,49 @@
           "Exception"
         ],
         "description": "Where a guest's request is, as the platform knows it; never an estimate of when it will be done."
+      },
+      "GuestStayResponse": {
+        "required": [
+          "id",
+          "propertyId",
+          "propertyName",
+          "unitNumber",
+          "arrival",
+          "departure"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The stay.",
+            "$ref": "#/components/schemas/StayContextId"
+          },
+          "propertyId": {
+            "description": "The hotel.",
+            "$ref": "#/components/schemas/PropertyId"
+          },
+          "propertyName": {
+            "type": "string",
+            "description": "The hotel's name, e.g. `Mysore Grand`."
+          },
+          "unitNumber": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The room, once assigned."
+          },
+          "arrival": {
+            "type": "string",
+            "description": "The arrival date.",
+            "format": "date"
+          },
+          "departure": {
+            "type": "string",
+            "description": "The departure date.",
+            "format": "date"
+          }
+        },
+        "description": "The guest's own stay, as the guest app shows it: which hotel, which room, and when."
       },
       "HoursClosure": {
         "type": "object",

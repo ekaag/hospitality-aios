@@ -1,5 +1,5 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
-import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
+import { DevSignIn, hotelsOf, useDevPersonas, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
 import { AppBar, Hero, HotelPicker, lookOf, useChosenHotel, useHotelLook, Welcome } from "@hospitalityos/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -13,8 +13,9 @@ const signInConfig = readSignInConfig(import.meta.env);
 const provider = signInConfig && entraProvider(signInConfig);
 
 /**
- * Staff work (J2): the four views of the property's human actions and their steps. Signed out, it signs in through
- * the identity provider, or offers the dev personas for its roles locally.
+ * Staff work (J2): the four views of a hotel's human actions and their steps. Signed out, it signs in through the
+ * identity provider, or offers the dev personas for its roles locally. Every page has a Hotel picker, and the whole app
+ * follows the hotel chosen: its work, its guests, and its look.
  */
 export function App() {
   const { session, signIn, signOut } = useDevSession("staff-web");
@@ -35,11 +36,9 @@ export function App() {
       />
       <main>
         {session ? (
-          <Signed client={client} session={session} />
+          <Signed client={client} session={session} onLeave={signOut} />
         ) : (
-          <Welcome title="Welcome back" subtitle={<p>Your hotels' work, live: what to do next, what is waiting, and what is done.</p>}>
-            {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}
-          </Welcome>
+          <SignInWelcome client={client} onSignedIn={signIn} />
         )}
       </main>
     </>
@@ -47,16 +46,57 @@ export function App() {
 }
 
 /**
- * The board for one of the tenant's hotels, and for managers the guests' check-in links. Managers choose the hotel from
- * the banner (the one last chosen here, else the first by name); the page takes on that hotel's look.
+ * Before signing in: the chosen hotel's picture and a picker to choose another; locally, the people of that hotel and
+ * those who work across hotels.
  */
-function Signed({ client, session }: { client: ApiClient; session: DevSession }) {
+function SignInWelcome({ client, onSignedIn }: { client: ApiClient; onSignedIn: (session: DevSession) => void }) {
+  const { personas } = useDevPersonas(client, roles, !provider);
+  const hotels = hotelsOf(personas);
+  const [chosen, choose] = useChosenHotel("staff-web", hotels);
+  const name = hotels.find((hotel) => hotel.id === chosen)?.name;
+  const look = lookOf(name);
+  useHotelLook(look);
+
+  return (
+    <Welcome
+      title={name ?? "Welcome back"}
+      subtitle={<p>Your hotels' work, live: what to do next, what is waiting, and what is done.</p>}
+      look={look}
+      aside={chosen && hotels.length > 1 ? <HotelPicker hotels={hotels} value={chosen} onChange={choose} /> : undefined}
+    >
+      {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={onSignedIn} /> : <DevSignIn client={client} roles={roles} hotel={chosen} onSignedIn={onSignedIn} />}
+    </Welcome>
+  );
+}
+
+/**
+ * The board for one of the tenant's hotels, and for managers the guests' check-in links, chosen from the banner (the
+ * one last chosen here, else the first by name); the page takes on that hotel's look. A worker belongs to one hotel and
+ * starts there; choosing another signs them out, to sign in as someone who works there.
+ */
+function Signed({ client, session, onLeave }: { client: ApiClient; session: DevSession; onLeave: () => void }) {
   const [hotels, setHotels] = useState<{ id: string; name: string }[] | undefined>();
   const [problem, setProblem] = useState<string | undefined>();
   const [area, setArea] = useState<"work" | "guests">("work");
   const [propertyId, choose] = useChosenHotel("staff-web", hotels);
   const hotel = hotels?.find((each) => each.id === propertyId);
+  const home = session.persona.propertyId ?? undefined;
   useHotelLook(lookOf(hotel?.name));
+
+  // Someone who belongs to one hotel starts at it.
+  useEffect(() => {
+    if (home && hotels?.some((each) => each.id === home)) {
+      choose(home);
+    }
+  }, [home, hotels, choose]);
+
+  const pick = (id: string) => {
+    choose(id);
+
+    if (home && id !== home) {
+      onLeave();
+    }
+  };
 
   useEffect(() => {
     let current = true;
@@ -96,7 +136,7 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
         title={hotel.name}
         size="compact"
         look={lookOf(hotel.name)}
-        aside={oversees && hotels && hotels.length > 1 ? <HotelPicker hotels={hotels} value={propertyId} onChange={choose} /> : undefined}
+        aside={hotels && hotels.length > 1 ? <HotelPicker hotels={hotels} value={propertyId} onChange={pick} /> : undefined}
       >
         <p>{greeting(session.persona.displayName)}</p>
       </Hero>

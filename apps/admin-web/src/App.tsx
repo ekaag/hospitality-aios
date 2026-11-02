@@ -1,5 +1,5 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
-import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
+import { DevSignIn, hotelsOf, useDevPersonas, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
 import { AppBar, Hero, HotelPicker, lookOf, useChosenHotel, useHotelLook, Welcome } from "@hospitalityos/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -36,12 +36,34 @@ export function App() {
         {session ? (
           <Signed client={client} session={session} />
         ) : (
-          <Welcome title="Welcome back" subtitle={<p>Your hotels' configuration, integrations, and what the AI did and why.</p>}>
-            {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}
-          </Welcome>
+          <SignInWelcome client={client} onSignedIn={signIn} />
         )}
       </main>
     </>
+  );
+}
+
+/**
+ * Before signing in: the chosen hotel's picture and a picker to choose another; locally, the people of that hotel and
+ * those who work across hotels (administrators and managers work across them all).
+ */
+function SignInWelcome({ client, onSignedIn }: { client: ApiClient; onSignedIn: (session: DevSession) => void }) {
+  const { personas } = useDevPersonas(client, roles, !provider);
+  const hotels = hotelsOf(personas);
+  const [chosen, choose] = useChosenHotel("admin-web", hotels);
+  const name = hotels.find((hotel) => hotel.id === chosen)?.name;
+  const look = lookOf(name);
+  useHotelLook(look);
+
+  return (
+    <Welcome
+      title={name ?? "Welcome back"}
+      subtitle={<p>Your hotels' configuration, integrations, and what the AI did and why.</p>}
+      look={look}
+      aside={chosen && hotels.length > 1 ? <HotelPicker hotels={hotels} value={chosen} onChange={choose} /> : undefined}
+    >
+      {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={onSignedIn} /> : <DevSignIn client={client} roles={roles} hotel={chosen} onSignedIn={onSignedIn} />}
+    </Welcome>
   );
 }
 

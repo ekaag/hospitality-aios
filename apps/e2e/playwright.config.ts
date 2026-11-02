@@ -44,7 +44,7 @@ export default defineConfig({
         ASPNETCORE_ENVIRONMENT: "Development",
         Seed__AuroraGrand__Enabled: "true",
         Authentication__DevTokens__Enabled: "true",
-        Inference__Providers__fake__Settings__Script: "aurora-grand",
+        Inference__Providers__fake__Settings__Script: "reference-hotels",
         GuestLinks__BaseUrl: guest,
         Demo__Clock__Start: demoStart,
       },

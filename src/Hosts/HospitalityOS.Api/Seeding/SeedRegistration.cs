@@ -7,7 +7,7 @@ namespace HospitalityOS.Api.Seeding;
 /// <summary>
 /// Seeds the Aurora Grand reference property at startup when <c>Seed:AuroraGrand:Enabled</c> is true (the local launch
 /// profile sets it; deployments may, as their seed step). Off by default, so hosts that do not ask for it, including
-/// test hosts, start empty. With it comes <see cref="AuroraGrandScript"/>, which the Fake models play when told to.
+/// test hosts, start empty. With it comes <see cref="ReferenceHotelsScript"/>, which the Fake models play when told to.
 /// </summary>
 internal static class SeedRegistration
 {
@@ -28,7 +28,7 @@ internal static class SeedRegistration
         services.AddHostedService<ReferenceDataSeeding>();
 
         // What the Fake models play locally, when the fake provider names it (the launch profile does).
-        services.Configure<FakeInferenceOptions>(options => options.Scripts[AuroraGrandScript.Name] = AuroraGrandScript.Create());
+        services.Configure<FakeInferenceOptions>(options => options.Scripts[ReferenceHotelsScript.Name] = ReferenceHotelsScript.Create());
 
         return services;
     }

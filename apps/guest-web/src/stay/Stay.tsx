@@ -1,7 +1,7 @@
 import type { ApiClient } from "@hospitalityos/api-client";
 import { useRealtime, type Connect } from "@hospitalityos/realtime";
-import { Hero } from "@hospitalityos/theme";
-import { useCallback, useEffect, useState } from "react";
+import { Hero, type HotelLook } from "@hospitalityos/theme";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Chat, type Message, type Pending } from "./Chat";
 import { rememberConversation, rememberedConversation } from "./conversation";
 import { Requests, type GuestRequest } from "./Requests";
@@ -14,6 +14,12 @@ export interface StayProps {
   /** Makes each message's client ID, which makes sending it again safe (P8). */
   newId?: () => string;
   connect?: Connect;
+  /** The stay's hotel and room, once known, and its look. */
+  hotel?: string | undefined;
+  room?: string | undefined;
+  look?: HotelLook;
+  /** Shown on the banner's top right, such as the hotel picker. */
+  aside?: ReactNode;
 }
 
 /**
@@ -21,7 +27,7 @@ export interface StayProps {
  * still pending. Both are read again whenever the API says the stay changed (a reply, a notification, a request moving
  * on), so nothing is polled; replies arrive asynchronously, once the concierge has handled the message.
  */
-export function Stay({ client, token, persona, newId = () => crypto.randomUUID(), connect }: StayProps) {
+export function Stay({ client, token, persona, newId = () => crypto.randomUUID(), connect, hotel, room, look, aside }: StayProps) {
   const [conversation, setConversation] = useState<string | undefined>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [pending, setPending] = useState<Pending[]>([]);
@@ -116,8 +122,10 @@ export function Stay({ client, token, persona, newId = () => crypto.randomUUID()
 
   return (
     <div className="stay">
-      <Hero title="Good to have you with us" size="compact">
-        <p>Ask the concierge anything about the hotel, or tell us what you need.</p>
+      <Hero title={hotel ? `Welcome to the ${hotel}` : "Good to have you with us"} size="compact" look={look ?? "aurora-grand"} aside={aside}>
+        <p>
+          {room ? `Room ${room}. ` : ""}Ask the concierge anything about the hotel, or tell us what you need.
+        </p>
       </Hero>
       {problem && <p role="alert">{problem}</p>}
       <Chat

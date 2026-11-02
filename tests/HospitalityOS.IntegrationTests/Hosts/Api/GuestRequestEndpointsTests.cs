@@ -19,7 +19,7 @@ public sealed class GuestRequestEndpointsTests : IAsyncLifetime
 
     private static readonly GuestStay alex = new(Seed.Alex, Seed.AlexStay, Seed.PropertyId);
 
-    private readonly StaffApi api = new(seedAuroraGrand: true, dispatchEvents: true, configure: AuroraGrandScriptTests.Scripted);
+    private readonly StaffApi api = new(seedAuroraGrand: true, dispatchEvents: true, configure: ReferenceHotelsScriptTests.Scripted);
 
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 

@@ -23,6 +23,8 @@ public sealed class FakeModelTests : IDisposable
     {
         FakeScriptOptions concierge = new();
         concierge.Chat.Add(new FakeChatRuleOptions(AfterTool: hours.Name, Reply: "Per our hours: {toolResult}"));
+        concierge.Chat.Add(new FakeChatRuleOptions(WhenUserSays: "spa", WhenPromptContains: "Mysore Grand", Reply: "The spa in Mysuru opens at 09:00."));
+        concierge.Chat.Add(new FakeChatRuleOptions(WhenUserSays: "spa", WhenPromptContains: "Aurora Grand", Reply: "The Aurora Grand has no spa."));
         concierge.Chat.Add(new FakeChatRuleOptions(WhenUserSays: "pool", CallTool: hours.Name, Arguments: """{"subject":"Amenity"}"""));
         concierge.Classification.Add(new FakeClassificationRuleOptions("towel", "service_request"));
         concierge.Extraction.Add(new FakeExtractionRuleOptions("towel", """{"item":"bath_towel","quantity":2}"""));
@@ -61,6 +63,21 @@ public sealed class FakeModelTests : IDisposable
 
         Assert.Equal((ChatStopReason.ToolCalls, hours.Name, "Amenity"), (asked.StopReason, call.Name, call.Arguments.GetProperty("subject").GetString()));
         Assert.Equal((ChatStopReason.Completed, "Per our hours: closes 22:00"), (answered.StopReason, answered.Message.Text));
+    }
+
+    [Fact]
+    public async Task Chat_ARuleForOneProperty_AnswersOnlyWhenItsPromptNamesThatProperty()
+    {
+        IChatModel model = Create<IChatModel>(("Script", "concierge"));
+        ChatMessage question = ChatMessage.User("When does the spa open?");
+
+        ChatCompletion mysore = await model.CompleteAsync(new ChatRequest("You are the concierge of the MYSORE GRAND.", [question]), fake, Cancellation);
+        ChatCompletion aurora = await model.CompleteAsync(new ChatRequest("You are the concierge of the Aurora Grand.", [question]), fake, Cancellation);
+        ChatCompletion neither = await model.CompleteAsync(new ChatRequest(null, [question]), fake, Cancellation);
+
+        Assert.Equal("The spa in Mysuru opens at 09:00.", mysore.Message.Text);
+        Assert.Equal("The Aurora Grand has no spa.", aurora.Message.Text);
+        Assert.Equal("Hello! You said: When does the spa open?", neither.Message.Text);
     }
 
     [Fact]
