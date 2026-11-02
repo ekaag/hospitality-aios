@@ -47,10 +47,10 @@ export function WorkCard({ item, roster = [], onStep, now = new Date() }: WorkCa
   const can = (action: Schema<"WorkAction">) => item.actions.includes(action);
 
   return (
-    <article aria-label={`${item.location}: ${item.instructions}`} className="card">
+    <article aria-label={`${item.location}: ${item.instructions}`} className={`card work priority-${item.priority.toLowerCase()}`}>
       <header>
         <h3>{item.location}</h3>
-        <span className={`status status-${item.status.toLowerCase()}`}>{label(item.status)}</span>
+        <span className={`status status-${item.status.toLowerCase()} badge ${tone(item.status)}`}>{label(item.status)}</span>
       </header>
       {item.items.length > 0 ? (
         <>
@@ -154,6 +154,23 @@ function Button({ busy, children, onClick, type = "button" }: { busy: boolean; c
       {children.toUpperCase()}
     </button>
   );
+}
+
+function tone(status: Schema<"ActionStatus">): string {
+  switch (status) {
+    case "Completed":
+      return "badge-success";
+    case "Failed":
+    case "Expired":
+      return "badge-danger";
+    case "Cancelled":
+      return "badge-neutral";
+    case "InProgress":
+    case "Accepted":
+      return "badge-brand";
+    default:
+      return "badge-warning";
+  }
 }
 
 function label(status: Schema<"ActionStatus">): string {

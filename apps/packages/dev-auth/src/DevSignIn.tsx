@@ -1,4 +1,5 @@
 import type { ApiClient } from "@hospitalityos/api-client";
+import { Avatar } from "@hospitalityos/theme";
 import { useEffect, useState } from "react";
 import type { DevPersona, DevSession } from "./session";
 
@@ -58,10 +59,11 @@ export function DevSignIn({ client, roles, onSignedIn }: DevSignInProps) {
       {personas && (
         <ul>
           {personas.map((persona) => (
-            <li key={persona.id}>
+            <li key={persona.id} className="persona">
+              <Avatar name={persona.displayName} size="large" />
               <button type="button" onClick={() => void signIn(persona)}>
                 {persona.displayName}
-              </button>{" "}
+              </button>
               <span>
                 {persona.role}: {persona.description}
               </span>

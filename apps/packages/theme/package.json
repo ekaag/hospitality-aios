@@ -1,0 +1,30 @@
+{
+  "name": "@hospitalityos/theme",
+  "private": true,
+  "description": "The frontends' look: Fluent 2 design tokens and styles, light and dark, the app bar, and the Aurora Grand illustration.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fluent.css": "./src/fluent.css",
+    "./aurora-grand.svg": "./src/aurora-grand.svg"
+  },
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "happy-dom": "21.0.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

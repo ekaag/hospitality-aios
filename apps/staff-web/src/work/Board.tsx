@@ -62,19 +62,21 @@ export function Board({ client, token, propertyId, oversees }: BoardProps) {
   }
 
   return (
-    <section aria-label="Work">
+    <section aria-label="Work" className="board">
       <nav aria-label="Views" className="tabs">
         {views.map((each) => (
           <button key={each} type="button" aria-pressed={view === each} onClick={() => setView(each)}>
-            {title(each, oversees)} ({work[each]?.length ?? 0})
+            {title(each, oversees)} <span className="count">({work[each]?.length ?? 0})</span>
           </button>
         ))}
       </nav>
       {problem && <p role="alert">{problem}</p>}
-      {work[view]?.length === 0 && <p>{empty(view)}</p>}
-      {work[view]?.map((item) => (
-        <WorkCard key={item.id} item={item} roster={roster} onStep={step} />
-      ))}
+      {work[view]?.length === 0 && <p className="empty">{empty(view)}</p>}
+      <div className="cards">
+        {work[view]?.map((item) => (
+          <WorkCard key={item.id} item={item} roster={roster} onStep={step} />
+        ))}
+      </div>
     </section>
   );
 }

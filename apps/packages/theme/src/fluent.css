@@ -1,0 +1,944 @@
+/*
+ * The frontends' look, after Fluent 2 (Microsoft's design system): its colour, type, radius, and shadow tokens, light
+ * and dark, and plain HTML styled as its controls, so the apps keep semantic markup and no component library.
+ * The backdrop is an aurora's colours washed over a soft canvas, after the Aurora Grand illustration.
+ */
+
+:root {
+  color-scheme: light;
+
+  --font-base: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, sans-serif;
+  --font-mono: "Cascadia Code", "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+
+  --radius-small: 2px;
+  --radius-medium: 4px;
+  --radius-large: 8px;
+  --radius-xlarge: 12px;
+  --radius-circular: 10000px;
+
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --curve-decelerate: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --curve-easy-ease: cubic-bezier(0.33, 0, 0.67, 1);
+
+  /* Neutral */
+  --canvas: #f2f3f8;
+  --background-1: #ffffff;
+  --background-1-hover: #f5f5f5;
+  --background-1-pressed: #e0e0e0;
+  --background-2: #fafafa;
+  --background-3: #f5f5f5;
+  --background-subtle-hover: rgb(0 0 0 / 0.05);
+  --background-subtle-pressed: rgb(0 0 0 / 0.09);
+  --surface: rgb(255 255 255 / 0.78);
+  --surface-strong: rgb(255 255 255 / 0.9);
+  --foreground-1: #242424;
+  --foreground-2: #424242;
+  --foreground-3: #616161;
+  --foreground-4: #707070;
+  --foreground-disabled: #bdbdbd;
+  --foreground-on-brand: #ffffff;
+  --stroke-1: #d1d1d1;
+  --stroke-1-hover: #c7c7c7;
+  --stroke-2: #e0e0e0;
+  --stroke-3: #f0f0f0;
+  --stroke-accessible: #616161;
+  --stroke-focus-1: #ffffff;
+  --stroke-focus-2: #000000;
+  --stroke-surface: rgb(255 255 255 / 0.7);
+
+  /* Brand (Fluent's communication blue) */
+  --brand-background: #0f6cbd;
+  --brand-background-hover: #115ea3;
+  --brand-background-pressed: #0c3b5e;
+  --brand-background-2: #ebf3fc;
+  --brand-background-2-hover: #cfe4fa;
+  --brand-foreground-1: #0f6cbd;
+  --brand-foreground-2: #115ea3;
+  --brand-stroke: #0f6cbd;
+  --brand-stroke-2: #b4d6fa;
+
+  /* Status */
+  --danger-background: #fdf3f4;
+  --danger-stroke: #eeacb2;
+  --danger-foreground: #b10e1c;
+  --success-background: #f1faf1;
+  --success-stroke: #9fd89f;
+  --success-foreground: #0e700e;
+  --warning-background: #fff9f5;
+  --warning-stroke: #fdcfb4;
+  --warning-foreground: #bc4b09;
+  --info-background: #ebf3fc;
+  --info-stroke: #b4d6fa;
+  --info-foreground: #115ea3;
+
+  /* Aurora washes for the backdrop */
+  --wash-1: rgb(43 216 190 / 0.18);
+  --wash-2: rgb(15 108 189 / 0.14);
+  --wash-3: rgb(176 123 255 / 0.16);
+
+  --shadow-2: 0 0 2px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.14);
+  --shadow-4: 0 0 2px rgb(0 0 0 / 0.12), 0 2px 4px rgb(0 0 0 / 0.14);
+  --shadow-8: 0 0 2px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.14);
+  --shadow-16: 0 0 2px rgb(0 0 0 / 0.12), 0 8px 16px rgb(0 0 0 / 0.14);
+  --shadow-28: 0 0 8px rgb(0 0 0 / 0.12), 0 14px 28px rgb(0 0 0 / 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #0d1026;
+    --background-1: #252848;
+    --background-1-hover: #2f3359;
+    --background-1-pressed: #1c1e3a;
+    --background-2: #1d2040;
+    --background-3: #171a34;
+    --background-subtle-hover: rgb(255 255 255 / 0.07);
+    --background-subtle-pressed: rgb(255 255 255 / 0.11);
+    --surface: rgb(30 33 58 / 0.74);
+    --surface-strong: rgb(34 37 64 / 0.92);
+    --foreground-1: #ffffff;
+    --foreground-2: #d6d6d6;
+    --foreground-3: #adadad;
+    --foreground-4: #999999;
+    --foreground-disabled: #5c5c5c;
+    --stroke-1: #5a5d78;
+    --stroke-1-hover: #6e7190;
+    --stroke-2: #3f425e;
+    --stroke-3: #30324b;
+    --stroke-accessible: #adadad;
+    --stroke-focus-1: #000000;
+    --stroke-focus-2: #ffffff;
+    --stroke-surface: rgb(255 255 255 / 0.08);
+    --brand-background: #115ea3;
+    --brand-background-hover: #0f6cbd;
+    --brand-background-pressed: #0c3b5e;
+    --brand-background-2: #082338;
+    --brand-background-2-hover: #0c3b5e;
+    --brand-foreground-1: #479ef5;
+    --brand-foreground-2: #62abf5;
+    --brand-stroke: #479ef5;
+    --brand-stroke-2: #0e4775;
+    --danger-background: #3b1416;
+    --danger-stroke: #6e0811;
+    --danger-foreground: #e37d80;
+    --success-background: #0f2b0f;
+    --success-stroke: #0e470e;
+    --success-foreground: #54b054;
+    --warning-background: #3a1d0a;
+    --warning-stroke: #8a3707;
+    --warning-foreground: #faa06b;
+    --info-background: #082338;
+    --info-stroke: #0e4775;
+    --info-foreground: #62abf5;
+    --wash-1: rgb(43 216 190 / 0.16);
+    --wash-2: rgb(43 120 255 / 0.18);
+    --wash-3: rgb(176 123 255 / 0.2);
+    --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+    --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+    --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
+    --shadow-16: 0 0 2px rgb(0 0 0 / 0.24), 0 8px 16px rgb(0 0 0 / 0.28);
+    --shadow-28: 0 0 8px rgb(0 0 0 / 0.24), 0 14px 28px rgb(0 0 0 / 0.28);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0d1026;
+  --background-1: #252848;
+  --background-1-hover: #2f3359;
+  --background-1-pressed: #1c1e3a;
+  --background-2: #1d2040;
+  --background-3: #171a34;
+  --background-subtle-hover: rgb(255 255 255 / 0.07);
+  --background-subtle-pressed: rgb(255 255 255 / 0.11);
+  --surface: rgb(30 33 58 / 0.74);
+  --surface-strong: rgb(34 37 64 / 0.92);
+  --foreground-1: #ffffff;
+  --foreground-2: #d6d6d6;
+  --foreground-3: #adadad;
+  --foreground-4: #999999;
+  --foreground-disabled: #5c5c5c;
+  --stroke-1: #5a5d78;
+  --stroke-1-hover: #6e7190;
+  --stroke-2: #3f425e;
+  --stroke-3: #30324b;
+  --stroke-accessible: #adadad;
+  --stroke-focus-1: #000000;
+  --stroke-focus-2: #ffffff;
+  --stroke-surface: rgb(255 255 255 / 0.08);
+  --brand-background: #115ea3;
+  --brand-background-hover: #0f6cbd;
+  --brand-background-pressed: #0c3b5e;
+  --brand-background-2: #082338;
+  --brand-background-2-hover: #0c3b5e;
+  --brand-foreground-1: #479ef5;
+  --brand-foreground-2: #62abf5;
+  --brand-stroke: #479ef5;
+  --brand-stroke-2: #0e4775;
+  --danger-background: #3b1416;
+  --danger-stroke: #6e0811;
+  --danger-foreground: #e37d80;
+  --success-background: #0f2b0f;
+  --success-stroke: #0e470e;
+  --success-foreground: #54b054;
+  --warning-background: #3a1d0a;
+  --warning-stroke: #8a3707;
+  --warning-foreground: #faa06b;
+  --info-background: #082338;
+  --info-stroke: #0e4775;
+  --info-foreground: #62abf5;
+  --wash-1: rgb(43 216 190 / 0.16);
+  --wash-2: rgb(43 120 255 / 0.18);
+  --wash-3: rgb(176 123 255 / 0.2);
+  --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+  --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
+  --shadow-16: 0 0 2px rgb(0 0 0 / 0.24), 0 8px 16px rgb(0 0 0 / 0.28);
+  --shadow-28: 0 0 8px rgb(0 0 0 / 0.24), 0 14px 28px rgb(0 0 0 / 0.28);
+}
+
+/* Page */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-attachment: fixed;
+  background-color: var(--canvas);
+  background-image:
+    radial-gradient(60rem 36rem at 8% -6%, var(--wash-1), transparent 70%),
+    radial-gradient(52rem 32rem at 96% 4%, var(--wash-3), transparent 70%),
+    radial-gradient(70rem 40rem at 50% 115%, var(--wash-2), transparent 70%);
+  color: var(--foreground-1);
+  font-family: var(--font-base);
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  margin: 0 auto;
+  max-width: var(--content-width, 72rem);
+  padding: 24px 16px 48px;
+}
+
+/* Type ramp */
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+h1 {
+  font-size: 28px;
+  line-height: 36px;
+}
+
+h2 {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+h3 {
+  font-size: 16px;
+  line-height: 22px;
+}
+
+h4 {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+p {
+  margin: 0 0 12px;
+}
+
+small {
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+a {
+  color: var(--brand-foreground-1);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--brand-foreground-2);
+  text-decoration: underline;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+code {
+  background: var(--background-subtle-hover);
+  border-radius: var(--radius-medium);
+  padding: 1px 4px;
+}
+
+pre {
+  background: var(--background-3);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-large);
+  line-height: 18px;
+  margin: 8px 0;
+  overflow-x: auto;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.visually-hidden {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+:focus-visible {
+  border-radius: var(--radius-medium);
+  outline: 2px solid var(--stroke-focus-2);
+  outline-offset: 1px;
+}
+
+/* Surfaces */
+
+.card {
+  backdrop-filter: blur(24px) saturate(1.4);
+  background: var(--surface);
+  border: 1px solid var(--stroke-surface);
+  border-radius: var(--radius-xlarge);
+  box-shadow: var(--shadow-4);
+  padding: 20px;
+}
+
+/* Buttons: secondary by default; submit and .primary are the brand's; .subtle has no fill until hovered. */
+
+button {
+  align-items: center;
+  background: var(--background-1);
+  border: 1px solid var(--stroke-1);
+  border-radius: var(--radius-medium);
+  color: var(--foreground-1);
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 14px/20px var(--font-base);
+  gap: 6px;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 64px;
+  padding: 5px 12px;
+  transition:
+    background var(--duration-fast) var(--curve-easy-ease),
+    border-color var(--duration-fast) var(--curve-easy-ease),
+    box-shadow var(--duration-fast) var(--curve-easy-ease);
+}
+
+button:hover {
+  background: var(--background-1-hover);
+  border-color: var(--stroke-1-hover);
+}
+
+button:active {
+  background: var(--background-1-pressed);
+}
+
+button[type="submit"],
+button.primary {
+  background: var(--brand-background);
+  border-color: transparent;
+  color: var(--foreground-on-brand);
+}
+
+button[type="submit"]:hover,
+button.primary:hover {
+  background: var(--brand-background-hover);
+}
+
+button[type="submit"]:active,
+button.primary:active {
+  background: var(--brand-background-pressed);
+}
+
+button.subtle {
+  background: transparent;
+  border-color: transparent;
+}
+
+button.subtle:hover {
+  background: var(--background-subtle-hover);
+}
+
+button[aria-pressed="true"] {
+  background: var(--brand-background-2);
+  border-color: var(--brand-stroke-2);
+  color: var(--brand-foreground-2);
+}
+
+button:disabled,
+button:disabled:hover {
+  background: var(--background-3);
+  border-color: var(--stroke-2);
+  color: var(--foreground-disabled);
+  cursor: not-allowed;
+}
+
+/* Fields: a quiet box whose bottom edge turns the brand's colour while it has focus. */
+
+input:not([type="checkbox"], [type="radio"]),
+select,
+textarea {
+  background: var(--background-1);
+  border: 1px solid var(--stroke-1);
+  border-bottom-color: var(--stroke-accessible);
+  border-radius: var(--radius-medium);
+  color: var(--foreground-1);
+  font: 400 14px/20px var(--font-base);
+  min-height: 32px;
+  padding: 5px 10px;
+  transition: box-shadow var(--duration-normal) var(--curve-decelerate);
+}
+
+input:not([type="checkbox"], [type="radio"]):hover,
+select:hover,
+textarea:hover {
+  border-color: var(--stroke-1-hover);
+  border-bottom-color: var(--foreground-2);
+}
+
+input:not([type="checkbox"], [type="radio"]):focus,
+select:focus,
+textarea:focus {
+  border-bottom-color: var(--brand-stroke);
+  box-shadow: inset 0 -1px 0 var(--brand-stroke);
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--foreground-4);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand-background);
+  height: 16px;
+  width: 16px;
+}
+
+label {
+  color: var(--foreground-1);
+  font-weight: 600;
+}
+
+/* Message bars: problems, confirmations, and notes. */
+
+[role="alert"],
+[role="status"],
+[role="note"] {
+  border: 1px solid;
+  border-radius: var(--radius-medium);
+  padding: 8px 12px;
+}
+
+[role="alert"] {
+  background: var(--danger-background);
+  border-color: var(--danger-stroke);
+  color: var(--danger-foreground);
+}
+
+[role="status"] {
+  background: var(--success-background);
+  border-color: var(--success-stroke);
+  color: var(--success-foreground);
+}
+
+[role="note"] {
+  background: var(--info-background);
+  border-color: var(--info-stroke);
+  color: var(--info-foreground);
+}
+
+/* Tables */
+
+table {
+  background: var(--surface-strong);
+  border: 1px solid var(--stroke-2);
+  border-collapse: separate;
+  border-radius: var(--radius-large);
+  border-spacing: 0;
+  margin-block: 12px;
+  overflow: hidden;
+  width: 100%;
+}
+
+caption {
+  color: var(--foreground-2);
+  font-weight: 600;
+  padding: 0 0 8px;
+  text-align: left;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--stroke-3);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  background: var(--background-subtle-hover);
+  color: var(--foreground-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+tbody tr:hover {
+  background: var(--background-subtle-hover);
+}
+
+/* A button in a table opens or acts on its row: shown as a link, so rows stay light. */
+
+td button,
+td button:hover,
+td button:active {
+  background: transparent;
+  border-color: transparent;
+  color: var(--brand-foreground-1);
+  font-weight: 400;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 4px;
+}
+
+td button:hover {
+  text-decoration: underline;
+}
+
+details {
+  margin: 8px 0;
+}
+
+summary {
+  color: var(--brand-foreground-1);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* App bar */
+
+.app-bar {
+  align-items: center;
+  backdrop-filter: blur(24px) saturate(1.5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--stroke-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 8px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-bar-brand {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.app-bar h1 {
+  font-size: 16px;
+  line-height: 22px;
+  margin: 0;
+}
+
+.app-bar-area {
+  color: var(--foreground-3);
+  font-weight: 400;
+}
+
+.app-bar-user {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.app-bar-user p {
+  margin: 0;
+}
+
+.app-bar-name {
+  font-weight: 600;
+}
+
+.app-bar-role {
+  color: var(--foreground-3);
+}
+
+.brand-mark {
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-4);
+  flex: none;
+}
+
+/* Avatar */
+
+.avatar {
+  align-items: center;
+  border-radius: var(--radius-circular);
+  display: inline-flex;
+  flex: none;
+  font-weight: 600;
+  justify-content: center;
+}
+
+.avatar-medium {
+  font-size: 12px;
+  height: 32px;
+  width: 32px;
+}
+
+.avatar-large {
+  font-size: 16px;
+  height: 44px;
+  width: 44px;
+}
+
+.avatar-dark-red { background: #fdf6f6; color: #750b1c; }
+.avatar-cranberry { background: #fdf3f4; color: #b10e1c; }
+.avatar-pumpkin { background: #fdf7f4; color: #b44410; }
+.avatar-peach { background: #fff3ec; color: #8f4e00; }
+.avatar-gold { background: #fef7b2; color: #6c5700; }
+.avatar-forest { background: #f0f9ef; color: #294903; }
+.avatar-seafoam { background: #edfcf3; color: #00723b; }
+.avatar-teal { background: #f0fafa; color: #006666; }
+.avatar-steel { background: #f2f9fa; color: #004c50; }
+.avatar-royal-blue { background: #f3f6fd; color: #00297c; }
+.avatar-lavender { background: #f7f4fb; color: #3c2985; }
+.avatar-grape { background: #faf2fb; color: #5b1e64; }
+.avatar-plum { background: #fcf2f8; color: #6b0e42; }
+.avatar-anchor { background: #f2f4f5; color: #2a3135; }
+
+/* Hero: the Aurora Grand, with a title over the darkened lower edge. */
+
+.hero {
+  border-radius: var(--radius-xlarge);
+  box-shadow: var(--shadow-16);
+  color: #ffffff;
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-image {
+  display: block;
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+  z-index: -2;
+}
+
+.hero::after {
+  background: linear-gradient(180deg, rgb(6 9 32 / 0) 35%, rgb(6 9 32 / 0.78) 100%);
+  content: "";
+  inset: 0;
+  position: absolute;
+  z-index: -1;
+}
+
+.hero-tall {
+  min-height: 360px;
+}
+
+.hero-compact {
+  min-height: 150px;
+}
+
+.hero-compact .hero-image {
+  object-position: 50% 30%;
+}
+
+.hero-compact::after {
+  background: linear-gradient(90deg, rgb(6 9 32 / 0.82) 0%, rgb(6 9 32 / 0.45) 45%, rgb(6 9 32 / 0) 80%);
+}
+
+.hero-compact .hero-subtitle {
+  max-width: min(40rem, 42%);
+}
+
+.hero-compact .hero-text {
+  bottom: auto;
+  padding: 0 28px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hero-text {
+  bottom: 0;
+  left: 0;
+  padding: 24px 28px;
+  position: absolute;
+  right: 0;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 40px;
+  margin: 0;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.45);
+}
+
+.hero-compact .hero-title {
+  font-size: 24px;
+  line-height: 32px;
+}
+
+.hero-subtitle {
+  color: rgb(255 255 255 / 0.86);
+  font-size: 16px;
+  line-height: 22px;
+  margin-top: 4px;
+  max-width: 40rem;
+}
+
+.hero-subtitle p {
+  margin: 0;
+}
+
+/* Welcome: the hotel beside the sign-in panel. */
+
+.welcome {
+  align-items: stretch;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 1fr);
+}
+
+.welcome .hero {
+  min-height: 520px;
+}
+
+.welcome-panel {
+  align-self: center;
+}
+
+/* The dev personas offered to sign in as. */
+
+.welcome-panel ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.persona {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-large);
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: auto 1fr;
+  padding: 10px 12px;
+  position: relative;
+  transition:
+    box-shadow var(--duration-normal) var(--curve-decelerate),
+    border-color var(--duration-normal) var(--curve-decelerate);
+}
+
+.persona:hover {
+  border-color: var(--brand-stroke-2);
+  box-shadow: var(--shadow-8);
+}
+
+.persona .avatar {
+  grid-row: span 2;
+}
+
+.persona button {
+  justify-content: flex-start;
+  justify-self: start;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--foreground-1);
+}
+
+/* The whole card picks the persona. */
+
+.persona button::after {
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.persona span:last-child {
+  color: var(--foreground-3);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Badges */
+
+.badge {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-circular);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
+  line-height: 16px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.badge-brand {
+  background: var(--brand-background-2);
+  border-color: var(--brand-stroke-2);
+  color: var(--brand-foreground-2);
+}
+
+.badge-success {
+  background: var(--success-background);
+  border-color: var(--success-stroke);
+  color: var(--success-foreground);
+}
+
+.badge-warning {
+  background: var(--warning-background);
+  border-color: var(--warning-stroke);
+  color: var(--warning-foreground);
+}
+
+.badge-danger {
+  background: var(--danger-background);
+  border-color: var(--danger-stroke);
+  color: var(--danger-foreground);
+}
+
+.badge-neutral {
+  background: var(--background-subtle-hover);
+  border-color: var(--stroke-2);
+  color: var(--foreground-2);
+}
+
+/* Tab list: a row of toggle buttons, the selected one underlined in the brand's colour. */
+
+.tabs {
+  border-bottom: 1px solid var(--stroke-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.tabs button,
+.tabs button:hover,
+.tabs button[aria-pressed="true"] {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-medium) var(--radius-medium) 0 0;
+  color: var(--foreground-2);
+  font-weight: 400;
+  padding: 10px 12px 12px;
+  position: relative;
+}
+
+.tabs button:hover {
+  background: var(--background-subtle-hover);
+  color: var(--foreground-1);
+}
+
+.tabs button[aria-pressed="true"] {
+  color: var(--foreground-1);
+  font-weight: 600;
+}
+
+.tabs button[aria-pressed="true"]::after {
+  background: var(--brand-stroke);
+  border-radius: var(--radius-circular);
+  bottom: -1px;
+  content: "";
+  height: 3px;
+  left: 12px;
+  position: absolute;
+  right: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 52rem) {
+  .welcome {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome .hero {
+    min-height: 260px;
+  }
+
+  .hero-tall {
+    min-height: 260px;
+  }
+
+  .hero-title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .hero-text {
+    padding: 16px 20px;
+  }
+
+  .hero-compact .hero-subtitle {
+    max-width: none;
+  }
+}

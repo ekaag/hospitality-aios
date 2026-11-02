@@ -1,5 +1,6 @@
 import type { ApiClient } from "@hospitalityos/api-client";
 import { useRealtime, type Connect } from "@hospitalityos/realtime";
+import { Hero } from "@hospitalityos/theme";
 import { useCallback, useEffect, useState } from "react";
 import { Chat, type Message, type Pending } from "./Chat";
 import { rememberConversation, rememberedConversation } from "./conversation";
@@ -115,6 +116,9 @@ export function Stay({ client, token, persona, newId = () => crypto.randomUUID()
 
   return (
     <div className="stay">
+      <Hero title="Good to have you with us" size="compact">
+        <p>Ask the concierge anything about the hotel, or tell us what you need.</p>
+      </Hero>
       {problem && <p role="alert">{problem}</p>}
       <Chat
         messages={messages}

@@ -1,6 +1,7 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
+import { AppBar, Hero, Welcome } from "@hospitalityos/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Guests } from "./guests/Guests";
 import { Board } from "./work/Board";
@@ -26,22 +27,21 @@ export function App() {
 
   return (
     <>
-      <header>
-        <h1>HospitalityOS · Staff</h1>
-        {session && (
-          <p>
-            {session.persona.displayName} ({session.persona.role}){" "}
-            <button type="button" onClick={signOutEverywhere}>
-              Sign out
-            </button>
-          </p>
-        )}
-      </header>
-      <main>{session ? <Signed client={client} session={session} /> : provider ? (
-          <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} />
+      <AppBar
+        product="HospitalityOS"
+        area="Staff"
+        user={session && { name: session.persona.displayName, role: session.persona.role }}
+        onSignOut={signOutEverywhere}
+      />
+      <main>
+        {session ? (
+          <Signed client={client} session={session} />
         ) : (
-          <DevSignIn client={client} roles={roles} onSignedIn={signIn} />
-        )}</main>
+          <Welcome title="Aurora Grand" subtitle={<p>The property's work, live: what to do next, what is waiting, and what is done.</p>}>
+            {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}
+          </Welcome>
+        )}
+      </main>
     </>
   );
 }
@@ -89,11 +89,14 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
 
   return (
     <>
+      <Hero title="Aurora Grand" size="compact">
+        <p>{greeting(session.persona.displayName)}</p>
+      </Hero>
       {oversees && (
-        <nav aria-label="Areas">
+        <nav aria-label="Areas" className="areas">
           <button type="button" aria-pressed={area === "work"} onClick={() => setArea("work")}>
             Work
-          </button>{" "}
+          </button>
           <button type="button" aria-pressed={area === "guests"} onClick={() => setArea("guests")}>
             Guests
           </button>
@@ -106,4 +109,11 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
       )}
     </>
   );
+}
+
+function greeting(name: string): string {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  return `${part}, ${name.split(" ")[0] ?? name}.`;
 }

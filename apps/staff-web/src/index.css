@@ -1,18 +1,232 @@
+@import "@hospitalityos/theme/fluent.css";
+
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
+  --content-width: 76rem;
 }
 
-body {
-  margin: 0 auto;
-  max-width: 48rem;
-  padding: 1rem;
+main > .hero {
+  margin-bottom: 20px;
 }
 
-header {
-  align-items: baseline;
+/* Managers switch between the work and the guests: a segmented control. */
+
+.areas {
+  background: var(--surface);
+  border: 1px solid var(--stroke-2);
+  border-radius: var(--radius-large);
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 16px;
+  padding: 3px;
+}
+
+.areas button {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 6px;
+  font-weight: 400;
+  min-width: 88px;
+}
+
+.areas button[aria-pressed="true"] {
+  background: var(--background-1);
+  border-color: var(--stroke-2);
+  box-shadow: var(--shadow-2);
+  color: var(--foreground-1);
+  font-weight: 600;
+}
+
+/* The board: tabs for the four views, then the work as cards. */
+
+.board .count {
+  color: var(--foreground-3);
+  font-weight: 400;
+}
+
+.board .empty {
+  backdrop-filter: blur(24px);
+  background: var(--surface);
+  border: 1px dashed var(--stroke-1);
+  border-radius: var(--radius-xlarge);
+  color: var(--foreground-3);
+  padding: 32px;
+  text-align: center;
+}
+
+.cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+}
+
+.work {
+  border-left: 4px solid var(--stroke-1);
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  transition: box-shadow var(--duration-normal) var(--curve-decelerate), transform var(--duration-normal) var(--curve-decelerate);
+}
+
+.work:hover {
+  box-shadow: var(--shadow-16);
+  transform: translateY(-1px);
+}
+
+.work.priority-high {
+  border-left-color: #f7630c;
+}
+
+.work.priority-urgent {
+  border-left-color: #c50f1f;
+}
+
+.work.priority-normal {
+  border-left-color: var(--brand-stroke);
+}
+
+.work header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
   justify-content: space-between;
+}
+
+.work h3 {
+  font-size: 18px;
+  line-height: 24px;
+  margin: 0;
+}
+
+.work p,
+.work ul {
+  margin: 0;
+}
+
+.work ul {
+  padding-left: 20px;
+}
+
+.work li {
+  font-weight: 600;
+}
+
+.work dl {
+  border-top: 1px solid var(--stroke-3);
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: auto 1fr;
+  margin: 4px 0 0;
+  padding-top: 8px;
+}
+
+.work dt {
+  color: var(--foreground-3);
+}
+
+.work dd {
+  margin: 0;
+}
+
+.work .overdue {
+  color: var(--danger-foreground);
+  font-weight: 600;
+}
+
+.work .note {
+  color: var(--foreground-2);
+  font-style: italic;
+}
+
+.work .problem {
+  color: var(--danger-foreground);
+}
+
+.work .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* Workers act on the move: big buttons, the next step in the brand's colour. */
+
+.work .actions button {
+  flex: 1 1 auto;
+  letter-spacing: 0.04em;
+  min-height: 40px;
+}
+
+.work .actions button:first-child:not(:disabled) {
+  background: var(--brand-background);
+  border-color: transparent;
+  color: var(--foreground-on-brand);
+}
+
+.work .actions button:first-child:not(:disabled):hover {
+  background: var(--brand-background-hover);
+}
+
+.work form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 4px;
+}
+
+.work form label {
+  display: grid;
+  gap: 4px;
+  grid-column: 1 / -1;
+}
+
+/* The front desk's check-in links */
+
+.guests {
+  backdrop-filter: blur(24px) saturate(1.4);
+  background: var(--surface);
+  border: 1px solid var(--stroke-surface);
+  border-radius: var(--radius-xlarge);
+  box-shadow: var(--shadow-4);
+  padding: 20px;
+}
+
+.guests aside {
+  align-items: center;
+  background: var(--brand-background-2);
+  border: 1px solid var(--brand-stroke-2);
+  border-radius: var(--radius-large);
+  display: grid;
+  gap: 8px 20px;
+  grid-template-columns: auto 1fr;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.guests aside img {
+  background: #ffffff;
+  border-radius: var(--radius-large);
+  grid-row: span 3;
+  padding: 6px;
+}
+
+.guests aside p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.guests td button + button {
+  margin-left: 8px;
+}
+
+@media (max-width: 40rem) {
+  .guests aside {
+    grid-template-columns: 1fr;
+  }
+
+  .guests table {
+    display: block;
+    overflow-x: auto;
+  }
 }

@@ -11,7 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@hospitalityos/api-client": "workspace:*"
+    "@hospitalityos/api-client": "workspace:*",
+    "@hospitalityos/theme": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0"

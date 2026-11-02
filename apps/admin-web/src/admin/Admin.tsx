@@ -64,7 +64,7 @@ export function Admin({ client, propertyId, isAdmin }: AdminProps) {
 
   return (
     <div className="admin">
-      <nav aria-label="Sections">
+      <nav aria-label="Sections" className="nav-pane">
         <ul>
           {shown.map((section) => (
             <li key={section.id}>
@@ -78,7 +78,7 @@ export function Admin({ client, propertyId, isAdmin }: AdminProps) {
           ))}
         </ul>
       </nav>
-      <div className="content">{Section && <Section key={current} client={client} propertyId={propertyId} canEdit={isAdmin} names={names} />}</div>
+      <div className="content card">{Section && <Section key={current} client={client} propertyId={propertyId} canEdit={isAdmin} names={names} />}</div>
     </div>
   );
 }

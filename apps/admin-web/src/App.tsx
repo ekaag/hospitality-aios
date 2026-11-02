@@ -1,6 +1,7 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
 import { entraProvider, readSignInConfig, StaffSignIn } from "@hospitalityos/sign-in";
+import { AppBar, Hero, Welcome } from "@hospitalityos/theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Admin } from "./admin/Admin";
 
@@ -25,22 +26,21 @@ export function App() {
 
   return (
     <>
-      <header>
-        <h1>HospitalityOS · Admin</h1>
-        {session && (
-          <p>
-            {session.persona.displayName} ({session.persona.role}){" "}
-            <button type="button" onClick={signOutEverywhere}>
-              Sign out
-            </button>
-          </p>
-        )}
-      </header>
-      <main>{session ? <Signed client={client} session={session} /> : provider ? (
-          <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} />
+      <AppBar
+        product="HospitalityOS"
+        area="Admin"
+        user={session && { name: session.persona.displayName, role: session.persona.role }}
+        onSignOut={signOutEverywhere}
+      />
+      <main>
+        {session ? (
+          <Signed client={client} session={session} />
         ) : (
-          <DevSignIn client={client} roles={roles} onSignedIn={signIn} />
-        )}</main>
+          <Welcome title="Aurora Grand" subtitle={<p>The property's configuration, integrations, and what the AI did and why.</p>}>
+            {provider ? <StaffSignIn provider={provider} roles={roles} onSignedIn={signIn} /> : <DevSignIn client={client} roles={roles} onSignedIn={signIn} />}
+          </Welcome>
+        )}
+      </main>
     </>
   );
 }
@@ -78,5 +78,14 @@ function Signed({ client, session }: { client: ApiClient; session: DevSession })
     return <p role="alert">{problem}</p>;
   }
 
-  return propertyId ? <Admin client={client} propertyId={propertyId} isAdmin={session.persona.role === "Admin"} /> : <p>Loading…</p>;
+  return propertyId ? (
+    <>
+      <Hero title="Aurora Grand" size="compact">
+        <p>Configure the property, and see what the AI did and why.</p>
+      </Hero>
+      <Admin client={client} propertyId={propertyId} isAdmin={session.persona.role === "Admin"} />
+    </>
+  ) : (
+    <p>Loading…</p>
+  );
 }

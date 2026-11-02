@@ -10,8 +10,14 @@ React + TypeScript + Vite apps over the HospitalityOS API, in one pnpm workspace
 | `packages/api-client` | The typed API client, generated from `openapi.json` | | |
 | `packages/dev-auth` | The local "sign in as" picker | | |
 | `packages/realtime` | Live updates: `useRealtime` over the API's SignalR hub | | |
+| `packages/theme` | The look: Fluent 2 tokens and styles (light and dark), the app bar, and the Aurora Grand illustration | | |
 
 Apps never import from each other; shared code lives in `packages/` (solution-structure.md §7).
+
+Every app imports `@hospitalityos/theme/fluent.css` first, then its own layout. The theme follows Fluent 2 (colour,
+type, radius, and shadow tokens; acrylic surfaces; light and dark from the system setting, or `data-theme` on `<html>`)
+by styling plain semantic HTML, so components keep their roles and labels and no component library is needed. The hotel
+picture (`aurora-grand.svg`) is original artwork drawn for the reference hotel.
 
 ## Run locally
 

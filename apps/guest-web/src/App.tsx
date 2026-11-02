@@ -1,6 +1,7 @@
 import { createApiClient, type ApiClient } from "@hospitalityos/api-client";
 import { clearSession, DevSignIn, useDevSession, type DevSession } from "@hospitalityos/dev-auth";
-import { useCallback, useMemo, useState } from "react";
+import { AppBar, Welcome } from "@hospitalityos/theme";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { forgetLink, loadLink, saveLink, takeLinkFromAddress } from "./link/guestLink";
 import { LinkSignIn } from "./link/LinkSignIn";
 import { Stay } from "./stay/Stay";
@@ -34,33 +35,41 @@ export function App() {
 
   return (
     <>
-      <header>
-        <h1>Aurora Grand · Guest</h1>
-        {session && !link && (
-          <p>
-            {session.persona.displayName} ({session.persona.role}){" "}
-            <button type="button" onClick={signOut}>
-              Sign out
-            </button>
-          </p>
-        )}
-      </header>
+      <AppBar
+        product="Aurora Grand"
+        area="Guest"
+        user={session && !link ? { name: session.persona.displayName, role: session.persona.role } : undefined}
+        onSignOut={signOut}
+      />
       <main>
         {session ? (
           <Stay client={client} token={session.token} persona={session.persona.id} />
         ) : link ? (
-          <LinkSignIn client={client} code={link} onSignedIn={signIn} onEnded={ended} />
+          <Welcomed>
+            <LinkSignIn client={client} code={link} onSignedIn={signIn} onEnded={ended} />
+          </Welcomed>
         ) : (
-          <SignedOut client={client} onSignedIn={signIn} />
+          <Welcomed>
+            <SignedOut client={client} onSignedIn={signIn} />
+          </Welcomed>
         )}
       </main>
     </>
   );
 }
 
+function Welcomed({ children }: { children: ReactNode }) {
+  return (
+    <Welcome title="Welcome to the Aurora Grand" subtitle={<p>Your concierge is here day and night: ask anything, or tell us what you need.</p>}>
+      {children}
+    </Welcome>
+  );
+}
+
 function SignedOut({ client, onSignedIn }: { client: ApiClient; onSignedIn: (session: DevSession) => void }) {
   return (
-    <section aria-label="Open your stay">
+    <section aria-label="Open your stay" className="open-stay">
+      <h2>Open your stay</h2>
       <p>Scan the QR code from the front desk, or open the link they gave you, to chat with the hotel.</p>
       {import.meta.env.DEV && <DevSignIn client={client} roles={roles} onSignedIn={onSignedIn} />}
     </section>

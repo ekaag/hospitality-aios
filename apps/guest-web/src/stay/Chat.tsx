@@ -1,5 +1,6 @@
 import type { Schema } from "@hospitalityos/api-client";
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { BrandMark } from "@hospitalityos/theme";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 export type Message = Schema<"GuestMessageResponse">;
 
@@ -47,6 +48,16 @@ const senders: Record<Schema<"MessageSender">, string> = {
 export function Chat({ messages, pending, waiting, ready = true, onSend, onRetry }: ChatProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const list = useRef<HTMLOListElement>(null);
+
+  // Keep the newest message in view as the conversation grows.
+  useEffect(() => {
+    const shown = list.current;
+
+    if (shown) {
+      shown.scrollTop = shown.scrollHeight;
+    }
+  }, [messages.length, pending.length, waiting]);
 
   async function send(said: string) {
     const trimmed = said.trim();
@@ -79,7 +90,16 @@ export function Chat({ messages, pending, waiting, ready = true, onSend, onRetry
   }
 
   return (
-    <section aria-label="Chat" className="chat">
+    <section aria-label="Chat" className="chat card">
+      <div className="chat-header">
+        <BrandMark size={40} />
+        <div>
+          <h2>Your concierge</h2>
+          <p>
+            <span className="online" aria-hidden="true" /> Here day and night
+          </p>
+        </div>
+      </div>
       {messages.length === 0 && pending.length === 0 && (
         <div className="suggestions">
           <p>Ask about the hotel, or tell us what you need.</p>
@@ -90,7 +110,7 @@ export function Chat({ messages, pending, waiting, ready = true, onSend, onRetry
           ))}
         </div>
       )}
-      <ol aria-label="Messages" className="messages">
+      <ol aria-label="Messages" className="messages" ref={list}>
         {messages.map((message) => (
           <li key={message.id} className={message.sender === "Guest" ? "mine" : "theirs"} data-sender={message.sender}>
             <span className="from">{senders[message.sender]}</span>
@@ -121,8 +141,10 @@ export function Chat({ messages, pending, waiting, ready = true, onSend, onRetry
         </p>
       )}
       <form onSubmit={submit} className="composer">
-        <label htmlFor="message">Message</label>
-        <textarea id="message" rows={2} value={text} maxLength={4000} onChange={(event) => setText(event.target.value)} onKeyDown={keyDown} />
+        <label htmlFor="message" className="visually-hidden">
+          Message
+        </label>
+        <textarea id="message" rows={1} placeholder="Ask the concierge…" value={text} maxLength={4000} onChange={(event) => setText(event.target.value)} onKeyDown={keyDown} />
         <button type="submit" disabled={!text.trim() || sending || !ready}>
           Send
         </button>

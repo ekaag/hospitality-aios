@@ -15,6 +15,7 @@
     "@hospitalityos/dev-auth": "workspace:*",
     "@hospitalityos/realtime": "workspace:*",
     "@hospitalityos/sign-in": "workspace:*",
+    "@hospitalityos/theme": "workspace:*",
     "qrcode": "1.5.4",
     "react": "19.3.1",
     "react-dom": "19.3.1"
