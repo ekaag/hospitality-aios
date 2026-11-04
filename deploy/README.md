@@ -139,6 +139,22 @@ environment's registry unchanged and refuses one that was never deployed there.
 
 ## Bootstrapping a cloud (once)
 
+**From GitHub (no tools needed locally).** The `bootstrap` workflow runs everything below in one job, signed in as you:
+
+1. Create a fine-grained personal access token for this repository only, with **Administration** and **Variables**
+   (read and write), and add it as the repository secret `BOOTSTRAP_GITHUB_TOKEN`. The job's own token cannot create
+   environments or set variables.
+2. In Actions, run **bootstrap** with `everything` and type `bootstrap` to confirm. Keep its log open: it prints a device
+   code (open https://microsoft.com/devicelogin and enter it) first for the subscription, as an account that may assign
+   roles, then once for each new External ID tenant, as the administrator it was created with. Creating each tenant
+   can take half an hour before its code appears; a code is valid for 15 minutes.
+3. Delete `BOOTSTRAP_GITHUB_TOKEN` and the token, optionally add `ANTHROPIC_API_KEY`, and run `deploy-dev`.
+
+`azure` or `signin` (for some `environments`) runs one part alone; both are safe to run again. No Azure credential is
+stored. The removals below stay local commands.
+
+**From a terminal**, the same steps one by one:
+
 CI cannot create the identity it signs in with, so each cloud has one bootstrap, run by someone signed in with rights to
 assign roles. For Azure:
 
@@ -180,6 +196,7 @@ again with `--env test --domain hospitalityostest` and `--env prod --domain hosp
 
 | Workflow | When | Does |
 |---|---|---|
+| `bootstrap.yml` | Once, by hand, confirmed | `deploy.py bootstrap` and `bootstrap-signin` for each environment, signed in with device codes (see above) |
 | `iac-validate.yml` | PRs and pushes touching `deploy/` | Orchestrator tests, every plan validated, every module built and linted; a what-if comment on PRs |
 | `deploy-dev.yml` | After CI passes on `main`, or on demand with a plan | `deploy.yml` for `dev` |
 | `deploy.yml` | Reused | `deploy.py up` for one environment and plan |

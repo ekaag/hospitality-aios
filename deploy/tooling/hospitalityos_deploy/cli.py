@@ -119,7 +119,9 @@ def bootstrap_signin(arguments: argparse.Namespace) -> int:
         return 1
 
     product = load_catalog()["product"]
-    values = graph.bootstrap_signin(product, arguments.env, arguments.region, arguments.domain, arguments.country, arguments.data_location, arguments.repo)
+    values = graph.bootstrap_signin(
+        product, arguments.env, arguments.region, arguments.domain, arguments.country, arguments.data_location, arguments.repo, arguments.device_code,
+    )
 
     for key, value in values.items():
         print(f"  {key}={value}")
@@ -335,6 +337,7 @@ def parser() -> argparse.ArgumentParser:
     signin.add_argument("--country", default="GB", help="Where the tenant's data is kept.")
     signin.add_argument("--data-location", default="Europe")
     signin.add_argument("--github", action="store_true", help="Also set the environment's variables with gh.")
+    signin.add_argument("--device-code", action="store_true", help="Sign in to the new tenant with a device code, where there is no browser (the bootstrap workflow).")
     signin.set_defaults(handler=bootstrap_signin)
 
     signin_down = commands.add_parser("bootstrap-signin-down", help="Removes an environment's External ID tenant (after tearing down its signin resource).")

@@ -1,0 +1,118 @@
+# The one-time setup the deploying workflows need (deploy/README.md, "Bootstrapping a cloud"), run by hand from the
+# Actions tab: the Azure deployment identity with its GitHub OIDC trust, the repository variables, and the deployment
+# environments; then each environment's Entra External ID tenant with its own deployment app. CI cannot create the
+# identity it signs in with, so this job signs in as the person running it, with device codes printed in its log (open
+# https://microsoft.com/devicelogin and enter the code): once for the subscription, and once for each new tenant. No Azure
+# credential is stored. Setting repository variables and environments needs more than the job's own token can do, so the
+# repository secret BOOTSTRAP_GITHUB_TOKEN holds a short-lived fine-grained token for this repository (Administration and
+# Variables, read and write), deleted afterwards. Running it again changes nothing.
+name: bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: What to bootstrap.
+        required: true
+        type: choice
+        options: [everything, azure, signin]
+        default: everything
+      environments:
+        description: The environments whose External ID tenants to create, space-separated.
+        required: false
+        default: dev test prod
+      domain-prefix:
+        description: The tenants' domain prefix, unique across Entra; the environment is appended (hospitalityosdev).
+        required: false
+        default: hospitalityos
+      subscription:
+        description: The Azure subscription (ID or name); the signed-in account's default when empty.
+        required: false
+      confirm:
+        description: Type bootstrap to confirm.
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    name: Bootstrap (${{ inputs.what }})
+    if: inputs.confirm == 'bootstrap'
+    runs-on: ubuntu-24.04
+    # Creating an External ID tenant can take half an hour, and each waits for its sign-in.
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the inputs and the GitHub token
+        env:
+          GH_TOKEN: ${{ secrets.BOOTSTRAP_GITHUB_TOKEN }}
+          ENVIRONMENTS: ${{ inputs.environments }}
+          DOMAIN_PREFIX: ${{ inputs.domain-prefix }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Add the repository secret BOOTSTRAP_GITHUB_TOKEN: a fine-grained token for this repository with Administration and Variables (read and write). Delete it after the bootstrap."
+            exit 1
+          fi
+          for environment in $ENVIRONMENTS; do
+            case "$environment" in
+              dev|test|prod) ;;
+              *) echo "::error::Unknown environment '$environment' (dev, test, or prod)."; exit 1 ;;
+            esac
+          done
+          if ! printf '%s' "$DOMAIN_PREFIX" | grep -Eq '^[a-z0-9]{1,20}$'; then
+            echo "::error::The domain prefix must be lowercase letters and digits."
+            exit 1
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}" --jq .full_name > /dev/null
+
+      - name: Sign in to Azure (open https://microsoft.com/devicelogin and enter the code below)
+        env:
+          SUBSCRIPTION: ${{ inputs.subscription }}
+        run: |
+          az login --use-device-code --output none
+          if [ -n "$SUBSCRIPTION" ]; then
+            az account set --subscription "$SUBSCRIPTION"
+          fi
+          az account show --query "{subscription:name, id:id}" --output table
+
+      - name: Azure deployment identity, repository variables, and environments
+        if: inputs.what == 'everything' || inputs.what == 'azure'
+        env:
+          GH_TOKEN: ${{ secrets.BOOTSTRAP_GITHUB_TOKEN }}
+        run: python3 deploy/tooling/deploy.py bootstrap --cloud azure --repo "$GITHUB_REPOSITORY" --github --reviewer "$GITHUB_ACTOR"
+
+      - name: External ID tenants (each asks for a device-code sign-in to the new tenant, as its administrator)
+        if: inputs.what == 'everything' || inputs.what == 'signin'
+        env:
+          GH_TOKEN: ${{ secrets.BOOTSTRAP_GITHUB_TOKEN }}
+          ENVIRONMENTS: ${{ inputs.environments }}
+          DOMAIN_PREFIX: ${{ inputs.domain-prefix }}
+        run: |
+          for environment in $ENVIRONMENTS; do
+            echo "::group::$environment"
+            python3 deploy/tooling/deploy.py bootstrap-signin --env "$environment" --repo "$GITHUB_REPOSITORY" --domain "${DOMAIN_PREFIX}${environment}" --github --device-code
+            echo "::endgroup::"
+          done
+
+      - name: Sign out
+        if: always()
+        run: az account clear
+
+      - name: Next steps
+        if: success()
+        run: |
+          {
+            echo "## Bootstrapped"
+            echo
+            echo "1. Delete the repository secret BOOTSTRAP_GITHUB_TOKEN, and the token itself in GitHub's developer settings."
+            echo "2. Optionally add the repository secret ANTHROPIC_API_KEY, for the AI tasks to use Claude."
+            echo "3. Run the deploy-dev workflow (or push to main)."
+          } >> "$GITHUB_STEP_SUMMARY"

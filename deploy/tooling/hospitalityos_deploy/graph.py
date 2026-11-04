@@ -483,10 +483,28 @@ def revoke_operator(graph: Graph, api_unique_name: str, email: str) -> str:
     return user.get("displayName") or email
 
 
-def bootstrap_signin(product: str, env: str, region: str, domain: str, country: str, data_location: str, repository: str) -> dict[str, str]:
+def tenant_login(tenant_id: str, device_code: bool = False) -> list[str]:
+    """The Azure CLI sign-in to a tenant that has no subscription: in a browser, or with a device code where there is
+    none (the bootstrap workflow prints the code in its log)."""
+    return [*_az(), "login", "--tenant", tenant_id, "--allow-no-subscriptions", *(["--use-device-code"] if device_code else [])]
+
+
+def bootstrap_signin(product: str, env: str, region: str, domain: str, country: str, data_location: str, repository: str, device_code: bool = False) -> dict[str, str]:
     """Creates the environment's External ID tenant (once; it can take half an hour), then, signed in to it as its
     administrator, the deployment app CI signs in to it as: trusted for the repository's workflows like the Azure
-    deployment identity, holding only the Graph permissions the driver needs. Returns the values the workflows need."""
+    deployment identity, holding only the Graph permissions the driver needs. Returns the values the workflows need.
+    The Azure CLI is left on the subscription it started on, so the next environment can be bootstrapped after it."""
+    from .azure import az, az_json
+
+    subscription = az_json("account", "show")["id"]
+
+    try:
+        return _bootstrap_signin(product, env, region, domain, country, data_location, repository, device_code)
+    finally:
+        az("account", "set", "--subscription", subscription)
+
+
+def _bootstrap_signin(product: str, env: str, region: str, domain: str, country: str, data_location: str, repository: str, device_code: bool) -> dict[str, str]:
     from .azure import az, az_json, outputs_of, parameters_file
 
     group = group_name(product, "signin", env)
@@ -507,7 +525,7 @@ def bootstrap_signin(product: str, env: str, region: str, domain: str, country: 
 
     tenant_id = outputs_of((deployment or {}).get("properties", {}))["tenantId"]
     print(f"Sign in to the new tenant {domain}.onmicrosoft.com ({tenant_id}) as its administrator.")
-    subprocess.run([*_az(), "login", "--tenant", tenant_id, "--allow-no-subscriptions"], check=True)
+    subprocess.run(tenant_login(tenant_id, device_code), check=True)
 
     graph = Graph(lambda: az_graph_token(tenant_id))
     unique_name = resource_name("deploy", env, region, "app")
